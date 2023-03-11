@@ -51,139 +51,139 @@
 
 /* structures */
 struct filelistent {
-   char name[256];
-   struct filelistent *prev;
-   struct filelistent *next;
-   unsigned int number;
-   unsigned char tagged;
-   unsigned char type; /* 1=file, 2=dir */
+    char name[256];
+    struct filelistent *prev;
+    struct filelistent *next;
+    unsigned int number;
+    unsigned char tagged;
+    unsigned char type; /* 1=file, 2=dir */
 };
 
 struct playlistent {
-   char name[256];
-   char showname[100];
-   unsigned int samplerate;
-   unsigned int bitrate;
-   unsigned char mode;
-   unsigned long length;
-   unsigned int number;
-   struct playlistent *prev;
-   struct playlistent *next;
+    char name[256];
+    char showname[100];
+    unsigned int samplerate;
+    unsigned int bitrate;
+    unsigned char mode;
+    unsigned long length;
+    unsigned int number;
+    struct playlistent *prev;
+    struct playlistent *next;
 };
 
 struct oneplaylistent {
-   char name[256];
-   char showname[100];
-   unsigned int samplerate;
-   unsigned int bitrate;
-   unsigned char mode;
-   unsigned long length;
+    char name[256];
+    char showname[100];
+    unsigned int samplerate;
+    unsigned int bitrate;
+    unsigned char mode;
+    unsigned long length;
 };
 
 struct currentplaylistent {
-   char name[256];
-   char showname[100];
-   unsigned int samplerate;
-   unsigned int bitrate;
-   unsigned char mode;
-   unsigned long length;
-   unsigned long played;
-   unsigned long left;
-   unsigned long frame;
+    char name[256];
+    char showname[100];
+    unsigned int samplerate;
+    unsigned int bitrate;
+    unsigned char mode;
+    unsigned long length;
+    unsigned long played;
+    unsigned long left;
+    unsigned long frame;
 };
 
 struct ID3 {
-   char tag[3];
-   char songname[30];
-   char artist[30];
-   char album[30];
-   char year[4];
-   char misc[30];
-   unsigned char genre;
+    char tag[3];
+    char songname[30];
+    char artist[30];
+    char album[30];
+    char year[4];
+    char misc[30];
+    unsigned char genre;
 };
 
 struct usableID3 {
-   char songname[31];
-   char artist[31];
-   char album[31];
-   char year[5];
-   char misc[31];
+    char songname[31];
+    char artist[31];
+    char album[31];
+    char year[5];
+    char misc[31];
 };
 
 struct skinconfig {
-   char mpclr, miclr, piclr, pclr, fclr, iclr;
-   char mx[MAXBUTTON+1], my[MAXBUTTON+1], mw[MAXBUTTON+1], *ma[MAXBUTTON+1], *mi[MAXBUTTON+1], mh[MAXBUTTON+1];
-   signed int mju[MAXBUTTON+1], mjd[MAXBUTTON+1], mjl[MAXBUTTON+1], mjr[MAXBUTTON+1];
-   char px[PL_MAXBUTTON+1], py[PL_MAXBUTTON+1], pw[PL_MAXBUTTON+1], *pa[PL_MAXBUTTON+1], *pi[PL_MAXBUTTON+1];
-   char fx[FL_MAXBUTTON+1], fy[FL_MAXBUTTON+1], fw[FL_MAXBUTTON+1], *fa[FL_MAXBUTTON+1], *fi[FL_MAXBUTTON+1];
-   char ix[7], iy[7], *modetext[3], *stereotext[2];
-   char flistbo[FL_MAXBUTTON+1], plistbo[PL_MAXBUTTON+1], msb, psb, fsb;
-   char findbarw, findbarx, findbary, *findbarc;
-   char mtextx, mtexty, mtextw, *mtextc, textx, texty, textw, *textc;
-   char *flistmsg[6], *mainmsg[4];
-   char id3fnw, *id3fnc, *id3tc, *id3sc, *id3st;
-   char plistx, plisty, plistw, plistlines;
-   char *plistci, *plistca, *plistcc;
-   char flistx, flisty, flistw, flistlines;
-   char *flistcdi, *flistcda, *flistcfi, *flistcfa, *flistcta, *flistcti;
-   char mouseexpand, pmouseexpand, fmouseexpand;
-   char standardrows;
-   char songnamey, songnamex, modetexty, modetextx, modetextw, bitratex, bitratey;
-   char timey, timex, stereox, stereoy, stereow, songnamew, sampleratex, sampleratey;
-   char songnumberx, songnumbery, volx, voly;
-   char platmain, id3atmain;
-   char mainatpl, id3atpl;
-   char *songnamec, *sampleratec, *bitratec, *timec, *stereoc, *volc;
-   char *modetextc, *songnumberc;
-   char *main;
-   char *playlist;
-   char *filelist;
-   char *id3;
+    char mpclr, miclr, piclr, pclr, fclr, iclr;
+    char mx[MAXBUTTON+1], my[MAXBUTTON+1], mw[MAXBUTTON+1], *ma[MAXBUTTON+1], *mi[MAXBUTTON+1], mh[MAXBUTTON+1];
+    signed int mju[MAXBUTTON+1], mjd[MAXBUTTON+1], mjl[MAXBUTTON+1], mjr[MAXBUTTON+1];
+    char px[PL_MAXBUTTON+1], py[PL_MAXBUTTON+1], pw[PL_MAXBUTTON+1], *pa[PL_MAXBUTTON+1], *pi[PL_MAXBUTTON+1];
+    char fx[FL_MAXBUTTON+1], fy[FL_MAXBUTTON+1], fw[FL_MAXBUTTON+1], *fa[FL_MAXBUTTON+1], *fi[FL_MAXBUTTON+1];
+    char ix[7], iy[7], *modetext[3], *stereotext[2];
+    char flistbo[FL_MAXBUTTON+1], plistbo[PL_MAXBUTTON+1], msb, psb, fsb;
+    char findbarw, findbarx, findbary, *findbarc;
+    char mtextx, mtexty, mtextw, *mtextc, textx, texty, textw, *textc;
+    char *flistmsg[6], *mainmsg[4];
+    char id3fnw, *id3fnc, *id3tc, *id3sc, *id3st;
+    char plistx, plisty, plistw, plistlines;
+    char *plistci, *plistca, *plistcc;
+    char flistx, flisty, flistw, flistlines;
+    char *flistcdi, *flistcda, *flistcfi, *flistcfa, *flistcta, *flistcti;
+    char mouseexpand, pmouseexpand, fmouseexpand;
+    char standardrows;
+    char songnamey, songnamex, modetexty, modetextx, modetextw, bitratex, bitratey;
+    char timey, timex, stereox, stereoy, stereow, songnamew, sampleratex, sampleratey;
+    char songnumberx, songnumbery, volx, voly;
+    char platmain, id3atmain;
+    char mainatpl, id3atpl;
+    char *songnamec, *sampleratec, *bitratec, *timec, *stereoc, *volc;
+    char *modetextc, *songnumberc;
+    char *main;
+    char *playlist;
+    char *filelist;
+    char *id3;
 };
 
 struct rcconfig {
-   unsigned char play, pause, stop, skipb, skipf, seekb, seekf, volinc, voldec;
-   unsigned int port;
+    unsigned char play, pause, stop, skipb, skipf, seekb, seekf, volinc, voldec;
+    unsigned int port;
 };
 
 struct configstruct {
-   char playerpath[100];
-   char playername[100];
-   char *playerargv[15];
-   char quiet[100];
-   char rate[100];
-   char device[100];
-   char downmix[100];
-   char showtime; /* 0 = none, 1 = main, 2 = playlist, 3 = both */
-   char timemode; /* 0 = Show elapsed time, 1 = Show remaining time */
-   char useid3;
-   char rescanid3;
-   char hidedot;
-   char playmode; /* 0 = normal, 1 = loop, 2 = randOm */
-   char dontreopen;
-   char startincwd;
-   char ttymode;
-   char volstep;
-   char voldev;
-   char mutevol;
-   char userc;
-   char compresspl;
-   char scrollsn;
-   char kill2pids;
-   char nicekill;
-   char lockvt;
-   char showtip;
-   char forkseg;
-   char mpg123;
-   char mpg123fastjump;
-   char defpl;
-   char dropinfo;
-   char dropfile[100];
-   int playerprio;
-   unsigned int rctime;
-   unsigned int bufferdelay;
-   struct skinconfig skin;
-   struct rcconfig rc;
+    char playerpath[100];
+    char playername[100];
+    char *playerargv[15];
+    char quiet[100];
+    char rate[100];
+    char device[100];
+    char downmix[100];
+    char showtime; /* 0 = none, 1 = main, 2 = playlist, 3 = both */
+    char timemode; /* 0 = Show elapsed time, 1 = Show remaining time */
+    char useid3;
+    char rescanid3;
+    char hidedot;
+    char playmode; /* 0 = normal, 1 = loop, 2 = randOm */
+    char dontreopen;
+    char startincwd;
+    char ttymode;
+    char volstep;
+    char voldev;
+    char mutevol;
+    char userc;
+    char compresspl;
+    char scrollsn;
+    char kill2pids;
+    char nicekill;
+    char lockvt;
+    char showtip;
+    char forkseg;
+    char mpg123;
+    char mpg123fastjump;
+    char defpl;
+    char dropinfo;
+    char dropfile[100];
+    int playerprio;
+    unsigned int rctime;
+    unsigned int bufferdelay;
+    struct skinconfig skin;
+    struct rcconfig rc;
 };
 
 #ifdef USE_GPM_MOUSE /* if we're using the mouse, declare additional proc/func's */

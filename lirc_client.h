@@ -21,54 +21,50 @@ extern "C" {
 #define LIRC_ALL ((char *) (-1))
 
 enum lirc_flags {none=0x00,
-		 once=0x01,
-		 quit=0x02,
-		 mode=0x04,
-		 ecno=0x08,
-		 startup_mode=0x10
+                 once=0x01,
+                 quit=0x02,
+                 mode=0x04,
+                 ecno=0x08,
+                 startup_mode=0x10
+                };
+
+struct lirc_list {
+    char *string;
+    struct lirc_list *next;
 };
 
-struct lirc_list
-{
-	char *string;
-	struct lirc_list *next;
+struct lirc_code {
+    char *remote;
+    char *button;
+    struct lirc_code *next;
 };
 
-struct lirc_code
-{
-	char *remote;
-	char *button;
-	struct lirc_code *next;
+struct lirc_config {
+    char *current_mode;
+    struct lirc_config_entry *next;
+    struct lirc_config_entry *first;
 };
 
-struct lirc_config
-{
-	char *current_mode;
-	struct lirc_config_entry *next;
-	struct lirc_config_entry *first;
-};
+struct lirc_config_entry {
+    char *prog;
+    struct lirc_code *code;
+    unsigned int rep;
+    struct lirc_list *config;
+    char *change_mode;
+    unsigned int flags;
 
-struct lirc_config_entry
-{
-	char *prog;
-	struct lirc_code *code;
-	unsigned int rep;
-	struct lirc_list *config;
-	char *change_mode;
-	unsigned int flags;
+    char *mode;
+    struct lirc_list *next_config;
+    struct lirc_code *next_code;
 
-	char *mode;
-	struct lirc_list *next_config;
-	struct lirc_code *next_code;
-
-	struct lirc_config_entry *next;
+    struct lirc_config_entry *next;
 };
 
 int lirc_init(char *prog,int verbose);
 int lirc_deinit(void);
 
 int lirc_readconfig(char *file,struct lirc_config **config,
-		    int (check)(char *s));
+                    int (check)(char *s));
 void lirc_freeconfig(struct lirc_config *config);
 
 /* obsolete */
