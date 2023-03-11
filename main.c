@@ -58,7 +58,8 @@ const char keys[] = { '1', '4', '5', '6' };
 
 extern int pl_current, pl_screenmark, pl_maxpos;
 
-char playsong=FALSE, quiet=FALSE, pausesong=FALSE, force=FALSE, checkkill=FALSE, quitmode=0, buttonpos, muted=FALSE, use_lircd=TRUE, alwayslocked=FALSE;
+char playsong=FALSE, quiet=TRUE, pausesong=FALSE, force=FALSE, checkkill=FALSE, quitmode=0, buttonpos, muted=FALSE, 
+use_lircd=TRUE, alwayslocked=FALSE;
 char nosteal = FALSE;
 char currloc = CAMP_MAIN;/* We are here */
 char passwd[15];
@@ -255,18 +256,15 @@ int left, right;
 
    if ( config.mpg123 ) {
       playsong = TRUE;
-//      (void*)mpg123_control(NULL);
-      printf("Awaiting mpg123 to become ready.."); fflush(stdout);
-      (void*)mpg123_control("#@R MPG123");
+      (void*)mpg123_control(NULL);
+//      printf("Awaiting mpg123 to become ready.."); fflush(stdout);
+//      (void*)mpg123_control("#@"); /* R MPG123"); */
 //      sleep(2);
 //      mpg123_control("load /Mp3/12. Sy & Demo - Tears Run Cold.mp3\n");
-      printf("Rock 'n' roll!\n");      
+//      printf("Rock 'n' roll!\n");      
    }
    
    if ( config.showtip ) sleep(4); else usleep(250000);
-   myinit();
-
-   atexit(myexit);
    
    if ( playlist && playsong ) {
       playlistents = pl_count(playlist);
@@ -281,6 +279,11 @@ int left, right;
    if ( config.mpg123 ) checkkill = FALSE;
    
    if ( quitmode == 1 ) disappear();
+
+   quiet = FALSE;
+   atexit(myexit);
+   myinit();
+
 
    updatedata();
    if ( config.skin.platmain ) {
@@ -1078,6 +1081,7 @@ char buf[256], scrl = 1;
 	   
       } else
 	printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, (currenttime.tv_sec-starttime.tv_sec)/60, config.skin.timey, config.skin.timex+3, (currenttime.tv_sec-starttime.tv_sec)%60);
+      updatedata();
       fflush(stdout);
       break;
    

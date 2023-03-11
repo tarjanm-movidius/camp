@@ -175,7 +175,10 @@ struct configstruct {
    char showtip;
    char forkseg;
    char mpg123;
+   char mpg123fastjump;
    char defpl;
+   char dropinfo;
+   char dropfile[100];
    int playerprio;
    unsigned int rctime;
    unsigned int bufferdelay;

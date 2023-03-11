@@ -92,6 +92,12 @@ distribution package, and modify it to fit your needs!\n", configfile);
 	     cconfig.voldev = atoi(value);
 	} else
 #endif
+	if ( !strcasecmp(arg, "dropfile") )
+	strcpy(cconfig.dropfile, value); else
+	if ( !strcasecmp(arg, "dropinfo") )
+	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
+	    cconfig.dropinfo = TRUE; else
+	cconfig.dropinfo = FALSE; else
 	if ( !strcasecmp(arg, "mpg123mode") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.mpg123 = TRUE; else

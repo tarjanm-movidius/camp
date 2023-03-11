@@ -5,6 +5,11 @@ CAMP Changelog
 - Remove
 ! Known bug
 
+2002-05-05: v1.5.3589
+* Fixed the bug wich segfaulted camp if you where trying to steal it from X
+* Fixed the bug when using a pre 0.59s mpg123 player and mpg123 mode
++ Added a "dropfile" with info, and a sample BitchX script to utilize it
+
 2002-03-20: v1.5.3.3544
 * Fixed a stupid bug wich fucked up the playlist-search (my bad)
 * Fixed a bug (segfault) with filenames w/o id3, whith a lenght >100 chars
