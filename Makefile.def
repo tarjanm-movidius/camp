@@ -1,0 +1,26 @@
+CC=gcc
+FLAGS=-O2 -funroll-loops
+BINDIR=/usr/local/bin
+
+OBJS=misc.o id3.o player.o cconfig.o playlist.o main.o
+
+
+all: main
+
+build:
+	builder
+
+main:	$(OBJS) 
+	$(CC) $(FLAGS) $(LIBS) -o camp $(OBJS)
+	@echo "Now, type \"make install\" to install the binary and default configfile." 
+
+install:
+	@echo "CAMP doesn't need to be suid/sgid since it doesn't play anything itself."
+	install --strip --mode=0755 ./camp     $(BINDIR)
+	install         --mode=0600 ./camp.ini $(HOME)/.camp
+	
+.c.o:	
+	$(CC) $(FLAGS) $(DEFINES) -c $<
+
+clean: 
+	rm -f camp *.o *~

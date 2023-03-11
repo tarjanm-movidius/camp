@@ -1,0 +1,42 @@
+#/bin/sh
+echo "Manual-Configure for CAMP 1.0 by inm"
+echo
+if test -e Makefile; then
+ rm -f Makefile
+fi
+
+OS=`uname -s`
+ARCH=`uname -m`
+RELEASE=`uname -r`
+HOST=`uname -n`
+echo "#define OS \"$OS\""            >machtype.h
+echo "#define ARCH \"$ARCH\""        >>machtype.h
+echo "#define RELEASE \"$RELEASE\""  >>machtype.h
+echo "#define HOSTNAME \"$HOST\""    >>machtype.h
+echo "#define COMPILEUSER \"$USER\"" >>machtype.h
+
+DEFINE="DEFINES="
+LIBS="LIBS="
+if test "$OS" = "Linux"; then
+ echo -n "Use default values for Linux? [Y/n] "
+ read YN
+ if test "$YN" != "n" -a "$YN" != "N"; then
+  echo "DEFINES=-DUSE_TERMIOS" >Makefile
+  cat Makefile.def >>Makefile
+  echo "Additional system-independent program defines found in config.h"
+  exit
+ fi
+fi
+echo -n "Use [T]ermios or [c]urses for input control? [T/c]"
+read YN
+if test "$YN" != "c" -a "$YN" != "C"; then
+ DEFINE="$DEFINE"-DUSE_TERMIOS
+else
+ LIBS="$LIBS"-lcurses
+fi
+
+echo $DEFINE      >Makefile
+echo $LIBS        >>Makefile
+cat  Makefile.def >>Makefile
+echo "Additional system-independent program defines found in config.h"
+echo "Run 'make' to compile."

@@ -1,0 +1,164 @@
+CAMP - Console Ansi Mpeg3 Player interface version 1.0.633 released 1998-04-16
+
+Disclaimer:
+
+I am NOT responsible for any trouble that CAMP can cause to your
+PC or any of it's components. You have to use this software totally at
+your own risk!
+
+
+Notice:
+
+This is CAMP version 1.0, it's the first version that's going public, i
+know it will have loads of small bugs and stuff, if you find any, try to
+remeber HOW you made the bug appear, or even better, if you can make up 
+some kind of fix, mail the fix/bug to me at inm@sector7.kracked.com.
+This documentation has a really low quality, and that's just because i
+hate to write doc's, and that english isn't my native language ;)
+Feel very free to mail me with any comments/ideas you have.
+
+
+Install:
+
+To compile and install the camp-source, type the following commands:
+
+./configure
+./make
+./make install
+
+If you don't know what to answer when running configure, it's probably
+safe for everyone to answer use Linux defaults or Termios.
+
+Make sure to edit ".camp" in your homedirectory to point the player
+variable to mpg123 or any other command-line mp3 player. 
+CAMP is known to compile and run under Linux, and SunOS.
+
+
+Syntax:
+
+Camp can be started without any parameters, but you could also start it
+with "camp -p /path/to/playlist/allfiles.lst", OR simply start it with the
+command "camp /songs/mp3/*mp3". Notice that if you load your files
+normally once, then save them as a "ID3" playlist, will make camp load
+them at least ten times faster, since it doesn't have to scan them for
+samplingrates/ID3 tags.
+
+
+Things to do in future versions:
+
+* Get rid of the PC-Only charset, wich will make CAMP look like shit on
+  some machines.
+* Make a sorting-routine for the playlist.
+* Cleanup the code, remove some global variables.
+* Fix all the small bugs i don't know of yet.
+* Write a nicer documentation
+
+
+
+Interface buttons, functions:
+
+Row 1, at the mainscreen:
+
+dark "®®" button: 
+ Skips back one song
+
+light "¯¯" button:
+ If playmode is normal or repeat (loop), it will restart the current song,
+ and if playmode is random, it will random another song.
+
+dark "¯¯" button:
+ Skips forward one song
+
+light "þþ" button:
+ Stops the music, if it's playing.
+
+light "®¯" button:
+ Changes the playmode, normal, repeat or random.
+ Normal means play untill all songs have been played, then exit.
+ Repeat (loop) plays like normal, but jumps from last song to first (neverending)
+ Random chooses the song totally random (neverending)
+
+light "pl" button:
+ Loads up the playlist editor.
+
+light, custom button, defaults to "mixr"
+ If default settings, will try to execute /usr/bin/aumix, check config.h
+ in the source to change.
+
+
+Row 2, at the mainscreen:
+
+light "||" button:
+ Will pause the song, and continue it if you press pause or play.
+
+light "lock" button:
+ Locks the console so noone can exit CAMP, useful if you want to play
+ as root, while there's some hackers around ;)
+
+light "desc" button:
+ Will create/edit the so-called ID3 tag, wich contains informaton about
+ the file, very useful if the song uses some strange chars that you don't
+ want to use in the filename.
+
+light "help" button:
+ *Ahem* Doesn't really work yet.. did I say this is some kind of a beta?
+ I really shoud have removed it from the buttonfield.. 
+
+
+Inside playlisteditor (press "pl" button to get here):
+
+Browse button:
+ Gives you a new screen where you can add new songs to your playlist.
+
+Play button:
+ Plays the current song.
+
+Remove button:
+ Will remove the current song from the playlist (NOT from disk)
+
+Newlst button:
+ Removes all playlist entries (NOT from disk).
+
+Desc button: 
+ Same function as the desc button at the mainscreen.
+
+Back (or escape) button: 
+ Return you to the main screen
+
+
+Inside the fileloader/saver (press pl->browse to get here):
+
+Add button:
+ Will add tagged files to the playlist.
+
+Tag button:
+ Autotagger, tag all files ending up with ".mp3" in the current directory.
+
+Untag button:
+ Untags all tagged files.
+
+Loadp button:
+ Loads the current file as a playlist (text or CPL binary)
+
+Savep button:
+ Saves the current file (or a new name) as a playlist (text or CPL binary)
+
+Clear button:
+ Has the same function as the "newlst" button in the playlisteditor, will
+ remove all playlist entries.
+
+Back! (or escape) button:
+ Takes you back to the playlist editor.
+
+Space:
+ Will change directory, if on a directory, otherwise it tags the current
+ file.
+
+
+-------------------------------------------------------
+Homepage: http://www.sector7.kracked.com
+Email:    inm@sector7.kracked.com
+
+Please send me any kind of comments/bugs/ideas.
+
+End Of File
