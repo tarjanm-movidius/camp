@@ -86,7 +86,7 @@ int  i;
 
     default:
       quitmode = 1;
-      exit();     
+      exit(0);     
       
   }
 }
@@ -117,7 +117,7 @@ struct oneplaylistent getpl;
 
    if ( quitmode == 0 ) quitmode = 3; else
      quitmode = 2;
-   exit();
+   exit(0);
    
 }
 
@@ -134,7 +134,7 @@ struct stat statbuf;
    fd = fopen(PID_FILE, "r");
    if ( !fd ) {
       printf("No session to steal!\n");
-      exit();
+      exit(0);
    }
    fscanf(fd, "%d\n", &oldpid);
    fclose(fd);
@@ -185,7 +185,7 @@ struct stat statbuf;
    fd = fopen(buf, "r");
    if ( !fd ) {
       printf("No data found, can't steal!\n");
-      exit();
+      exit(0);
    }
    fscanf(fd, "%d\n%d\n%d\n", &slavepid, &filenumber, &currentfile.frame);
    fclose(fd);
@@ -224,7 +224,7 @@ char buf[256];
    fd = fopen(PID_FILE, "r");
    if ( !fd ) {
       printf("No session to kill!\n");
-      exit();
+      exit(0);
    }
    fscanf(fd, "%d\n", &oldpid);
    fclose(fd);
@@ -236,7 +236,7 @@ char buf[256];
    fd = fopen(buf, "r");
    if ( !fd ) {
       printf("No session to kill!\n");
-      exit();
+      exit(0);
    }
    fscanf(fd, "%d\n", &oldpid);
    fclose(fd);
@@ -249,5 +249,5 @@ char buf[256];
    sprintf(buf, "%s/time.camp", TMP_DIR);
    unlink(buf);
    printf("done!\n");
-   exit();
+   exit(0);
 }
