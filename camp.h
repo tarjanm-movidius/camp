@@ -123,6 +123,9 @@ struct rcconfig {
 };
 
 struct configstruct {
+   char modplayerpath[100];
+   char modplayername[100];
+   char *modplayerargv[15];
    char playerpath[100];
    char playername[100];
    char *playerargv[15];
@@ -227,6 +230,8 @@ void call_player(struct playlistent *pl);
 void slave(char *filename);
 void killslave(void);
 void playnext(int);
+int modcheck(char *name);
+void mod_slave( char *filename );
 
 /* cconfig.o */
 struct configstruct getconfig(char *configfile);
