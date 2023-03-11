@@ -1,20 +1,21 @@
-CAMP - Console Ansi Mpeg3 Player interface version 1.0.633 released 1998-04-16
+CAMP - Console Ansi Mpeg3 Player interface version 1.0.854 released 1998-05-09
 
 Disclaimer:
 
 I am NOT responsible for any trouble that CAMP can cause to your
-PC or any of it's components. You have to use this software totally at
-your own risk!
+computer or any of it's components. You have to use this software totally
+at your own risk! ( I doubt it's risky to use it anyway :) )
 
 
 Notice:
 
-This is CAMP version 1.0, it's the first version that's going public, i
-know it will have loads of small bugs and stuff, if you find any, try to
-remeber HOW you made the bug appear, or even better, if you can make up 
-some kind of fix, mail the fix/bug to me at inm@sector7.kracked.com.
-This documentation has a really low quality, and that's just because i
-hate to write doc's, and that english isn't my native language ;)
+This is CAMP version 1.1, it's the second version that's going public, i
+have fixed a shitload of bugs since 1.0, but there is likely to be
+more, and new ones, if you find any, try to remeber HOW you made the 
+bug appear, or even better, if you can make up some kind of fix, mail the
+fix/bug to me at inm@sector7.kracked.com. This documentation has a really
+low quality, and that's just because i hate to write doc's, and that
+english isn't my native language ;)
 Feel very free to mail me with any comments/ideas you have.
 
 
@@ -36,10 +37,14 @@ CAMP is known to compile and run under Linux, and SunOS.
 
 Syntax:
 
+-h, --help
+Will show some help on the switches you can use with camp.
+
+-p, --playlist
 Camp can be started without any parameters, but you could also start it
 with "camp -p /path/to/playlist/allfiles.lst", OR simply start it with the
 command "camp /songs/mp3/*mp3". Notice that if you load your files
-normally once, then save them as a "ID3" playlist, will make camp load
+normal once, then save them as a "ID3" playlist, will make camp load
 them at least ten times faster, since it doesn't have to scan them for
 samplingrates/ID3 tags.
 
@@ -48,7 +53,6 @@ Things to do in future versions:
 
 * Get rid of the PC-Only charset, wich will make CAMP look like shit on
   some machines.
-* Make a sorting-routine for the playlist.
 * Cleanup the code, remove some global variables.
 * Fix all the small bugs i don't know of yet.
 * Write a nicer documentation
@@ -91,6 +95,9 @@ Row 2, at the mainscreen:
 light "||" button:
  Will pause the song, and continue it if you press pause or play.
 
+light "jump" button:
+ Will ask you for a songnumber to jump to.
+
 light "lock" button:
  Locks the console so noone can exit CAMP, useful if you want to play
  as root, while there's some hackers around ;)
@@ -99,10 +106,6 @@ light "desc" button:
  Will create/edit the so-called ID3 tag, wich contains informaton about
  the file, very useful if the song uses some strange chars that you don't
  want to use in the filename.
-
-light "help" button:
- *Ahem* Doesn't really work yet.. did I say this is some kind of a beta?
- I really shoud have removed it from the buttonfield.. 
 
 
 Inside playlisteditor (press "pl" button to get here):
@@ -121,6 +124,9 @@ Newlst button:
 
 Desc button: 
  Same function as the desc button at the mainscreen.
+
+Sort button:
+ Will sort the playlist in alphabetical order, ignoring the case.
 
 Back (or escape) button: 
  Return you to the main screen

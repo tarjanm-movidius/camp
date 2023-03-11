@@ -1,9 +1,7 @@
 #ifndef __camp_h
 # define __camp_h
 
-#ifdef USE_TERMIOS
-# include <termios.h>
-#endif
+#include <termios.h>
 #include "config.h"
 #include "machtype.h"
 #include "build.h"
@@ -15,12 +13,12 @@
 # define FALSE 0
 #endif
 
-#define CAMP_VERSION "1.0" 
+#define CAMP_VERSION "1.1" 
 
 #define    MINBUTTON 1
 #define    MAXBUTTON 14
 #define PL_MINBUTTON 1
-#define PL_MAXBUTTON 6
+#define PL_MAXBUTTON 7
 #define FL_MINBUTTON 1
 #define FL_MAXBUTTON 7
 
@@ -80,16 +78,22 @@ struct usableID3 {
 struct configstruct {
    char playerpath[100];
    char playername[100];
-   char *playerargv[10];
+   char *playerargv[15];
+   char quiet[100];
+   char rate[100];
+   char device[100];
+   char downmix[100];
    char useid3;
+   char hidedot;
    char playmode; /* 0 = normal, 1 = loop, 2 = randOm */
+   char dontreopen;
 };
 
 
 
 /* main.o */
-void myinit(void);
 void myexit(void);
+void myinit(void);
 void escfix(void);
 void updatebuttons(int add);
 void updatedata(void);
@@ -106,11 +110,14 @@ void pl_updatebuttons(int add);
 void l_status(char *text);
 void saveplaylist(struct playlistent *playlist, char *cdir, char *filename);
 void releasedir(struct filelistent *filelist);
+void clearplaylist(struct playlistent *playlist);
 char *xys(unsigned char number, char ch);
 char *lowercases(char *str);
 int  pl_count( struct playlistent *playlist );
+struct filelistent *camp_chdir(struct filelistent *filelist, char *cdir);
+struct filelistent *loaddir( char *dir );
 struct filelistent *file_seek( int pos, struct filelistent *filelist );
-struct filelistent *loaddir(char *dir);
+struct filelistent *sortfilelist(struct filelistent *filelist);
 struct playlistent *pl_seek( unsigned int pos, struct playlistent *playlist );
 struct playlistent *fl_dofunction( struct filelistent *filelist, struct playlistent *playlist, char *cdir );
 struct playlistent *pl_dofunction(struct playlistent *playlist, unsigned int *filenumber);
@@ -118,6 +125,7 @@ struct playlistent *rplaylist(struct playlistent *playlist, unsigned int *filenu
 struct playlistent *getfiles(struct playlistent *playlist);
 struct playlistent *loadplaylist(struct playlistent *playlist, char *filename, char filemanager );
 struct playlistent *addfiletolist(struct playlistent *playlist, char *filename, char *showname, int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
+struct playlistent *sortplaylist(struct playlistent *playlist);
 
 /* id3.o */
 struct ID3 usable2id3(struct usableID3 *usabletag);

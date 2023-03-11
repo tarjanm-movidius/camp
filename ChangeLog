@@ -1,0 +1,23 @@
+1998-05-09: v1.1.854
+
+* Fixed a bug, wich made mpg123 and others fail to play songs when they wanted.
+  to write to stdout or stderr, so now thoose are reopened as /dev/null.
+* Fixed a bug wich made camp coredump if you tried to enter a broken symlink,
+  or a directory wich you didn't have permissions to enter.
+* Fixed some small design flaws with the "lock" function.
+* Fixed the filelist editor, so if you press enter on the "add" button, while
+  having a dir marked it will enter the dir, just like pressing space.
+* Fixed a bug in the filelister wich hided some regular files, also speeded
+  up the filelister (load new/change dir) by 50%. 
+* Fixed some other small bugs.
++ Added config option to show/not show files/dirs beginning with '.'.
++ Added config option to pass params directly to the player.
++ Added config option to disable reopening of stdout and stderr.
++ Added alphabetical sorting of the dirs/file, when tagging files.
++ Added a "jump" button, for thoose who are very familiar with their playlists.
++ Added a "sort" button in the playlist editor, to sort the playlist in alphabetic order.
+- Removed the "help" button, since it didn't have any function anyway.
+
+1998-04-16: v1.0.633
+
++ First public release

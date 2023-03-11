@@ -1,5 +1,5 @@
 #/bin/sh
-echo "Manual-Configure for CAMP 1.0 by inm"
+echo "Manual-Configure for CAMP 1.1 by inm"
 echo
 if test -e Makefile; then
  rm -f Makefile
@@ -39,4 +39,3 @@ echo $DEFINE      >Makefile
 echo $LIBS        >>Makefile
 cat  Makefile.def >>Makefile
 echo "Additional system-independent program defines found in config.h"
-echo "Run 'make' to compile."

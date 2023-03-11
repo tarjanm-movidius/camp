@@ -25,8 +25,7 @@ void playnext(int sig) {
    if ( playlist == NULL ) return;
    signal(SIGCHLD, playnext);
    if ( pausesong ) return;
-   if ( slavepid ) waitpid(-1, NULL, 0);
-   if ( playsong && slavepid /*&& kill(slavepid, SIGCHLD) == -1*/ ) {
+   if ( playsong && slavepid && waitpid(-1, NULL, WNOHANG) > 0 ) {
       if ( config.playmode != 2 ) {
 	 if ( filenumber+1 == playlistents && config.playmode == 1 ) filenumber = playlistents+2; else
 	   if ( filenumber+1 == playlistents && config.playmode == 0 ) exit(0); 
@@ -55,9 +54,12 @@ int pid;
 void slave(char *filename) {
 char i=0, buf[256];
 FILE *fd;
-   fclose(stdout);
-   fclose(stderr); 
-   for(i=0;i<10;i++)
+
+   if ( !config.dontreopen ) {
+      freopen("/dev/null", "w", stdout);
+      freopen("/dev/null", "w", stderr);
+   }
+   for(i=0;i<15;i++)
      if (config.playerargv[i] == NULL) break;
    config.playerargv[i] = (char*)malloc(strlen(filename)+1);
    strcpy(config.playerargv[i], filename);

@@ -21,14 +21,18 @@ struct termios oldtermios, newtermios;
 
 
 /*                                                           
- *      Console Ansi Mpeg3 Player interface v0.9 by inm      
+ *      Console Ansi Mpeg3 Player interface v1.0 by inm      
  *                                                           
  * If you improve this code, please send a copy, or a        
  * diff of it to inm@sector7.kracked.com.                    
  * Latest version can always be found at                     
  * http://www.sector7.kracked.com                            
  *                                                           
- * v1.0 Soon to be released..                                
+ * 1998-04-16: v1.0.633 Released                             
+ *                                                           
+ * 1998-05-01: v1.0.700 Released                             
+ * Bugs fixed.                                               
+ * Added "jump" button                                       
  *                                                           
  * TODO:                                                     
  * Switch to disable 8bit chars.                             
@@ -37,19 +41,20 @@ struct termios oldtermios, newtermios;
 
 /* wh0ps .. loads of globals. I'll optimize this shit later */
 int  i, buttonpos=2;
-char playsong=TRUE, quiet=FALSE, pausesong=FALSE, useid3=TRUE;
+char playsong=TRUE, quiet=FALSE, pausesong=FALSE;
 char showname[100], playlistname[19];
 struct playlistent *playlist = NULL;
 unsigned int slavepid=0, playlistents=0, filenumber=0, fs=0, bitrate=0, mode=0;
 struct configstruct config;
 
-main(int argc, char *argv[]) {
-char   c, name[31], artist[31];
+int main(int argc, char *argv[]) {
+char   c;
 int    j, ch, cspos=0;
 FILE   *fd;
 fd_set stdinfds;
 struct timeval currenttime;
      
+   printf("Console Ansi Mpeg3 Player interface v%s.%d by inm (inm@sector7.kracked.com)\n\n", CAMP_VERSION, BUILD);
    sprintf(showname, "%s/.camp", getenv("HOME"));
    printf("Loading config from %s...\n", showname);
    config = getconfig(showname);
@@ -57,34 +62,43 @@ struct timeval currenttime;
    strcpy(playlistname, "misc. files loaded");
 
    if ( argc != 1 ) {   
-      printf("Scanning files, please wait..\n");
-      if ( !strcasecmp(argv[1], "-p") ) 
-	playlist = loadplaylist(playlist, argv[2], FALSE); else 
-	for(i=1;i<argc;i++) {
-	   playlist = addfiletolist(playlist, argv[i], NULL, 0, 0, 0, TRUE);
-	}
-   } else {
-      playlist = NULL;
-      playsong = FALSE;
-      playlistents = 0;
-   }
+      printf("Scanning arguments, please wait..\n");
+      for(i=1;i<argc;i++) {
+	 if ( !strcasecmp(argv[i], "-p") || !strcasecmp(argv[i], "--playlist") ) {
+	    i++;
+	    playlist = loadplaylist(playlist, argv[i], FALSE);
+	 } else
+	   if ( !strcasecmp(argv[i], "--help") || !strcasecmp(argv[i], "-h") ) {
+	      printf("\nUsage: camp [OPTIONS] [FILES]\n\n");
+	      printf("Options:\n");
+	      printf("  -h,   --help         This help.\n");
+	      printf("  -p X, --playlist X   Load playlist 'X'.\n\n");
+	      printf("Any other filename will be taken for a regular mp3 file.\n");
+	      exit(0);
+	   } else
+	   playlist = addfiletolist(playlist, argv[i], NULL, 0, 0, 0, TRUE);	 
+      }
+   }   
    
-   if ( playlist == NULL ) strcpy(playlistname, "no playlist loaded");   
+   if ( playlist == NULL ) {
+      strcpy(playlistname, "no playlist loaded");
+      playsong = FALSE;
+   }
    
    sleep(1);
    myinit();
    atexit(myexit);
    
-   if ( playlist != NULL ) {
+   if ( playlist != NULL && playsong == TRUE ) {
       playlistents = pl_seek(65000, playlist)->number;
       if ( config.playmode == 2 ) filenumber = myrand(playlistents);
-      call_player(pl_seek(filenumber, playlist)); 
+      call_player(pl_seek(filenumber, playlist));
    } else
      updatebuttons(4);
    
    
    while ( TRUE ) {
-
+      
       if ( playsong && !pausesong ) {
 	 updatesongtime('u');
       }
@@ -97,12 +111,18 @@ struct timeval currenttime;
 	 ch=0;
 	 while ( ch != -1 ) {
 	    ch = getchar();
-	    if (ch == 27)  escfix(); else
-	      if (ch == 3) exit(0);  else
+	    if (ch == 27)   escfix(); else
+	      if (ch == 3)  exit(0);  else /* ^C */
+	      if (ch == 12) { /* ^L */
+		 printf("\e[0m\e[2J\e[1;1H%s", screendata);
+		 updatedata();
+		 updatebuttons(0);
+	      } else
 	      if (ch == 13 && dofunction()) call_player(pl_seek(filenumber, playlist));
 	 } /* while ch != .. */
       } /* select */
    } /* while(endless) */   
+return 0;
 } /* main() */
 
 
@@ -114,11 +134,13 @@ void updatebuttons(int add) {
    buttonpos += add;
    if ( buttonpos == 8    && add == 7 )  buttonpos = 9; else 
      if ( buttonpos == 10 && add == 7 )  buttonpos = 9; else
-     if ( buttonpos == 11 && add == 7 )  buttonpos = 12; else
-     if ( buttonpos == 10 && add == 1 )  buttonpos = 12; else
-     if ( buttonpos == 11 && add == -1 ) buttonpos = 9; else
+     if ( buttonpos == 10 && add == -1 )  buttonpos = 9; else
+     if ( buttonpos == 10 && add == 1 )  buttonpos = 11; else
+     if ( buttonpos == 9 && add == -1 ) buttonpos = 8; else 
      if ( buttonpos == 8  && add == -1 ) buttonpos = 9; else
-     if ( buttonpos == 8  && add == 1 )  buttonpos = 7; 
+     if ( buttonpos == 8  && add == 1 ) buttonpos = 7; else
+     if ( buttonpos == 14  && add == 7 ) buttonpos = 13; else
+     if ( buttonpos == 14  && add == 1 ) buttonpos = 13; 
      /* phear me =) */
    
    printf("\e[12;14H");
@@ -163,11 +185,11 @@ void updatebuttons(int add) {
 /*   printf("\e[14;30H");
    if (buttonpos == 10)	printf("\e[44;36;1m"); else
      printf("\e[0;36;44m");
-   printf("  ¯¯  "); 
+   printf("  ¯¯  "); */
    printf("\e[14;38H");
    if (buttonpos == 11)	printf("\e[44;36;1m"); else
      printf("\e[44;34;1m");
-   printf("  þþ  ");*/
+   printf(" jump ");
    printf("\e[14;46H");
    if (buttonpos == 12)	printf("\e[44;36m"); else
      printf("\e[44;34m");
@@ -176,11 +198,11 @@ void updatebuttons(int add) {
    if (buttonpos == 13)	printf("\e[44;36m"); else
      printf("\e[44;34m");
    printf(" desc ");
-   printf("\e[14;62H");
+/*   printf("\e[14;62H");
    if (buttonpos == 14)	printf("\e[44;36m"); else
      printf("\e[44;34m");
    printf(" help ");
-
+*/
    fflush(stdout);
 }
 
@@ -203,6 +225,7 @@ void myinit(void) {
 
 void myexit(void) {
    
+   if ( playlist != NULL ) clearplaylist(playlist);
    if ( playsong ) killslave();  
 #ifdef USE_TERMIOS
    fcntl(fileno(stdin), F_SETFL, 0);
@@ -236,6 +259,7 @@ void escfix(void) {
 int dofunction(void) {
 static struct timeval pause_start, pause_end;
 char pass[16], checkpass[16];
+int mod, ec, oldfilenumber;
 FILE *fd;
    
    switch( buttonpos ) {
@@ -321,6 +345,24 @@ FILE *fd;
 	 }
       }
       break;
+
+    case 11:
+      oldfilenumber = filenumber;
+      pass[0] = 0;
+      do {
+	 printf("\e[1;34;46m\e[9;16H                                                  \e[9;16HJump to song [1-%d]:\e[0;34;46m", playlistents);
+	 /* updatebuttons(0); */
+	 mod = 27;
+	 filenumber = atoi(readyxline(9, 38, pass, 4, &ec, &mod));
+	 sprintf(pass, "%d", filenumber); 
+	 if ( filenumber == 0 || ec == 27 || !mod ) { filenumber = -1; break; }
+	 filenumber--;
+      } while( filenumber < 0 || filenumber > playlistents-1 );
+      if ( filenumber != -1 ) call_player(pl_seek(filenumber, playlist)); else {
+	 filenumber = oldfilenumber;
+	 updatedata();
+      }
+      break;
       
     case 12: /* lock */
       printf("\e[1;34;46m\e[12;14HEnter  password:                                      ");
@@ -336,8 +378,9 @@ FILE *fd;
 	 do {
 	    while ( !mykbhit(1) )
 	      updatesongtime('u');
-	    printf("\e[14;31H               \e[14;31H\e[0;46;34m");
+	    printf("\e[14;31H\e[0;46;34m");
 	    readpass(checkpass, 15);
+	    printf("\e[14;31H               \e[14;31H\e[0;46;34m"); fflush(stdout);
 	 } while ( strcmp(pass, checkpass) );
       }
       printf("\e[1;34;46m\e[12;14H                                                     ");

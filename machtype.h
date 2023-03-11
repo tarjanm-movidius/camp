@@ -1,5 +1,0 @@
-#define OS "Linux"
-#define ARCH "i586"
-#define RELEASE "2.0.33"
-#define HOSTNAME "inm"
-#define COMPILEUSER "root"

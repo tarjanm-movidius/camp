@@ -41,6 +41,7 @@ static char buf[256];
       FD_SET(0, &stdinfds);
       select(1, &stdinfds, NULL, NULL, NULL);
       ch = getchar();
+      if ( ch == 3 ) exit(0); /* ^C */
       
       do {
 	 if ( ch > 31 && pos < maxlen && ch != 127 ) {
@@ -48,13 +49,13 @@ static char buf[256];
 	    buf[strlen(buf)] = ch;
 	    printf("%c", ch);
 	    pos++;
-	    *modified = TRUE;
+	    if ( modified != NULL ) *modified = TRUE;
 	 } else
 	   if (ch == 127 && pos != 0) {
 	      buf[strlen(buf)-1] = 0;
 	      pos--;
 	      printf("\e[%d;%dH%s \e[%d;%dH", y, x, buf, y, x+pos);
-	      *modified = TRUE;
+	      if ( modified != NULL ) *modified = TRUE;
 	   } else
 	   if ( ch == 27 ) {
 	      ch = getchar();
