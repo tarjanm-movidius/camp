@@ -250,6 +250,7 @@ char shortname[66];
 void pl_showents( int startpos, struct playlistent *playlist ) {
 int i=0, k=0;
 char shortname[61];
+char buf[70];
    
    playlist = pl_seek(startpos, playlist);
    printf("\e[0;46m");
@@ -257,7 +258,14 @@ char shortname[61];
    while ( playlist != NULL && playlist->next != NULL ) {
       if ( playlist->number == pl_current ) printf("\e[31m"); else
 	printf("\e[34m");
-      strncpy(shortname, playlist->showname, 60);
+      memset(buf, 0, 70);
+      memset(shortname, 0, 60);
+      strncpy(buf, playlist->showname, 52);
+      
+      if ( config.showtime > 1 ) 
+	if ( playlist->length != 0 ) sprintf(shortname, "[%02u:%02u] %s", playlist->length / 60, playlist->length % 60, buf ); else
+	sprintf(shortname, "[error] %s", playlist->showname, 59); else
+	strncpy(shortname, playlist->showname, 59);      
       for(k=strlen(shortname);k<60;k++) shortname[k] = ' ';
       shortname[60] = 0;
       printf("\e[%d;8H%-4.d %s",5+i,playlist->number+1, shortname);
@@ -445,7 +453,7 @@ char j, cspos;
       break;
       
     case 6: /* clear playlist */
-      clearplaylist(playlist);
+      playlist = clearplaylist(playlist);
       strcpy(playlistname, "no playlist loaded");
       break;
    } /* switch */
@@ -497,7 +505,7 @@ int pid;
       return(playlist);
       
     case 4: /* new list (clear) */
-      clearplaylist(playlist);
+      playlist = clearplaylist(playlist);
       pl_showents(0, playlist);
       pl_current = 0;
       pl_screenmark = 0;
@@ -586,7 +594,7 @@ FILE *fd;
 int  ch=0, cspos, j, cplid3 = FALSE;
 char buf2[256], buf[256], charen[500];
 unsigned int samplerate;
-int bitrate;
+unsigned int bitrate;
 unsigned char mode;
 struct oneplaylistent getpl;
    
@@ -594,19 +602,21 @@ struct oneplaylistent getpl;
    if ( fd == NULL ) return playlist;
 
    if ( playlist != NULL ) strcpy(playlistname, "misc. files loaded"); else {
-      strcpy(buf, filename);
-      for(ch=0;ch<strlen(filename);ch++)
-	if ( filename[ch] == '/' ) cspos=0; else {
-	   buf[cspos] = filename[ch];
-	   cspos++;
-	}
-      buf[cspos] = 0;
-      strncpy(playlistname, buf, 19);
+      if ( strchr(filename, '/') ) {
+	 strcpy(buf, filename);
+	 for(ch=0;ch<strlen(filename);ch++)
+	   if ( filename[ch] == '/' ) cspos=0; else {
+	      buf[cspos] = filename[ch];
+	      cspos++;
+	   }
+	 buf[cspos] = 0;
+	 strncpy(playlistname, buf, 19);
+      } else strncpy(playlistname, filename, 19);
    }
    
    if ( filemanager ) l_status("Loading, please wait...");
    readln(fd, buf);
-   if (!strncmp(buf, "CPL+ID3 1.2", 11)) {
+   if (!strncmp(buf, "CPL+ID3 1.3", 11)) {
       if ( playlist == NULL ) {
 	 playlist = (struct playlistent*)malloc(sizeof(struct playlistent));
 	 playlist->prev = NULL;
@@ -625,8 +635,8 @@ struct oneplaylistent getpl;
       }
    } else 
      if (!strncmp(buf, "CPL+ID3", 7)) { /* wrong version playlist ;( */
-	if ( filemanager ) l_status("This playlist is from an unsupported version of CAMP"); else {
-	   printf("This playlist is from an unsupported version of CAMP\n");
+	if ( filemanager ) l_status("This playlist is too old, please check the README"); else {
+	   printf("This playlist is too old, please check the README\n");
 	   exit(-1);
 	}
 	sleep(2);
@@ -673,7 +683,7 @@ struct oneplaylistent getpl;
    select(1, &stdinfds, NULL, NULL, NULL);
    fd = fopen(buf, "w");
    if ( toupper(getchar()) == 'N' ) cplid3 = FALSE; else
-     fputs("CPL+ID3 1.2\n", fd);
+     fputs("CPL+ID3 1.3\n", fd);
    
    l_status("Saving...\e[?25l");
 
@@ -694,9 +704,11 @@ struct oneplaylistent getpl;
    fl_updatebuttons(0);
 }
 
-struct playlistent *addfiletolist(struct playlistent *playlist, char *filename, char *showname, int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 ) {
-char name[31], artist[31];
-int cspos=0, j;
+struct playlistent *addfiletolist(struct playlistent *playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 ) {
+char   name[31], artist[31];
+int    cspos=0, j;
+struct stat statf;
+size_t filesize;
    
    if ( !exist(filename) ) return playlist;
    
@@ -715,10 +727,10 @@ int cspos=0, j;
    playlist->samplerate = samplerate;
    playlist->bitrate = bitrate;
    strcpy(playlist->name, filename);
-   
+
    if ( showname == NULL ) {
       if ( scanid3 && getmp3info(filename, &mode, &samplerate, &bitrate, name, artist, NULL, NULL, NULL, 0) ) {
-	 if ( artist[0] != 0 ) sprintf(playlist->showname, "%s - %s", artist, name); else
+	 if ( artist[0] != 0 ) sprintf(playlist->showname, "%s - %s", artist, name ); else
 	   strcpy(playlist->showname, name);
       } else
 	for(j=0;j<strlen(filename);j++) {
@@ -734,21 +746,25 @@ int cspos=0, j;
 #endif
 	   if ( filename[j] == '/' ) cspos = 0; else
 	     cspos++;
-	   }
+	}
       playlist->showname[cspos - 4] = 0;
    } else
      strcpy(playlist->showname, showname);
+   
+   stat(filename, (struct stat*)&statf);
+
    if ( bitrate+samplerate != 0 ) {
-      playlist->bitrate = bitrate;
+      playlist->bitrate    = bitrate;
       playlist->samplerate = samplerate;
-      playlist->mode = mode;
+      playlist->mode       = mode;
+      playlist->length     = statf.st_size / (bitrate * 125);
    }
    
 return playlist;
 }
 
 
-void clearplaylist(struct playlistent *playlist) {
+struct playlistent *clearplaylist(struct playlistent *playlist) {
 struct playlistent *temp;
    
    if ( playlist != NULL ) {
@@ -759,7 +775,9 @@ struct playlistent *temp;
 	 free(temp);
       }
    } 
+   return playlist;
 }
+
 
 struct playlistent *sortplaylist(struct playlistent *playlist) {
 struct playlistent *sortedlist, *temp;
@@ -774,8 +792,8 @@ unsigned int playlistents = pl_seek(65535, playlist)->number;
    for(i=0;i<playlistents;i++) {
       playlist = pl_seek(0, playlist);
       temp = playlist;
-      while ( playlist->next != NULL ) {
-	 playlist = playlist->next;
+      while ( playlist->next != NULL && playlist != NULL ) {
+	 
 	 for(j=0;j<strlen(playlist->showname);j++)
 	   
 	   if( tolower(playlist->showname[j]) < tolower(temp->showname[j]) ) {
@@ -783,18 +801,14 @@ unsigned int playlistents = pl_seek(65535, playlist)->number;
 	      break;
 	   } else
 	   if ( tolower(playlist->showname[j]) != tolower(temp->showname[j]) )
-	     break;
-	 
+	     break;	 
+	 playlist = playlist->next;
       }
       sortedlist->next = (struct playlistent*)malloc(sizeof(struct playlistent));
       sortedlist->next->prev = sortedlist;
       sortedlist->next->next = NULL;
       sortedlist->next->number = sortedlist->number+1;
-      strcpy(sortedlist->showname, temp->showname);
-      strcpy(sortedlist->name, temp->name);
-      sortedlist->samplerate = temp->samplerate;
-      sortedlist->bitrate = temp->bitrate;
-      sortedlist->mode = temp->mode;
+      memcpy((struct oneplaylistent*)sortedlist, temp, sizeof(struct oneplaylistent));
       sortedlist = sortedlist->next;
       
       if ( temp->prev != NULL ) temp->prev->next = temp->next; else
@@ -805,6 +819,7 @@ unsigned int playlistents = pl_seek(65535, playlist)->number;
    }
    return(sortedlist);
 }
+
 
 struct filelistent *sortfilelist(struct filelistent *filelist) {
 struct filelistent *sortedlist, *temp;
@@ -820,7 +835,6 @@ unsigned int filelistents = file_seek(65535, filelist)->number;
       filelist = file_seek(0, filelist);
       temp = filelist;
       while ( filelist->next != NULL ) {
-	 filelist = filelist->next;
 	 for(j=0;j<strlen(filelist->name);j++)
 	   if( filelist->type == 2 && temp->type == 1 ) {
 	      temp = filelist;
@@ -834,6 +848,7 @@ unsigned int filelistents = file_seek(65535, filelist)->number;
 	   } else
 	   if ( filelist->name[j] != temp->name[j] )
 	     break;	 
+	 filelist = filelist->next;
       }
       sortedlist->next = (struct filelistent*)malloc(sizeof(struct filelistent));
       sortedlist->next->prev = sortedlist;

@@ -1,0 +1,52 @@
+MPEG3 Player speed comparision by inm (1998-05-26)
+
+
+Background:
+ I were amazed over the VERY small cpu-load x11amp made, even when running
+ "top -q" it didn't really go more than 20% at any time. I decided to test
+ this for real.
+
+
+Method:
+ I played the same mp3 file, with 44KHz, 128Kbit and stereo sound in all tests.
+ The actual test was done by running my rc5 client in "idle-mode", wich means
+ that it will run at full cpu load, but give up all the power that other
+ programs might want to use. I ran "rc5des -benchmark2" several times for
+ each player, and it did not differ very much from time to time. 
+ I did not have any other load than the mp3 player, rc5, and for the X tests,
+ I had to run X (with KDE). If you don't know what rc5 is, go to
+ http://www.distributed.net For all players except the real X players, 
+ i used camp as interface (wich i concider uses non-noticeable cpu power).
+
+
+Equipment:
+ Intel pentium 75 overclocked to 120MHz
+ 24Mb ram
+ Linux (Slackware) 2.0.33 + Memcopy patch
+ Sound blaster's vibra 16 (SB16 budget version)
+
+
+Versions:
+ xaudio		version 1.0a [decoder library 1.11]
+ mpg123		Version 0.59o (1998/Feb/08)
+ amp		0.7.6
+ x11amp		0.7-libc5
+
+
+Results:
+ *NOTICE* The cpu percentage is the amount of cpu that was free for the rc5 
+ client to use (ie. remaining cpu power), assuming that "zero load" was when
+ no player or rc5 was running.
+ 
+
+Player		Console:	in X:	Comments:
+-----------------------------------------------------------------------------
+xaudio		76%		74,5%	Neat player and X interface.
+mpg123		73%		*71,5%	I used this, before this test ;)
+amp		68,5%		*66%	-
+x11amp		-		65,5%	Without scroller and spectrum
+x11amp		-		24%	With scroller and spectrum
+
+* Doesn't have a X interface, runned in a xterm (to compare load, X - not X)
+
+EOF

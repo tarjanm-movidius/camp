@@ -25,7 +25,7 @@ void playnext(int sig) {
    if ( playlist == NULL ) return;
    signal(SIGCHLD, playnext);
    if ( pausesong ) return;
-   if ( playsong && slavepid && waitpid(-1, NULL, WNOHANG) > 0 ) {
+   if ( playsong && slavepid && ( ( waitpid(-1, NULL, WNOHANG) > 0 ) || ( kill(slavepid, 0) != 0 ) ) ) {
       if ( config.playmode != 2 ) {
 	 if ( filenumber+1 == playlistents && config.playmode == 1 ) filenumber = playlistents+2; else
 	   if ( filenumber+1 == playlistents && config.playmode == 0 ) exit(0); 

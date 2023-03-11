@@ -35,7 +35,7 @@ unsigned int samplerate_table[3][4] =  {
 
    
 	     
-char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, int *bit_rate, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre) {
+char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bit_rate, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre) {
 FILE *fd;
 struct ID3 filetag;
 unsigned char buf[31];
@@ -145,6 +145,8 @@ unsigned char genre;
 int modified=FALSE, exitchar=0;
 fd_set stdinfds;
 
+   if ( filename == NULL ) return;
+   
    for(;i<strlen(filename);i++)
      if (filename[i] == '/' ) cspos = 0; else {
 	buf[cspos] = filename[i];

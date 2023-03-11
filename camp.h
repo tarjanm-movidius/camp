@@ -42,8 +42,9 @@ struct playlistent {
    char name[256];
    char showname[100];
    unsigned int samplerate;
-   int bitrate;
+   unsigned int bitrate;
    unsigned char mode;
+   unsigned long length;
    unsigned int number;
    struct playlistent *prev;
    struct playlistent *next;
@@ -53,8 +54,9 @@ struct oneplaylistent {
    char name[256];
    char showname[100];
    unsigned int samplerate;
-   int bitrate;
+   unsigned int bitrate;
    unsigned char mode;
+   unsigned long length;
 };
 
 struct ID3 {
@@ -83,6 +85,8 @@ struct configstruct {
    char rate[100];
    char device[100];
    char downmix[100];
+   char showtime; /* 0 = none, 1 = main, 2 = playlist, 3 = both */
+   char timemode; /* 0 = Show elapsed time, 1 = Show remaining time */
    char useid3;
    char hidedot;
    char playmode; /* 0 = normal, 1 = loop, 2 = randOm */
@@ -110,7 +114,6 @@ void pl_updatebuttons(int add);
 void l_status(char *text);
 void saveplaylist(struct playlistent *playlist, char *cdir, char *filename);
 void releasedir(struct filelistent *filelist);
-void clearplaylist(struct playlistent *playlist);
 char *xys(unsigned char number, char ch);
 char *lowercases(char *str);
 int  pl_count( struct playlistent *playlist );
@@ -118,13 +121,14 @@ struct filelistent *camp_chdir(struct filelistent *filelist, char *cdir);
 struct filelistent *loaddir( char *dir );
 struct filelistent *file_seek( int pos, struct filelistent *filelist );
 struct filelistent *sortfilelist(struct filelistent *filelist);
+struct playlistent *clearplaylist(struct playlistent *playlist);
 struct playlistent *pl_seek( unsigned int pos, struct playlistent *playlist );
 struct playlistent *fl_dofunction( struct filelistent *filelist, struct playlistent *playlist, char *cdir );
 struct playlistent *pl_dofunction(struct playlistent *playlist, unsigned int *filenumber);
 struct playlistent *rplaylist(struct playlistent *playlist, unsigned int *filenumber);
 struct playlistent *getfiles(struct playlistent *playlist);
 struct playlistent *loadplaylist(struct playlistent *playlist, char *filename, char filemanager );
-struct playlistent *addfiletolist(struct playlistent *playlist, char *filename, char *showname, int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
+struct playlistent *addfiletolist(struct playlistent *playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
 struct playlistent *sortplaylist(struct playlistent *playlist);
 
 /* id3.o */
@@ -132,7 +136,7 @@ struct ID3 usable2id3(struct usableID3 *usabletag);
 struct usableID3 id32usable(struct ID3 *tag);
 void id3edit(char *filename, struct playlistent *playlist);
 char *fuckspaces(char *lame, int maxpos);
-char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, int *bitrate, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre);
+char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bitrate, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre);
 char writemp3info(char *filename, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre);
 
 /* player.o */

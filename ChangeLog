@@ -1,3 +1,24 @@
+CAMP Changelog
+
+* Fix
++ Add
+- Remove
+! Known bug
+
+
+1998-06-03: v1.1.956
+
+* Fixed a bug, -p without a slash in the name caused camp to segfault.
+* Fixed a bug, "desc" caused a segfault if you pressed it without files loaded.
+* Fixed a bug wich appeared when clearing playlists.
+* Fixed a bug in the sorting routine.
+* Fixed some other small bugs
+* Some optimization done
++ Added songtime in main window/playlist editor ( includes new playlist format )
+! Some f*cking redhat systems gets crazy reading the *default* ~/.camp,
+  and I don't know why. Suggestions? Mail me! 
+  Quick-fix: Remove it and use the one camp will create.
+
 1998-05-09: v1.1.854
 
 * Fixed a bug, wich made mpg123 and others fail to play songs when they wanted.

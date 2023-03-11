@@ -18,6 +18,7 @@ install:
 	@echo "CAMP doesn't need to be suid/sgid since it doesn't play anything itself."
 	install --strip --mode=0755 ./camp     $(BINDIR)
 	install         --mode=0600 ./camp.ini $(HOME)/.camp
+	@echo "Take a look in ~/.camp to check the settings."
 	
 .c.o:	
 	$(CC) $(FLAGS) $(DEFINES) -c $<

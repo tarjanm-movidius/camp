@@ -1,17 +1,39 @@
-CAMP - Console Ansi Mpeg3 Player interface version 1.0.854 released 1998-05-09
+CAMP - Console Ansi Mpeg3 Player interface version 1.1.956 released 1998-06-03
 
-Disclaimer:
+
+
+
+
+
+	INDEX
+
+
+	1.1 Disclaimer
+	1.2 Notice ( information )
+	1.3.1 Things to do in future versions
+	1.3.2 Requests
+	2.1 Install
+	2.2 Syntax ( switches that can be passed to camp )
+	2.3 Converting playlists
+	2.4 Configuration (~/.camp) format
+	2.5 Interface buttons, functions
+
+
+
+
+
+
+
+1.1 - Disclaimer:
 
 I am NOT responsible for any trouble that CAMP can cause to your
 computer or any of it's components. You have to use this software totally
 at your own risk! ( I doubt it's risky to use it anyway :) )
 
 
-Notice:
+1.2 - Notice:
 
-This is CAMP version 1.1, it's the second version that's going public, i
-have fixed a shitload of bugs since 1.0, but there is likely to be
-more, and new ones, if you find any, try to remeber HOW you made the 
+If you find any, try to remeber HOW you made the 
 bug appear, or even better, if you can make up some kind of fix, mail the
 fix/bug to me at inm@sector7.kracked.com. This documentation has a really
 low quality, and that's just because i hate to write doc's, and that
@@ -19,7 +41,22 @@ english isn't my native language ;)
 Feel very free to mail me with any comments/ideas you have.
 
 
-Install:
+1.3.1 - Things to do in future versions:
+
+* Get rid of the PC-Only charset, wich will make CAMP look like shit on
+  some machines.
+* Cleanup the code, remove some global variables.
+* Fix all the small bugs i don't know of yet.
+* Write a nicer documentation
+
+
+1.3.2 - Requests:
+
+* Kers requested "background mode" so the player will fork into the background,
+  and then loaded up again ( something similar to ^Z(suspend) bg/fg )
+
+
+2.1 - Install:
 
 To compile and install the camp-source, type the following commands:
 
@@ -35,7 +72,7 @@ variable to mpg123 or any other command-line mp3 player.
 CAMP is known to compile and run under Linux, and SunOS.
 
 
-Syntax:
+2.2 - Syntax:
 
 -h, --help
 Will show some help on the switches you can use with camp.
@@ -49,17 +86,41 @@ them at least ten times faster, since it doesn't have to scan them for
 samplingrates/ID3 tags.
 
 
-Things to do in future versions:
+2.3 - Converting playlists:
 
-* Get rid of the PC-Only charset, wich will make CAMP look like shit on
-  some machines.
-* Cleanup the code, remove some global variables.
-* Fix all the small bugs i don't know of yet.
-* Write a nicer documentation
-
+Before installing your brand new CAMP version, you can save your playlist
+WITHOUT id3 tags, because every camp (and x11amp) is able to read raw
+playlists. When you have installed the new CAMP, load the playlist, and
+save it with id3 tags again.
 
 
-Interface buttons, functions:
+2.4 - Config ".camp" format:
+
+player     = mp3 player with complete path.
+switches   = switches to pass to player.
+playmode   = random, repeat or normal.
+hidedot    = hide files/dirs beginning with a dot?
+dontreopen = don't close stdout & stderr, and reopen them to /dev/null.
+showlength = can be playlist, main or both. ( Show song total time )
+timemode   = Count time from start ( normal ), or countdown ( reverse )
+
+yes, true or 1 will activate a setting, anything else will inactivate it.
+
+If you don't use mpg123, xaudio or amp, it might be a good idea to enter
+switches = (whatever switch to make the player stop output text to stdout/err)
+
+My default config is as follows:
+
+player     = /usr/local/bin/xaudio
+playmode   = random
+hidedot    = yes
+dontreopen = false
+showlength = playlist
+timemode   = reverse
+switches   =
+
+
+2.5 - Interface buttons, functions:
 
 Row 1, at the mainscreen:
 
@@ -164,6 +225,9 @@ Space:
 -------------------------------------------------------
 Homepage: http://www.sector7.kracked.com
 Email:    inm@sector7.kracked.com
+IRC:      inm, on efnet
+ICQ:      6970303
+
 
 Please send me any kind of comments/bugs/ideas.
 

@@ -21,21 +21,13 @@ struct termios oldtermios, newtermios;
 
 
 /*                                                           
- *      Console Ansi Mpeg3 Player interface v1.0 by inm      
+ *      Console Ansi Mpeg3 Player interface v1.1 by inm      
  *                                                           
  * If you improve this code, please send a copy, or a        
  * diff of it to inm@sector7.kracked.com.                    
  * Latest version can always be found at                     
  * http://www.sector7.kracked.com                            
  *                                                           
- * 1998-04-16: v1.0.633 Released                             
- *                                                           
- * 1998-05-01: v1.0.700 Released                             
- * Bugs fixed.                                               
- * Added "jump" button                                       
- *                                                           
- * TODO:                                                     
- * Switch to disable 8bit chars.                             
  *                                                         */
      
 
@@ -58,6 +50,7 @@ struct timeval currenttime;
    sprintf(showname, "%s/.camp", getenv("HOME"));
    printf("Loading config from %s...\n", showname);
    config = getconfig(showname);
+   showname[0] = 0;
    
    strcpy(playlistname, "misc. files loaded");
 
@@ -225,8 +218,8 @@ void myinit(void) {
 
 void myexit(void) {
    
-   if ( playlist != NULL ) clearplaylist(playlist);
    if ( playsong ) killslave();  
+   if ( playlist != NULL ) clearplaylist(playlist);
 #ifdef USE_TERMIOS
    fcntl(fileno(stdin), F_SETFL, 0);
    tcsetattr(fileno(stdin), TCSANOW, &oldtermios);
@@ -267,7 +260,9 @@ FILE *fd;
     case 1: /* skip back */
       if ( filenumber == 0 ) filenumber = playlistents-1; else
 	filenumber--;
-      if ( playsong == TRUE && slavepid != 0 ) killslave();
+      if ( playsong == TRUE && slavepid != 0 ) killslave(); else
+	if ( !playsong && config.timemode )
+	  printf("\e[1;34;46m\e[8;16H%02d:%02d", pl_seek(filenumber, playlist)->length/60, pl_seek(filenumber, playlist)->length%60 );
       return(1);
       
     case 2: /* play */
@@ -286,14 +281,19 @@ FILE *fd;
     case 3: /* skip fwd */
       if ( filenumber >= playlistents-1 ) filenumber = 0; else
 	filenumber++;
-      if ( playsong == TRUE && slavepid != 0) killslave();
+      if ( playsong == TRUE && slavepid != 0) killslave(); else
+	if ( !playsong && config.timemode ) 
+	  printf("\e[1;34;46m\e[8;16H%02d:%02d", pl_seek(filenumber, playlist)->length/60, pl_seek(filenumber, playlist)->length%60 );
       return(1);
       
     case 4: /* stop */
       if ( playsong && slavepid != 0) {
 	 playsong = FALSE;
 	 killslave();
-	 printf("\e[1;34;46m\e[8;16H00:00"); fflush(stdout);
+	 if ( !config.timemode )
+	   printf("\e[1;34;46m\e[8;16H00:00"); else
+	   printf("\e[1;34;46m\e[8;16H%02d:%02d", pl_seek(filenumber, playlist)->length/60, pl_seek(filenumber, playlist)->length%60 );
+	 fflush(stdout);
       }
       break;
       
@@ -311,6 +311,8 @@ FILE *fd;
       updatedata();
       updatebuttons(0);
       quiet = FALSE;
+      if ( !playsong && config.timemode )
+	printf("\e[1;34;46m\e[8;16H%02d:%02d", pl_seek(filenumber, playlist)->length/60, pl_seek(filenumber, playlist)->length%60 );
       break;
       
     case 7: /* custom button */
@@ -326,7 +328,9 @@ FILE *fd;
       system(CUSTOM_RUN);
       myinit();
       signal(SIGCHLD, playnext);
-      if ( kill(slavepid, SIGCHLD) == -1 ) kill(getpid(), SIGCHLD);
+      if ( kill(slavepid, 0) != 0 ) playnext(0); else
+	if ( !playsong && config.timemode )
+	  printf("\e[1;34;46m\e[8;16H%02d:%02d", pl_seek(filenumber, playlist)->length/60, pl_seek(filenumber, playlist)->length%60 );
       updatedata();
       updatebuttons(0);
       fflush(stdout);
@@ -386,6 +390,8 @@ FILE *fd;
       printf("\e[1;34;46m\e[12;14H                                                     ");
       printf("\e[14;14H                                                     ");
       updatebuttons(0);
+      if ( !playsong && config.timemode )
+	printf("\e[1;34;46m\e[8;16H%02d:%02d", pl_seek(filenumber, playlist)->length/60, pl_seek(filenumber, playlist)->length%60 );
       break;
       
     case 13: /* desc edit */
@@ -394,6 +400,8 @@ FILE *fd;
       printf("%s", screendata);
       updatedata();
       updatebuttons(0);
+      if ( !playsong && config.timemode )
+	printf("\e[1;34;46m\e[8;16H%02d:%02d", pl_seek(filenumber, playlist)->length/60, pl_seek(filenumber, playlist)->length%60 );
       quiet = FALSE;
       break;
       
@@ -404,8 +412,12 @@ FILE *fd;
 
 void updatedata() {
 struct timeval currenttime;
-   printf("\e[1;34;46m\e[9;16H                                                  \e[9;16H%s\n", showname);
-   printf("\e[8;25H\e[0;34;46m%4d/%-4d\e[8;38H%5d\e[8;46H%3d\e[8;63H%s", filenumber+1, playlistents, fs, bitrate, mode ? "st" : "mo");
+   if ( showname[0] != 0 ) {
+      playlist=pl_seek(filenumber, playlist);
+      if ( config.showtime == 3 || config.showtime == 1 ) printf("\e[1;34;46m\e[9;16H                                                  \e[9;16H[%02u:%02u] %s\n", playlist->length / 60, playlist->length % 60, showname); else
+	printf("\e[1;34;46m\e[9;16H                                                  \e[9;16H%s\n", showname);
+      printf("\e[8;25H\e[0;34;46m%4d/%-4d\e[8;38H%5d\e[8;46H%3d\e[8;63H%s", filenumber+1, playlistents, fs, bitrate, mode ? "st" : "mo");
+   }
    if ( playsong ) updatesongtime('u');
    printf("\e[8;57H\e[0;34;46m");
    switch ( config.playmode ) {
@@ -417,7 +429,8 @@ struct timeval currenttime;
 
 void updatesongtime(char ch) {
 static struct timeval starttime, pause_start, pause_end;
-       struct timeval currenttime;
+struct timeval currenttime;
+int reverse_time;   
    
    switch(ch) {
       
@@ -428,7 +441,13 @@ static struct timeval starttime, pause_start, pause_end;
     case 'u':
       gettimeofday(&currenttime, NULL);
       /* guess this is the best way of doing this, since we don't want the player to type this,. */
-      printf("\e[1;34;46m\e[8;16H%02d:%02d", (currenttime.tv_sec-starttime.tv_sec)/60, (currenttime.tv_sec-starttime.tv_sec)%60); fflush(stdout);
+      if ( config.timemode ) {
+	 reverse_time = pl_seek(filenumber, playlist)->length-(currenttime.tv_sec-starttime.tv_sec);
+	 if ( reverse_time < 0 ) reverse_time = 0;
+	 printf("\e[1;34;46m\e[8;16H%02d:%02d", reverse_time/60, reverse_time%60);
+      } else
+      printf("\e[1;34;46m\e[8;16H%02d:%02d", (currenttime.tv_sec-starttime.tv_sec)/60, (currenttime.tv_sec-starttime.tv_sec)%60); 
+      fflush(stdout);
       break;
    
     case 'e':

@@ -55,6 +55,15 @@ FILE *fd;
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.dontreopen = TRUE; else
 	cconfig.dontreopen = FALSE; else
+	if ( !strcasecmp(arg, "showlength" ) )
+	  if ( !strcasecmp(value, "both") )   cconfig.showtime = 3; else
+	if ( !strcasecmp(value, "playlist") ) cconfig.showtime = 2; else
+	if ( !strcasecmp(value, "main") )     cconfig.showtime = 1; else
+	cconfig.showtime = 0; else
+	if ( !strcasecmp(arg, "timemode" ) )
+	  if ( !strcasecmp(value, "reverse") || !strcasecmp(value, "remaining" ) )
+	    cconfig.timemode = 1; else
+	cconfig.timemode = 0; else
 	if ( !strcasecmp(arg, "switches") || !strcasecmp(arg, "params") ) {
 	   memset(buf, 0, 127);
 	   i = 0;
@@ -129,7 +138,7 @@ FILE *fd;
       i++ ;
    }
    printf("\n");
-
+   
    
    
    switch(cconfig.playmode) {
@@ -141,7 +150,21 @@ FILE *fd;
       cconfig.playmode = 0;
       break;
    }
-   
-   return cconfig;
 
+   switch(cconfig.showtime) {
+    case 0: printf("Won't show songtime\n"); break;
+    case 1: printf("Will show songtime in player window\n"); break;
+    case 2: printf("Will show songtime in playlist editor\n"); break;
+    case 3: printf("Will show songtime in main/playlist window\n"); break;
+    default: 
+      printf("Invalid mode! Setting to normal.\b"); 
+      cconfig.showtime = 0;
+      break;
+   }
+   
+   if (cconfig.timemode == 1) printf ("Will show time as time remaining\n"); else
+     printf("Will show time as time elapsed\n");
+
+   return cconfig;
+   
 }
