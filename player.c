@@ -195,15 +195,19 @@ char *mpg123_control(char *command)
     int insocks[2], outsocks[2]; // 0 = read, 1 = write
     fd_set rfds;
     struct timeval tv;
-    static char buf[500];
-    int i, j;
+    static char buf[COMM_BUF_LEN];
+    int i;
+    unsigned long len;
 
     if ( command && !strcmp(command+1, "RESTART") ) {
         /* Oh my god!! They've killed kenny! */
         close(mpgwfd);
         close(mpgrfd);
         mpgrfd = mpgwfd = -1; /* Yep, let's go back to scratch */
-    } else if ( !playsong ) return NULL;
+//    } else if ( !playsong ) {
+//        DBGPRINT("-- Command '%s' dropped due to !playsong\n", command)
+//        return NULL;
+    }
 
     if ( mpgrfd == -1 || mpgwfd == -1 ) { /* start mpg123, setup control pipe */
 
@@ -260,20 +264,26 @@ char *mpg123_control(char *command)
 
         } /* switch fork .. */
 
-        if ( command && !strcmp(command+1, "RESTART") ) return NULL;
+        if ( command && !strcmp(command+1, "RESTART") ) {
+            DBGPRINT("-- RESTART finished, cmd was '%s'\n", command)
+            return NULL;
+        }
     } /* Init session end. */
 
     if ( command && command[0] != '#' ) { /* write .. */
 
         //      write(outsocks[1], command, strlen(command)+1);
-        if ( write(mpgwfd, command, strlen(command)) != strlen(command) ) {
+        len = write(mpgwfd, command, strlen(command));
+        if ( len != strlen(command) ) {
             /* Write error! This is no good.. */
+            DBGPRINT("## Error sending command '%s', sent %lu of %lu\n", command, len, strlen(command))
             close(mpgwfd);
             close(mpgrfd);
             killslave();
             mpgrfd = mpgwfd = -1;
             return NULL;
         }
+        DBGPRINT("-> '%s', %lu\n", command, len)
 
     } else { /* read .. */
 
@@ -285,19 +295,19 @@ char *mpg123_control(char *command)
             tv.tv_sec = tv.tv_usec = 0;
 
             if ( select(mpgrfd+1, &rfds, NULL, NULL, &tv) && FD_ISSET(mpgrfd, &rfds) ) {
+
                 /* Data availible in pipe */
+                for (len = 0; len < COMM_BUF_LEN && read(mpgrfd, &buf[len], 1) != 0 && buf[len] && !IS_CRLF(buf[len]); len++);
+                if (len >= COMM_BUF_LEN) {
+                    DBGPRINT("WW recv buffer full, increase COMM_BUF_LEN\n")
+                    len = COMM_BUF_LEN - 1;
+                }
+                buf[len] = 0;
 
-//                memset(buf, 0, 500);
-//                while ( (read(mpgrfd, ch, 1) != 0) && ch[0] != '\n'  )
-//                    if ( ch[0] != '\r' && ch[0] != '\n' ) strncat(buf, ch, 1);
-
-                /* There must be a better way to read single lines from files/piles eh?
-                 * something like fgets .. please inform me if there is such a command :)
-                 * MT:  ssize_t getline(char **restrict lineptr, size_t *restrict n, FILE *restrict stream); */
-
-                for (j = 0; read(mpgrfd, &buf[j], 1) != 0 && buf[j] && !IS_CRLF(buf[j]); j++);
-                buf[j] = 0;
-
+#ifdef DEBUG
+                if ( strncmp(buf, "@F ", 3) != 0 || !playsong )
+                    DBGPRINT("<- '%s', %lu\n", buf, len)
+#endif
                 if ( !strncmp(buf, "@R ", 3) ) {
                     /* Get mpg123 version
                     Format: @R MPG123 0.59s-mh4
@@ -336,13 +346,10 @@ char *mpg123_control(char *command)
                 } else if ( !strncmp(buf, "@I ID3:", 7) ) {
                     // ID3 TAGS
                 }
+//              else printf("\e[1;1HEWP! GOT LINE: %s--\n", buf);
 
-//	    else printf("\e[1;1HEWP! GOT LINE: %s--\n", buf);
-
-
-            } else if ( !command || command[0] != '#' ) return NULL; /* pipe data end */
+            } else if ( !command || command[0] == '#' ) return NULL; /* pipe data end */
         } /* while 1 .. */
     } /* end read */
     return buf;
 }
-

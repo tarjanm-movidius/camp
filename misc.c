@@ -293,7 +293,7 @@ char *strtrim(char *text, char trimchar)
 
 char *replace(char *text, char oldc, char newc)
 {
-    int i;
+    unsigned int i;
 
     for (i = 0; text[i]; i++)
         if ( text[i] == oldc ) text[i] = newc;
@@ -314,17 +314,34 @@ void cpy_replace(char *dst, const char *src, char oldc, char newc)
     dst[i] = 0;
 }
 
-void cpy_strip_end(char *dst, const char *src, unsigned int maxpos)
+char *str_strip_end(char *text, unsigned int maxlen)
+{
+    unsigned int i = 0;
+
+    while (i < maxlen && text[i]) i++;
+    if(i) {
+        i--;
+        while (i && (IS_CRLF(text[i]) || IS_SPACE(text[i]))) i--;
+        if (!IS_CRLF(text[i]) && !IS_SPACE(text[i])) i++;
+    }
+    if (i >= maxlen) i = maxlen - 1;
+
+    text[i] = 0;
+    return text;
+}
+
+void cpy_strip_end(char *dst, const char *src, unsigned int maxlen)
 {
     unsigned int i;
 
-    for (i = 0; i < maxpos && src[i]; i++)
+    for (i = 0; i < maxlen && src[i]; i++)
         dst[i] = src[i];
     if(i) {
         i--;
         while (i && (IS_CRLF(dst[i]) || IS_SPACE(dst[i]))) i--;
         if (!IS_CRLF(dst[i]) && !IS_SPACE(dst[i])) i++;
     }
+    if (i >= maxlen) i = maxlen - 1;
 
     dst[i] = 0;
 }

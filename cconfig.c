@@ -1506,6 +1506,8 @@ int parseconfig(const char *str, char **arg, char **value)
     } else
         *value = (char*)&str[i];
 
+    if (i >= CONF_BUF_LEN - 2)
+        printf("Warning: CONF_BUF_LEN is too small");
     return TRUE;
 }
 
@@ -1552,12 +1554,12 @@ char *randomskin(char *buf)
     }
 
     fgets((char*)buf, CONF_BUF_LEN, filefd);
-    strtrim(buf, '\n');
+    str_strip_end(buf, CONF_BUF_LEN);
     i = myrand(atoi(buf))+1;
 
     while(i--)
         fgets((char*)buf, CONF_BUF_LEN, filefd);
-    strtrim(buf, '\n');
+    str_strip_end(buf, CONF_BUF_LEN);
 
     fclose(filefd);
 

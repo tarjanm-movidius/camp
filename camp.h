@@ -4,6 +4,20 @@
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 
+#define CAMP_VERSION "1.7"
+
+//#define DEBUG
+#ifdef DEBUG
+# define DEBUG_FILE "/tmp/camp_dbg.log"
+extern FILE *dbgout;
+# define DBGPRINT(...) { \
+    fprintf(dbgout, __VA_ARGS__); \
+    fflush(dbgout); \
+}
+#else
+# define DBGPRINT(...)
+#endif
+
 #ifdef HAVE_TERMIOS_H
 # include <termios.h>
 #endif
@@ -20,8 +34,6 @@
 #ifndef FALSE
 # define FALSE 0
 #endif
-
-#define CAMP_VERSION "1.7"
 
 #define    MINBUTTON 0
 #define    MAXBUTTON 16
@@ -53,7 +65,10 @@
 #define CAMP_RET   4
 #define CAMP_UNDEF 5 /* Undefined.. like external programs and crap */
 
+#define FL_BUF_LEN 256
 #define CONF_BUF_LEN 256
+#define COMM_BUF_LEN 256
+
 #define IS_SPACE(chr_) ((chr_) == ' ' || (chr_) == '\t')
 #define IS_CRLF(chr_) ((chr_) == '\r' || (chr_) == '\n')
 
@@ -61,7 +76,7 @@
 
 /* structures */
 struct filelistent {
-    char name[256];
+    char name[FL_BUF_LEN];
     struct filelistent *prev;
     struct filelistent *next;
     unsigned int number;
@@ -70,7 +85,7 @@ struct filelistent {
 };
 
 struct playlistent {
-    char name[256];
+    char name[FL_BUF_LEN];
     char showname[100];
     unsigned int samplerate;
     unsigned int bitrate;
@@ -82,7 +97,7 @@ struct playlistent {
 };
 
 struct oneplaylistent {
-    char name[256];
+    char name[FL_BUF_LEN];
     char showname[100];
     unsigned int samplerate;
     unsigned int bitrate;
@@ -91,7 +106,7 @@ struct oneplaylistent {
 };
 
 struct currentplaylistent {
-    char name[256];
+    char name[FL_BUF_LEN];
     char showname[100];
     unsigned int samplerate;
     unsigned int bitrate;
@@ -291,7 +306,8 @@ char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitch
 char *strtrim(char *text, char trimchar);
 char *replace(char *text, char oldc, char newc);
 void cpy_replace(char *dst, const char *src, char oldc, char newc);
-void cpy_strip_end(char *dst, const char *src, unsigned int maxpos);
+char *str_strip_end(char *text, unsigned int maxlen);
+void cpy_strip_end(char *dst, const char *src, unsigned int maxlen);
 char *xys(unsigned char number, char ch);
 char *lowercases(char *str);
 void lowcases( char *strng );

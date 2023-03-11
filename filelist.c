@@ -23,8 +23,6 @@
 # include <zlib.h>
 #endif
 
-#define BUF_SZ  256
-
 extern char playsong, checkkill, use_lircd, currloc;
 extern struct configstruct config;
 extern unsigned int slavepid;
@@ -33,7 +31,7 @@ extern int lirc_lircd, selval;
 int fl_buttonpos;
 unsigned int fl_maxpos=0, current[50];
 int depth=0;
-char screenmark[50], cdir[BUF_SZ];
+char screenmark[50], cdir[FL_BUF_LEN];
 
 
 void getfiles(struct playlistent **playlist)
@@ -53,7 +51,7 @@ void getfiles(struct playlistent **playlist)
     memset(current, 0, sizeof(current));
     memset(screenmark, 0, sizeof(screenmark));
 
-    if ( cdir[0] == 0 && config.startincwd && getcwd(cdir, BUF_SZ) ) {
+    if ( cdir[0] == 0 && config.startincwd && getcwd(cdir, FL_BUF_LEN) ) {
         for(i=0; i<strlen(cdir); i++) if ( cdir[i] == '/' ) depth++;
         cdir[i]   = '/';
         cdir[i+1] = 0;
@@ -226,7 +224,7 @@ void getfiles(struct playlistent **playlist)
 struct filelistent *camp_chdir(struct filelistent *filelist)
 {
     struct filelistent *newlist = NULL;
-    char   origpath[BUF_SZ];
+    char   origpath[FL_BUF_LEN];
     int    origdepth = depth;
 
     strcpy(origpath, cdir);
@@ -236,8 +234,8 @@ struct filelistent *camp_chdir(struct filelistent *filelist)
         cdir[strrchr(cdir, '/')-cdir+1] = '\0';
         depth--;
     } else {
-//        snprintf(cdir, BUF_SZ, "%s%s/", cdir, file_seek(current[depth], filelist)->name);
-        strncat(cdir, file_seek(current[depth], filelist)->name, BUF_SZ - strlen(cdir) - 2);
+//        snprintf(cdir, FL_BUF_LEN, "%s%s/", cdir, file_seek(current[depth], filelist)->name);
+        strncat(cdir, file_seek(current[depth], filelist)->name, FL_BUF_LEN - strlen(cdir) - 2);
         strcat(cdir, "/");
         depth++;
         current[depth] = 0;
@@ -346,7 +344,7 @@ void fl_updatebuttons(int add)
 void fl_dofunction( struct filelistent *filelist, struct playlistent **playlist )
 {
 // struct playlistent *temp;
-    char /* name[31], artist[31], */ buf[BUF_SZ];
+    char /* name[31], artist[31], */ buf[FL_BUF_LEN];
     char j; //, cspos;
 
     switch( config.skin.flistbo[fl_buttonpos] ) {
@@ -355,7 +353,7 @@ void fl_dofunction( struct filelistent *filelist, struct playlistent **playlist 
 
         filelist = file_seek(0, filelist);
         while ( filelist->next != NULL ) {
-            snprintf(buf, BUF_SZ, "%s%s", cdir, filelist->name);
+            snprintf(buf, FL_BUF_LEN, "%s%s", cdir, filelist->name);
             if ( filelist->tagged ) {
                 addfiletolist(playlist, buf, NULL, 0, 0, 0, config.useid3);
                 filelist->tagged = FALSE;
@@ -384,7 +382,7 @@ void fl_dofunction( struct filelistent *filelist, struct playlistent **playlist 
         break;
 
     case 3: /* load playlist */
-        snprintf(buf, BUF_SZ, "%s%s", cdir, file_seek(current[depth], filelist)->name);
+        snprintf(buf, FL_BUF_LEN, "%s%s", cdir, file_seek(current[depth], filelist)->name);
         loadplaylist(playlist, buf, TRUE);
         break;
 
@@ -541,13 +539,13 @@ void loadplaylist(struct playlistent **playlist, char *filename, char filemanage
     gzFile gzfd;
     gzfd = gzopen(filename, "rb");
     if ( !gzfd ) return;
-    buf = malloc(257);
+    buf = malloc(FL_BUF_LEN);
     gzread(gzfd, buf, 12);
 #else
     fd = fopen(filename, "rb");
     if ( !fd ) return;
-    buf = malloc(257);
-    fgets((char*)buf, 255, fd);
+    buf = malloc(FL_BUF_LEN);
+    fgets(buf, FL_BUF_LEN, fd);
 #endif
 
     if ( filemanager ) l_status(config.skin.flistmsg[0]);
@@ -598,9 +596,9 @@ void loadplaylist(struct playlistent **playlist, char *filename, char filemanage
             fd = fopen(filename, "rb");
 #endif
             do { /* while readln != EOF */
-                buf = strtrim(buf, '\n');
+                str_strip_end(buf, FL_BUF_LEN);
                 addfiletolist(playlist, buf, NULL, 0, 0, 0, config.useid3);
-            } while ( fgets((char*)buf, 255, fd) );
+            } while ( fgets((char*)buf, FL_BUF_LEN, fd) );
 #ifdef HAVE_LIBZ
             fclose(fd);
         }
@@ -766,9 +764,9 @@ void recurseplaylist (struct filelistent *filelist, struct playlistent **playlis
                 filelist->tagged = TRUE;
             if (filelist->type == 2) {
                 struct filelistent *newlist;
-                char olddir[BUF_SZ];
-                char newdir[BUF_SZ];
-                snprintf(newdir, BUF_SZ, "%s%s/",dir,filelist->name);
+                char olddir[FL_BUF_LEN];
+                char newdir[FL_BUF_LEN];
+                snprintf(newdir, FL_BUF_LEN, "%s%s/",dir,filelist->name);
                 strcpy (olddir,cdir);
                 strcpy (cdir,newdir);
                 newlist=loaddir(newdir);

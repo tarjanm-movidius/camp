@@ -76,11 +76,15 @@ Gpm_Connect mouse;
 #endif
 
 #ifdef LIRCD
-char *progname = "camp";
+char   *progname = "camp";
 extern int lirc_lircd;
 struct lirc_config *lircd_config = NULL;
 #endif
 
+#ifdef DEBUG
+# pragma message "DEBUG mode"
+FILE   *dbgout;
+#endif
 
 
 int main(int argc, char *argv[])
@@ -95,6 +99,11 @@ int main(int argc, char *argv[])
 
     printf("Console Ansi Mpeg3 Player interface v%s.%d by inm (inm@sector7.nu)\n\n", CAMP_VERSION, BUILD);
     if ( argc > 1 && !strcasecmp(argv[1], "--version") ) exit(0);
+
+#ifdef DEBUG
+    dbgout = fopen(DEBUG_FILE, "a");
+    DBGPRINT("camp v%s.%d started\n", CAMP_VERSION, BUILD);
+#endif
     sprintf(buf, "%s/.camp/camprc", getenv("HOME"));
     printf("Loading config from %s...\n", buf);
     config = getconfig(buf);
@@ -394,7 +403,6 @@ int main(int argc, char *argv[])
     return 0; /* Uhm, just wasting bytes, this is not possible */
 } /* main() */
 
-
 /*     Procedures & functions
  *     ----------------------
  *
@@ -402,7 +410,6 @@ int main(int argc, char *argv[])
  *     I can hardly find out what stuff does what shit anymore ..
  *     (but it's still my favourite console player, heh)
  */
-
 
 void updatebuttons(char motion)
 {
@@ -552,6 +559,11 @@ void myexit(void)
         printf("\e[?25h");
     }
 
+#ifdef DEBUG
+    DBGPRINT("camp terminated successfully\n");
+    fclose(dbgout);
+#endif
+
     switch ( quitmode ) {
     case 1:
         printf("Forked into the background.\n");
@@ -653,7 +665,6 @@ void escfix(void)
     }
 }
 
-
 uintptr_t dofunction(int forcedbutton)
 {
 //static struct timeval pause_start, pause_end;
@@ -701,15 +712,11 @@ uintptr_t dofunction(int forcedbutton)
 
     case 3: /* stop */
         if ( playsong && slavepid ) {
-            playsong = FALSE;
-            if ( config.mpg123 ) {
-//                mpg123_control("JUMP 0\n"); // hack
-//                mpg123_control("STOP\n"); // Interface doesn't seem to work
-                // pause in lack of a better solution
-                kill(slavepid, SIGSTOP);
-                pausesong = TRUE;
-            } else
+            if ( config.mpg123 )
+                mpg123_control("STOP\n");
+            else
                 killslave();
+            playsong = FALSE;
         }
         updatedata();
         break;
@@ -792,11 +799,17 @@ uintptr_t dofunction(int forcedbutton)
     case 8: /* pause */
         if ( playsong ) {
             if ( !pausesong ) {
-                kill(slavepid, SIGSTOP);
+                if ( config.mpg123 )
+                    mpg123_control("PAUSE\n");
+                else
+                    kill(slavepid, SIGSTOP);
                 pausesong = TRUE;
                 updatesongtime('p');
             } else {
-                kill(slavepid, SIGCONT);
+                if ( config.mpg123 )
+                    mpg123_control("PAUSE\n");
+                else
+                    kill(slavepid, SIGCONT);
                 pausesong = FALSE;
                 updatesongtime('e');
             }
@@ -1170,7 +1183,6 @@ void updatesongtime(char ch)
 
 }
 
-
 char *scrollsongname(char action)
 {
     static char scrolledname[100];
@@ -1259,4 +1271,3 @@ int showtip(void)
     printf("\e[1mTip of the day:\n%s\e[0m", buf);
     return TRUE;
 }
-
