@@ -69,12 +69,35 @@ FILE *fd;
       freopen("/dev/null", "w", stdout);
       freopen("/dev/null", "w", stderr);
    }
+   
    for(i=0;i<15;i++)
      if (config.playerargv[i] == NULL) break;
    config.playerargv[i] = (char*)malloc(strlen(filename)+1);
    strcpy(config.playerargv[i], filename);
    sprintf(buf, "%s/%s", config.playerpath, config.playername);
    execve(buf, config.playerargv, NULL);
+
+}
+
+void mod_slave(char *filename) {
+char i=0, buf[256];
+FILE *fd;
+   
+#ifdef USE_GPM_MOUSE
+   while ( Gpm_Close() != 0 ) ;
+#endif
+   if ( !config.dontreopen ) {
+      freopen("/dev/null", "w", stdout);
+      freopen("/dev/null", "w", stderr);
+   }
+   
+   for(i=0;i<15;i++)
+     if (config.modplayerargv[i] == NULL) break;
+   config.modplayerargv[i] = (char*)malloc(strlen(filename)+1);
+   strcpy(config.modplayerargv[i], filename);
+   sprintf(buf, "%s/%s", config.modplayerpath, config.modplayername);
+   execve(buf, config.modplayerargv, NULL);
+   
 }
 
 
@@ -85,6 +108,7 @@ struct stat statf;
 FILE *fd;
       
    if ( pl == NULL || pausesong ) return;
+      
    if ( config.bufferdelay ) usleep(config.bufferdelay);
    
    if ( !config.useid3 && !pl->length ) {
@@ -118,7 +142,9 @@ FILE *fd;
 	 perror("fork");
 	 exit(-1);
        case 0:
-	 slave(pl->name);
+	 if( modcheck(pl->name) == 0 )
+	   mod_slave(pl->name); else
+	   slave(pl->name);
 	 break;
        default:
 	 signal(SIGCHLD, playnext);
@@ -129,3 +155,27 @@ FILE *fd;
    }
 }
 
+int modcheck( char *name )
+{
+   int i,c;
+   char buf[3];
+   
+   for( c = 0; c <= strlen(name); c++ )
+     {
+	if( name[c] == '.' )
+	  {
+	     for( i = 0; i < 4; i++ )
+	       {
+		  buf[i] = name[i+1+c];
+	       }
+	  }
+     }
+
+   if( strcmp( buf, "mod") == 0 )
+     return 0;
+   else if( strcmp( buf, "xm") == 0 )
+     return 0;
+   else
+     return -1;
+   
+}
