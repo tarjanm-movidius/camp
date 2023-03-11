@@ -1,14 +1,38 @@
+Skin version 1.02 additions:
+
+MAIN screen:
+------------
+Two new buttons:
+A button to lower the volume (New variables: vol-x, vol-y, vol-w, vol-i,
+ vol-a, vol-u, vol-d, vol-l, vol-r)
+A button to raise the volume (New variables: vol+x, vol+y, vol+w, vol+i,
+ vol+a, vol+u, vol+d, vol+l, vol+r)
+
+PLAYLIST editor:
+----------------
+New song-search text line (New variables: findbarx. findbary, findbarw,
+ findbarc)
+
+
+FILELIST editor:
+----------------
+One new button:
+The "DiRe!" button, to recurse subdirectorys, makes loading of mp3-files
+ much easier. (New variables: direx, direx, direw, direa, direi)
+
+
+
 Skin version 1.01 additions:
 
 MAIN screen:
 ------------
 
 One new button:
-a button to mute the volume
+A button to mute the volume (New variables: mutex, mutey, mutew, mutei, mutea, 
+muteu, muted, mutel, muter)
 
 One new text field:
-Current volume percent, LOCKED format '00' (00-99%)
-
+Current volume percent, LOCKED format '00' (New variables: volx, voly, volc)
 
 
 
@@ -52,8 +76,8 @@ one button to put camp in the background and exit to shell (it will still play s
 Text fields:
 
 Current songname
-Current songtime, LOCKED format '00:00'
-Current songnumber/total songs, LOCKED format '0000/0000'
+Current songtime, LOCKED format '00?00'
+Current songnumber/total songs, LOCKED format '0000?0000'
 Bitrate of current song, LOCKED format '000'
 Samplerate of current song, LOCKED format '00000'
 Some text or char that indicates current playmode, DEFAULT format: 'xxxx', 

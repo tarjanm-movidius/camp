@@ -1,35 +1,28 @@
 Console Ansi Mpeg3 Player interface - Credits list
 
-Coding:
- inm (inm@m1crosoft.com)
+Main coding:
+ inm (inm@sector7.nu)
+
+People that sent me patches (bugfixes or pieces of new code):
+ Arturo Espinosa Aldama (arturo@estadistica.unam.mx)
+ Andoni Zubimendi       (andoni@linuzito.com.ar)
  
 Ansi:
- exit logo      - chrom     (mikael.almstedt@mainline.se)
+ exit logo      - chrom    (mikael.almstedt@mainline.se)
  skin "rawlock" - rawlock   (rawlock@linux.nu)
  skin "jungle"  - warder    (*)
  skin "lemon"   - lemonizer (limoentje@hotmail.com)
 
-Vader & warder's skins are not 100% complete yet, but as soon as they are, they
-will be available for download at http://camp.goes.berzerk.nu, for now you can
-only view the screenshots on the homepage.
-
 Betatesters:
- bjorne (bjjo@algonet.se)
- acr    (wiz@algonet.se)
- vader  (vader@camp.goes.berzerk.nu)
- nemo   (nemo@flashback.se)
+ bjorne (bjorne@dunderboll.org)
+ vader  (vader@sector7.nu)
  warder (*)
-
-Also a HUGE thanks to warder for being such a good beta-tester =)
-
-People that sent me patches (bugfixes or small pieces of new code):
- Arturo Espinosa Aldama (arturo@estadistica.unam.mx)
 
 Others:
  Michael Hipp (Michael.Hipp@student.uni-tuebingen.de)
   For 'mpg123', it simply rocks! (128KBit/44KHz/Stereo on my 486 DX2/66!!)
  Armin Biere (armin@ira.uka.de + armin+@cs.cmu.edu)
-  For 'ccmalloc', that tracked down all my memory leaks ;]
+  For 'ccmalloc', that tracked down (all?) my memory leaks ;]
  Jean-loup Gailly (gzip@prep.ai.mit.edu) and Mark Adler (madler@alumni.caltech.edu)
   For 'zlib', wich makes internal compressing easy!
  Christoph Bartelmus (columbus@hit.handshake.de)

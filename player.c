@@ -21,25 +21,29 @@
 extern struct playlistent *playlist;
 extern unsigned int slavepid, filenumber, playlistents;
 extern struct oneplaylistent currentfile;
-extern char quiet, pausesong, playsong, checkkill;
+extern char quiet, pausesong, playsong, checkkill, currloc;
 extern struct configstruct config;
+extern int pl_current, pl_screenmark;
 
 void playnext(int sig) {
 int status = 0;
 
    if ( !playlist ) return;
-   if ( ( sig == -1 ) || ( playsong && !pausesong && slavepid && ( waitpid(slavepid, NULL, WNOHANG) == slavepid ) ) ) {
-      if ( sig != -1 ) waitpid(slavepid, NULL, 0);
-      if ( config.playmode != 2 ) {
-	 if ( filenumber+1 == playlistents && config.playmode == 1 ) filenumber = playlistents+2; else
-	   if ( filenumber+1 == playlistents && config.playmode == 0 ) exit(0); 
-	 filenumber++;
-      } else
-	filenumber = myrand(playlistents); 
-      if ( filenumber+1 > playlistents ) filenumber = 0;
-      slavepid = 0;
-      call_player(pl_seek(filenumber, &playlist));
-   } else
+   if ( !config.mpg123 || ( config.mpg123 && sig != -1 ) )
+     if ( ( sig == -1 ) || ( playsong && !pausesong && slavepid && ( waitpid(slavepid, NULL, WNOHANG) == slavepid ) ) ) {
+	if ( sig != -1 ) waitpid(slavepid, NULL, 0);
+	if ( config.mpg123 && sig != -1 ) mpg123_control("#RESTART"); 
+
+	if ( config.playmode != 2 ) {
+	   if ( filenumber+1 == playlistents && config.playmode == 1 ) filenumber = playlistents+2; else
+	     if ( filenumber+1 == playlistents && config.playmode == 0 ) exit(0);
+	   filenumber++;
+	} else
+	  filenumber = myrand(playlistents); 
+	if ( filenumber+1 > playlistents ) filenumber = 0;
+	slavepid = 0;
+	call_player(pl_seek(filenumber, &playlist));
+     } else
      signal(SIGCHLD, playnext);
 }
 
@@ -70,46 +74,36 @@ FILE *fd;
       freopen("/dev/null", "w", stdout);
       freopen("/dev/null", "w", stderr);
    }
-   
    for(i=0;i<15;i++)
      if (config.playerargv[i] == NULL) break;
    config.playerargv[i] = (char*)malloc(strlen(filename)+1);
    strcpy(config.playerargv[i], filename);
    sprintf(buf, "%s/%s", config.playerpath, config.playername);
-   execve(buf, config.playerargv, NULL);
-
-}
-
-void mod_slave(char *filename) {
-char i=0, buf[256];
-FILE *fd;
-   
-#ifdef USE_GPM_MOUSE
-   while ( Gpm_Close() != 0 ) ;
-#endif
-   if ( !config.dontreopen ) {
-      freopen("/dev/null", "w", stdout);
-      freopen("/dev/null", "w", stderr);
+   if ( execve(buf, config.playerargv, NULL) == -1 ) {
+      printf("Execution of player (%s) failed!\n", buf);
+      perror("execve()");
+      sleep(2);
+      exit(-1);	    
    }
-   
-   for(i=0;i<15;i++)
-     if (config.modplayerargv[i] == NULL) break;
-   config.modplayerargv[i] = (char*)malloc(strlen(filename)+1);
-   strcpy(config.modplayerargv[i], filename);
-   sprintf(buf, "%s/%s", config.modplayerpath, config.modplayername);
-   execve(buf, config.modplayerargv, NULL);
-   
 }
 
 
 void call_player(struct playlistent *pl) {
 int  j, cspos=0;
-char name[31], artist[31];
+char name[31], artist[31], buf[500];
 struct stat statf;
 FILE *fd;
       
    if ( pl == NULL || pausesong ) return;
-      
+
+   memcpy((void*)&currentfile, (void*)pl, sizeof(struct oneplaylistent));
+   
+   if ( config.mpg123 ) {
+      sprintf(buf, "load %s\n", currentfile.name);
+      mpg123_control(buf);
+      return;
+   }
+   
    if ( config.bufferdelay ) usleep(config.bufferdelay);
    
    if ( config.rescanid3 || ( !config.useid3 && !pl->length ) ) {
@@ -123,13 +117,19 @@ FILE *fd;
       }	 	 
    }
 
-   scrollsongname(0);
    memcpy((void*)&currentfile, (void*)pl, sizeof(struct oneplaylistent));
-   // if ( strlen(currentfile.showname) > config.skin.songnamew ) currentfile.showname[config.skin.songnamew] = '\0';
    
+   scrollsongname(0);
+   scrollsongname(1); /* Hrm */
    updatesongtime('i');
    updatesongtime('f');
-   if ( !quiet ) updatedata();
+   updatedata();
+   if ( !quiet && currloc == CAMP_MAIN && config.skin.platmain ) {
+      pl_current = filenumber;
+      if ( pl_current-pl_screenmark < 0 )
+	pl_screenmark = pl_current;
+      pl_showents(pl_current-pl_screenmark, playlist, &filenumber);
+   }      
    
    if ( playsong ) {
       if ( slavepid != 0 ) killslave();
@@ -143,9 +143,7 @@ FILE *fd;
 	 perror("fork");
 	 exit(-1);
        case 0:
-	 if( modcheck(pl->name) == 0 )
-	   mod_slave(pl->name); else
-	   slave(pl->name);
+	 slave(pl->name);
 	 break;
        default:
 	 signal(SIGCHLD, playnext);
@@ -156,27 +154,124 @@ FILE *fd;
    }
 }
 
-int modcheck( char *name )
-{
-   int i,c;
-   char buf[3];
+char *mpg123_control(char *command) {
+static int mpgrfd=-1, mpgwfd=-1;
+int insocks[2], outsocks[2]; // 0 = read, 1 = write
+fd_set rfds;
+struct timeval tv;
+char buf[500], ch[2];
+int i;
    
-   for( c = 0; c <= strlen(name); c++ )
-     {
-	if( name[c] == '.' )
-	  {
-	     for( i = 0; i < 4; i++ )
-	       {
-		  buf[i] = name[i+1+c];
-	       }
-	  }
-     }
+   ch[1] = 0;
 
-   if( strcmp( buf, "mod") == 0 )
-     return 0;
-   else if( strcmp( buf, "xm") == 0 )
-     return 0;
-   else
-     return -1;
+   if ( command && !strcmp(command+1, "RESTART") ) {
+      /* Oh my god!! They've killed kenny! */
+      close(mpgwfd);
+      close(mpgrfd);
+      mpgrfd = mpgwfd = -1; /* Yep, let's go back to scratch */
+   }
    
+   if ( mpgrfd == -1 && mpgwfd == -1 ) { /* start mpg123, setup control pipe */
+
+      if ( pipe(insocks) == -1 ) {
+	 printf("Cannot create pipes! Try set \"mpg123mode = false\" in ~/.camp/camprc!\n");
+	 sleep(2);
+	 exit(-1);
+      }
+      
+      if ( pipe(outsocks) == -1 ) {
+	 printf("Cannot create pipes! Try set \"mpg123mode = false\" in ~/.camp/camprc!\n");
+	 sleep(2);
+	 exit(-1);
+      }
+      
+      
+      slavepid = fork();
+      switch ( slavepid ) {
+       case -1:
+	 printf("Cannot fork! Try restarting camp!\n");
+	 sleep(2);
+	 exit(-1);
+       case 0:
+	 dup2(outsocks[0], STDIN_FILENO);
+	 dup2(insocks[1], STDOUT_FILENO);
+	 dup2(insocks[1], STDERR_FILENO);
+	 close(outsocks[0]);
+	 close(outsocks[1]);
+	 close(insocks[0]);
+	 close(insocks[1]);
+
+	 for(i=0;i<15;i++)
+	   if (config.playerargv[i] == NULL) break;
+	 config.playerargv[i] = (char*)malloc(3);
+	 strcpy(config.playerargv[i], "-R"); i++;
+	 config.playerargv[i] = (char*)malloc(1);
+	 strcpy(config.playerargv[i], "");
+	 sprintf(buf, "%s/%s", config.playerpath, config.playername);
+	 printf("%s - ", buf);
+	 for(i=0;i<15;i++)
+	   printf("%s ", config.playerargv[i]);
+	 printf("\n");
+	 sleep(5);
+	 if ( execve(buf, config.playerargv, NULL) == -1 ) {
+	    printf("Execution of player (%s) failed!\n", buf);
+	    perror("execve()");
+	    sleep(2);
+	    exit(-1);	    
+	 }
+      	 break;
+
+       default: /* rock 'n' roll, we're up kicking */
+	 mpgrfd = insocks[0];
+	 mpgwfd = outsocks[1];
+	 break;
+	 
+      } /* switch fork .. */
+      
+   } /* Init session end. */
+   
+
+   if ( command && command[0] != '#' ) { /* write .. */
+
+      //      write(outsocks[1], command, strlen(command)+1);
+      if ( write(mpgwfd, command, strlen(command)) != strlen(command) ) {
+	 /* Write error! This is no good.. */
+	 close(mpgwfd);
+	 close(mpgrfd);
+	 killslave();
+	 mpgrfd = mpgwfd = -1;
+	 return NULL;
+      }
+      
+   } else { /* read .. */      
+      
+      i = 1;
+      while ( i ) { /* As log as mpg123 has sonething to report.. */
+      
+	 FD_ZERO(&rfds);
+	 FD_SET(mpgrfd, &rfds);
+	 tv.tv_sec = tv.tv_usec = 0;
+	 
+	 if ( select(mpgrfd+1, &rfds, NULL, NULL, &tv) && FD_ISSET(mpgrfd, &rfds) ) {
+	    /* Data availible in pipe */
+	    
+	    memset(buf, 0, 500);
+	    while ( (read(mpgrfd, ch, 1) != 0) && ch[0] != '\n'  )
+	      if ( ch[0] != '\r' && ch[0] != '\n' ) strncat(buf, ch, 1); 
+	    /* There must be a better way to read single lines from files/piles eh?
+	     * something like fgets .. please inform me if there is such a command :) */
+	    
+//	    printf("\e[1;1HEWP! GOT LINE: %s--\n", buf);
+
+	    if ( command )
+	      if ( !strncmp(buf, command+1, strlen(command)-1) ) i = 0;
+	    
+	    if ( !strcmp(buf, "@P 0") && playsong )
+	      playnext(-1);
+
+	 } else if ( !command || command[0] != '#' ) return NULL; /* pipe data end */
+      } /* while 1 .. */
+   } /* end read */
+   return NULL;
 }
+   

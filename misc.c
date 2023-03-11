@@ -16,7 +16,8 @@
 
 #ifdef LIRCD
 #include "lirc_client.h"
-extern int use_lircd, lirc_lircd; 
+extern char use_lircd;
+extern int lirc_lircd; 
 extern struct lirc_config *lircd_config;
 #endif
 
@@ -39,7 +40,7 @@ fd_set fds;
 int ch;
 unsigned char maxpos=0, pos;
 static char buf[256];
-char *buf2 = (char*)malloc(256);
+char buf2[256];
 char *ir, *c;
    
    if ( preval != NULL ) {
@@ -53,27 +54,34 @@ char *ir, *c;
    do {
       ch = 0;
       FD_ZERO(&fds);
-      FD_SET(0, &fds);
+      FD_SET(fileno(stdin), &fds);
 #ifdef LIRCD
       if ( use_lircd ) {
-	 FD_SET(lirc_lircd, &fds);      
-	 select(lirc_lircd+1, &fds, NULL, NULL, NULL);
-	 if ( FD_ISSET(lirc_lircd, &fds) ) {
-	    ir = lirc_nextir();	    
-	    while ( ir && (c=lirc_ir2char(lircd_config,ir)) != NULL )
-	      if ( strlen(c) == 1 ) ch = c[0]; else
-	      if ( !strcasecmp(c, "play") || !strcasecmp(c, "jump") ) ch = 13; else
-	      if ( !strcasecmp(c, "skip-") ) ch = 127; else
-	      if ( !strcasecmp(c, "stop") ) ch = 27;
-	    if ( ir ) free(ir);	    	       
-	 }
+	 FD_SET(lirc_lircd, &fds);
+	 if ( select(lirc_lircd+1, &fds, NULL, NULL, NULL) != -1 )
+	   if ( FD_ISSET(lirc_lircd, &fds) ) dolircd(0); else
+	 
+	 /*{ // Hmm, this was the old code to wander around in the fields with the remote-control, ripped it out :)
+	      ir = lirc_nextir();
+	      while ( ir && (c=lirc_ir2char(lircd_config,ir)) != NULL )
+
+		if ( strlen(c) == 1 ) ch = c[0]; else
+		if ( !strcasecmp(c, "play") || !strcasecmp(c, "jump") ) ch = 13; else
+		if ( !strcasecmp(c, "skip-") ) ch = 127; else
+		if ( !strcasecmp(c, "stop") ) ch = 27;
+	      if ( ir ) free(ir);	    	       
+	   } */ 
+	   
+	   if FD_ISSET(fileno(stdin), &fds) ch = getchar();
       } else 
-	select(1, &fds, NULL, NULL, NULL);      
+	if ( select(fileno(stdin)+1, &fds, NULL, NULL, NULL) != -1 )
+	  if FD_ISSET(fileno(stdin), &fds) ch = getchar();
 #else
-      select(1, &fds, NULL, NULL, NULL);
+      if ( select(fileno(stdin)+1, &fds, NULL, NULL, NULL) != -1 )
+	if FD_ISSET(fileno(stdin), &fds) ch = getchar();
 #endif
-      if FD_ISSET(0, &fds) ch = getchar();
-      if ( ch == 3 ) exit(0); /* ^C */
+      if ( ch == 3 && canexit() ) exit(0); /* ^C */
+      if ( ch == 26 && canexit() ) disappear(); else /* ^Z */
       
       if ( ch == 1 ) { /* ^A */
 	 pos = 0;
@@ -82,6 +90,11 @@ char *ir, *c;
 	if ( ch == 5 ) { /* ^E */
 	   pos = maxpos;
 	   printf("\e[%d;%dH", y, x+pos);
+	} else
+	if ( ch == 21 ) { /* ^U */
+	   printf("\e[%d;%dH%s\e[%d;%dH", y, x, xys(strlen(buf), ' '), y, x);
+	   maxpos = pos = 0; buf[0] = 0;
+	   if ( modified != NULL ) *modified = TRUE;
 	} else
 	if ( ch > 31 && maxpos < maxlen && ch != 127 ) { /* regulars */
 	   strcpy(buf2, &buf[pos]);
@@ -109,20 +122,18 @@ char *ir, *c;
 	      switch( getchar() ) {
 	       case 'A': 
 		 *exitchar = 'A';
-		 free(buf2);
 #ifdef HAVE_TERMIOS_H
 		 fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
 #endif
 		 return buf;
 	       case 'B':
 		 *exitchar = 'B';
-		 free(buf2);
 #ifdef HAVE_TERMIOS_H
 		 fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
 #endif
 		 return buf;
 	       case 'C':
-		 if ( pos != maxpos ) pos++;
+		 if ( pos != maxpos ) pos++;		
 		 printf("\e[%d;%dH", y, x+pos);
 		 break;
 	       case 'D':
@@ -135,20 +146,17 @@ char *ir, *c;
 	   } else {
 	      while ( getchar() != -1 ) ;
 	      *exitchar = 27;
-	      free(buf2);
 	      fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);	      
 	      return buf;
 	   }
 	} else 
 	if ( ch == 13 ) {
 	   *exitchar = 13;
-	   free(buf2);
 	   return buf;
 	}
       
    } while ( TRUE );
    
-free(buf2);
 return buf;
 }
 
@@ -163,12 +171,16 @@ struct timeval starttime, currenttime;
    tmp[0] = 0;
    while ( ch != 13 ) {      
       gettimeofday(&currenttime, NULL);
-      if ( currenttime.tv_sec == starttime.tv_sec+10 ) return;
-      usleep(10000);
-      ch = getchar();
-      if ( ch != -1 ) {
+      if ( currenttime.tv_sec == starttime.tv_sec+10 ) {
+	 text[0] = 0;
+	 return;
+      }
+      if ( mykbhit(0, 900000) ) {
+	 ch = getchar();
 	 gettimeofday(&starttime, NULL);
+	 
 	 switch(ch) { 	    
+	    
 	  case 127: if ( tmp[0] != 0 ) {
 	     tmp[strlen(tmp)-1] = 0;
 	     printf("\b \b"); 
@@ -176,10 +188,10 @@ struct timeval starttime, currenttime;
 	    
 	  case 13: break;
 	    
-	  default: if ( strlen(tmp) == len ) break; tmp[strlen(tmp)+1] = 0; tmp[strlen(tmp)] = ch; printf("*"); break;
+	  default: if ( strlen(tmp) == len ) break; tmp[strlen(tmp)+1] = 0; tmp[strlen(tmp)] = ch; printf("*"); fflush(stdout); break;
 	 } // switch(ch)
 	 
-      } // if ch != -1
+      } // if kbhit .. 
    } // while ch ! 13
    
    strcpy(text, tmp);
@@ -220,7 +232,7 @@ fd_set fds;
    tv.tv_usec = usec;
    FD_ZERO(&fds);
    FD_SET(0, &fds);
-   if ( select(fileno(stdin)+1, &fds, NULL, NULL, &tv) ) return TRUE; else
+   if ( select(fileno(stdin)+1, &fds, NULL, NULL, &tv) != -1 && FD_ISSET(fileno(stdin), &fds) ) return TRUE; else
      return FALSE;
 }
 
@@ -296,11 +308,15 @@ void my_Gpm_Init(Gpm_Connect *mouse) {
 
    gpm_zerobased      = 0;
    gpm_visiblepointer = 1;
-   Gpm_Open(mouse, 0);     /* Open mouse on current VT */
-   gpm_handler = NULL;     /* We don't use a default handler */
-   if ( !gpm_flag ) {
-      while ( Gpm_Close() != 0 ) ;
-      gpm_fd = -1;	
+   if (Gpm_Open(mouse, 0)!=-2)  {
+	   gpm_handler = NULL;     
+	   if ( !gpm_flag ) {
+	      while ( Gpm_Close() != 0 ) ;
+	      gpm_fd = -1;	
+	   }
+   } else {
+	   gpm_fd=-1;
+	   gpm_flag=0;
    }
 }
 

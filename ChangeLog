@@ -5,6 +5,53 @@ CAMP Changelog
 - Remove
 ! Known bug
 
+2002-02-18: v1.5-beta3.32
+! mpg123-jukebox mode is still non-functional.
+* camp didn't report another running camp, if you didn't have access to
+  the process running it.
+* Upgraded to use LIRCD 0.6.5 headers.
+* Fixed a few bugs in the patches and added some skin-stuff for them.
+* Merged Andoni Zubimendi's patches against 1.4.2835 as follows:
+
+ 2001-03-15:
+ * First attempt to make a searchable playlist, just like "j" in xmms
+
+ 2001-03-09:
+ * Fixed a problem with GPM and the recurse directories.
+   -- routine rewritten in 1.5beta2, removed this..
+ + Highlight the current song being played in the playlist.
+ * ID3 with a carriage return --> corrupted playlist window.
+
+ 2001-03-07: v1.4.2896
+ * next mp3 play after first load fix.
+ + Use /usr/share/lib/camp too to search for skins.
+ * Create .camp directory in $HOME if it didn't exist.
+   -- ripped this out in favour of an error message.
+ * Can't steal other's sessions, unless you're root.
+
+ 2000-12-12: v1.4.2836
+ + Recurse Directories when loading.
+
+2000-09-15: v1.5-beta2.3132
+* If you play like 40000+ songs in the same session, camp won't segfault anymore
+* Lots of config-file segfaults fixed.
+* Fixed a stupid bug wich made camp segfault if your default mp3 player wasn't
+  named "mpg123", "xaudio" or "amp".
+* Fixed a bug in the linereading routine, wich would hang your session if you
+  edited some text field (like in the id3 editor), while camp switched songs.
+* Fixed a bug from beta1, you could press ^C from pl/fl while locked and exit.
+* Fixed another bug that made the playlist segfault randomly..
+* Fixed the mute-button crap ( Does any skin actually use it yet ?! )
++ Added some information about who's stealing your session using "camp -s"
+  (Uh, we run camp at work now, so everyone's using telnet to steal it)
++ Created some new signal handlers like SIGTERM, SIGHUP, etc.
++ Added some lame startup tips .. ;]
+
+2000-08-16:
+- I finished doing my military services and got out of the army 4ever i hope.
+  This mainly means that I finally can spend some time on this project again,
+  trying to trace all thoose stupid segfaults down. Please help me!
+
 2000-06-25: v1.5-beta1.2889
 
 * Fixed some problems with calling the external player.
@@ -27,7 +74,10 @@ CAMP Changelog
   does, therefore, text-playlist couldn't be loaded. Fixed.
 + Added support for gzip-compressing playlists via libz. (500kb -> 50kb)
 + Added support for scrolling long names at mainscreen.
-! If you play like 40000+ songs, in the same session, camp will segfault.
+! If you play like 40000+ songs in the same session, camp will segfault.
+
+1999-08-31:
+- Away doing my military service for 12 months, ..
 
 1999-04-13: v1.3-beta3/final.2410
 

@@ -33,7 +33,8 @@ unsigned int samplerate_table[3][4] =  {
 };
 
 extern struct configstruct config;
-	     
+extern char currloc;
+
 char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bit_rate, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre) {
 FILE *fd;
 struct ID3 filetag;
@@ -67,7 +68,7 @@ char version, stereo=0;
       version = 2;
       break;
     default:
-      version = -1;
+      version = 2;   // Uh? Originally -1   -- inm
    }
    
    if ( buf[0] == 0xFF && (buf[1] & 0xE0) == 0xE0 )  { /* valid mpX */
@@ -140,6 +141,8 @@ char *fuckspaces(char *lame, int maxpos) {
    static char buf[256];
       strcpy(buf, lame);
       buf[maxpos] = 0;
+      for (i=maxpos-1;i>-1;i--)
+	  if ( buf[i] == '\r' ) buf[i] = 0;
       for(i=maxpos-1;i>-1;i--)
           if (lame[i] == ' ') buf[i] = 0; else return buf;
       return buf;
@@ -152,6 +155,7 @@ int modified=FALSE, exitchar=0;
 fd_set stdinfds;
 
    if ( filename == NULL ) return;
+   currloc = CAMP_DESC;   
    
    for(;i<strlen(filename);i++)
      if (filename[i] == '/' ) cspos = 0; else {
@@ -171,7 +175,7 @@ fd_set stdinfds;
       genre     = 0;
    }
    if ( config.skin.iclr ) printf("\e[0m\e[2J");   
-   printf("\e[?25h\e[1;1H%s\e[%sm", config.skin.id3, config.skin.id3fnc); 
+   printf("\e[?25h\e[1;1H%s\e[%sm", config.skin.id3, config.skin.id3fnc);
    printf("\e[%d;%dH%s\e[%sm", config.skin.iy[5], config.skin.ix[5], buf, config.skin.id3tc);
    printf("\e[%d;%dH%s", config.skin.iy[0], config.skin.ix[0], artist);
    printf("\e[%d;%dH%s", config.skin.iy[1], config.skin.ix[1], name);
@@ -206,8 +210,8 @@ fd_set stdinfds;
    if ( modified ) {
       printf("\e[%d;%dH\e[%sm%s", config.skin.iy[6], config.skin.ix[6], config.skin.id3sc, config.skin.id3st); fflush(stdout);
       FD_ZERO(&stdinfds);
-      FD_SET(0, &stdinfds);
-      select(1, &stdinfds, NULL, NULL, NULL);
+      FD_SET(fileno(stdin), &stdinfds);
+      select(fileno(stdin)+1, &stdinfds, NULL, NULL, NULL); 
       if ( toupper(getchar()) != 'N' ) {
 	 writemp3info(filename, name, artist, misc, album, year, genre);
 	 if ( playlist != NULL ) 
@@ -220,5 +224,6 @@ fd_set stdinfds;
 #ifdef USE_GPM_MOUSE
    my_Gpm_Purge();
 #endif
+   return;
 }
 

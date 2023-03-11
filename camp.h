@@ -19,15 +19,16 @@
 
 #define CAMP_VERSION "1.5"
 
-#define    MINBUTTON 1
-#define    MAXBUTTON 14
-#define PL_MINBUTTON 1
-#define PL_MAXBUTTON 7
-#define FL_MINBUTTON 1
+#define    MINBUTTON 0
+#define    MAXBUTTON 16
+#define PL_MINBUTTON 0
+#define PL_MAXBUTTON 6
+#define FL_MINBUTTON 0
 #define FL_MAXBUTTON 7
+#define FL_BUTTONQUIT 6
 
-#define PID_FILE "/tmp/.camp.pid"
 #define TMP_DIR "/tmp"
+#define PID_FILE "/tmp/.camp.pid"
 
 #define NICE_NAMES
 
@@ -39,6 +40,14 @@
 #define KEY_END  1
 #define KEY_PGUP 2
 #define KEY_PGDN 3
+
+/* permanent defines to know where we are right now */
+#define CAMP_MAIN  0
+#define CAMP_PL    1
+#define CAMP_FL    2
+#define CAMP_DESC  3
+#define CAMP_RET   4 
+#define CAMP_UNDEF 5 /* Undefined.. like external programs and crap */
 
 /* structures */
 struct filelistent {
@@ -90,26 +99,29 @@ struct usableID3 {
 };
 
 struct skinconfig {
-   char pclr, fclr, iclr;
-   char mx[15], my[15], mw[15], *ma[15], *mi[15], mh[15];
-   char mju[15], mjd[15], mjl[15], mjr[15];
-   char px[7], py[7], pw[7], *pa[7], *pi[7];
-   char fx[7], fy[7], fw[7], *fa[7], *fi[7];
+   char mpclr, miclr, pclr, fclr, iclr;
+   char mx[MAXBUTTON+1], my[MAXBUTTON+1], mw[MAXBUTTON+1], *ma[MAXBUTTON+1], *mi[MAXBUTTON], mh[MAXBUTTON+1];
+   char mju[MAXBUTTON+1], mjd[MAXBUTTON+1], mjl[MAXBUTTON+1], mjr[MAXBUTTON+1];
+   char px[PL_MAXBUTTON+1], py[PL_MAXBUTTON+1], pw[PL_MAXBUTTON+1], *pa[PL_MAXBUTTON+1], *pi[PL_MAXBUTTON+1];
+   char fx[FL_MAXBUTTON+1], fy[FL_MAXBUTTON+1], fw[FL_MAXBUTTON+1], *fa[FL_MAXBUTTON+1], *fi[FL_MAXBUTTON+1];
    char ix[7], iy[7], *modetext[3], *stereotext[2];
-   char flistbo[10], plistbo[10], msb, psb, fsb;
+   char flistbo[FL_MAXBUTTON+1], plistbo[PL_MAXBUTTON+1], msb, psb, fsb;
+   char findbarw, findbarx, findbary, *findbarc;
    char mtextx, mtexty, mtextw, *mtextc, textx, texty, textw, *textc;
    char *flistmsg[6], *mainmsg[4];
    char id3fnw, *id3fnc, *id3tc, *id3sc, *id3st;
    char plistx, plisty, plistw, plistlines;
-   char *plistci, *plistca;
+   char *plistci, *plistca, *plistcc;
    char flistx, flisty, flistw, flistlines;
    char *flistcdi, *flistcda, *flistcfi, *flistcfa, *flistcta, *flistcti;
    char mouseexpand, pmouseexpand, fmouseexpand;
    char standardrows;
    char songnamey, songnamex, modetexty, modetextx, modetextw, bitratex, bitratey;
    char timey, timex, stereox, stereoy, songnamew, sampleratex, sampleratey;
-   char songnumberx, songnumbery;
-   char *songnamec, *sampleratec, *bitratec, *timec, *stereoc;
+   char songnumberx, songnumbery, volx, voly;
+   char platmain, id3atmain;
+   char mainatpl, id3atpl;
+   char *songnamec, *sampleratec, *bitratec, *timec, *stereoc, *volc;
    char *modetextc, *songnumberc;
    char *main;
    char *playlist;
@@ -123,9 +135,6 @@ struct rcconfig {
 };
 
 struct configstruct {
-   char modplayerpath[100];
-   char modplayername[100];
-   char *modplayerargv[15];
    char playerpath[100];
    char playername[100];
    char *playerargv[15];
@@ -151,6 +160,9 @@ struct configstruct {
    char kill2pids;
    char nicekill;
    char lockvt;
+   char showtip;
+   char forkseg;
+   char mpg123;
    int playerprio;
    unsigned int rctime;
    unsigned int bufferdelay;
@@ -159,8 +171,8 @@ struct configstruct {
 };
 
 #ifdef USE_GPM_MOUSE /* if we're using the mouse, declare additional proc/func's */
-void main_domouse(void);
-void pl_domouse(struct playlistent **playlist, unsigned int *filenumber);
+void main_domouse(Gpm_Event *revent);
+void pl_domouse(struct playlistent **playlist, unsigned int *filenumber, Gpm_Event *revent);
 void my_Gpm_Init(struct Gpm_Connect *mouse);
 void my_Gpm_Purge(void);
 int fl_domouse(struct filelistent **filelist, struct playlistent **playlist);
@@ -182,13 +194,15 @@ void updatebuttons(char motion);
 void updatedata(void);
 void updatesongtime(char ch);
 void unloadskin(struct skinconfig *skin);
+void sighandler(int sig);
 int  dofunction(char forcedbutton);
+int  showtip(void);
 
 /* playlist.o */
 unsigned int pl_count( struct playlistent *playlist );
 struct playlistent *pl_seek( unsigned int pos, struct playlistent **playlist );
-void pl_search(char ch, struct playlistent *playlist);
-void pl_showents( int startpos, struct playlistent *playlist );
+void pl_search(char ch, struct playlistent *playlist,int *);
+void pl_showents( int startpos, struct playlistent *playlist,int *);
 void pl_updatebuttons(int add);
 void l_status(char *text);
 void clearplaylist(struct playlistent **playlist);
@@ -196,14 +210,18 @@ void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, char
 void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
 void rplaylist(struct playlistent **playlist, unsigned int *filenumber);
 void sortplaylist(struct playlistent **playlist);
+static int findit (struct playlistent *, char);
+
 
 /* filelist.o */
+
+void recurseplaylist (struct filelistent *filelist, struct playlistent **playlist, char *dir);
 void fl_search(char ch, struct filelistent *filelist);
 void fl_showents( int startpos, struct filelistent *filelist );
 void fl_updatebuttons( int add );
 void releasedir( struct filelistent *filelist );
 void togglemark( struct filelistent *filelist, char movedown );
-void saveplaylist(struct playlistent *playlist, char *filename);
+void saveplaylist(struct playlistent *playlist, char *filename, char directsave);
 void loadplaylist(struct playlistent **playlist, char *filename, char filemanager );
 void fl_dofunction( struct filelistent *filelist, struct playlistent **playlist );
 void getfiles( struct playlistent **playlist );
@@ -230,8 +248,8 @@ void call_player(struct playlistent *pl);
 void slave(char *filename);
 void killslave(void);
 void playnext(int);
-int modcheck(char *name);
-void mod_slave( char *filename );
+char *mpg123_control(char *command); /* 1t'z the n3w sh1t */
+   
 
 /* cconfig.o */
 struct configstruct getconfig(char *configfile);

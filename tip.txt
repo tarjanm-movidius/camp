@@ -1,0 +1,9 @@
+Report bugs and ideas to inm@sector7.nu, nothing is too stupid to report!
+You can tag files in the playlist either using "tag all" or tagging single files using the spacebar.
+You can add files recursively, using the "DiRe!" button in the filelist windows.
+You can raise/lower the volume with the +/- buttons if you've entered the correct information into ~/.camp/camprc.
+You can disable/enable the initial ID3 scan for faster loading of mp3-files.
+You can lock the console to camp's virtual terminal with password support, by running camp with the "-l" switch.
+You can make camp run in the background by starting it with the "-b" switch.
+You can read ~/.camp/tip.txt manually and then disable this annoying delay ;)
+You can enable mpg123 jukebox mode in the config, and use rew/ff with skins that supports this feature, or by press and hold the skip buttons. (Still HIGHLY experimental)

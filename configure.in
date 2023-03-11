@@ -74,6 +74,8 @@ AC_CHECK_HEADERS(sys/soundcard.h,[
 
 AC_CHECK_HEADERS(sys/ioctl.h,)
 
+AC_CHECK_HEADERS(utmp.h,)
+
 dnl Checks for header files.
 #AC_HEADER_STDC
 

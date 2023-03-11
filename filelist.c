@@ -21,7 +21,7 @@
 # include <zlib.h>
 #endif
 
-extern char playsong, checkkill, use_lircd;
+extern char playsong, checkkill, use_lircd, currloc;
 extern struct configstruct config;
 extern unsigned int slavepid;
 extern int lirc_lircd, selval;
@@ -30,6 +30,7 @@ int fl_buttonpos;
 unsigned int fl_maxpos=0, current[50];
 char depth=0, screenmark[50], cdir[256];
 
+
 void getfiles(struct playlistent **playlist) {
 struct filelistent *filelist = NULL;
 struct timeval counter;
@@ -37,8 +38,14 @@ int i = 0;
 int ch, ch2;
 fd_set fds;
    
-   fl_buttonpos = config.skin.fsb+1;
-   for(i=0;i<50;i++) { current[i] = 0; screenmark[i] = 0; }
+   currloc = CAMP_FL; /* Tell the world where we are */
+   fl_buttonpos = config.skin.fsb;
+
+   /* for(i=0;i<50;i++) { current[i] = 0; screenmark[i] = 0; } 
+    * Eh.. was that lame or what? */
+   
+   memset(current, 0, sizeof(current));
+   memset(screenmark, 0, sizeof(screenmark));
    
    if ( cdir[0] == 0 && config.startincwd && getcwd(cdir, 256) ) {
       for(i=0;i<strlen(cdir);i++) if ( cdir[i] == '/' ) depth++;
@@ -98,7 +105,13 @@ fd_set fds;
 	 ch = 0;
 	 if ( FD_ISSET(0, &fds) ) {
 	    ch = getchar();
-	    if ( ch == 3 ) { releasedir(filelist); exit(0); } else
+	    if ( ch == 3 && canexit() ) { releasedir(filelist); exit(0); } else
+	      if ( ch == 26 && canexit() ) { releasedir(filelist); disappear(); } else /* ^Z */
+              if ( ch == 12 ) { /* ^L */
+		 printf("\e[0m\e[2J\e[1;1H%s", config.skin.filelist);
+		 fl_showents(current[depth]-screenmark[depth], filelist);
+		 fl_updatebuttons(0);
+	      } else	      
 	      if ( ch == 32 ) 
 		switch(file_seek(current[depth], filelist)->type) {
 		 case 1: 
@@ -145,7 +158,7 @@ fd_set fds;
 		   if ( ch2 == 'D' && fl_buttonpos != FL_MINBUTTON ) { 
 		      fl_updatebuttons(-1);
 		   }
-		   if ( ch2 == 'C' && fl_buttonpos != FL_MAXBUTTON ) { 
+		   if ( ch2 == 'C' && fl_buttonpos != FL_MAXBUTTON) { 
 		      fl_updatebuttons(1);
 		   }
 		   if ( ch2 == '5' ) { /* page up */
@@ -178,8 +191,11 @@ fd_set fds;
 		   }
 		} else
 	      if ( ch == 13 ) { 
-		 if ( (fl_buttonpos-1) == config.skin.flistbo[FL_MAXBUTTON-1] ) { releasedir(filelist); return; } else
-		   if ( fl_buttonpos == 1 && file_seek(current[depth], filelist)->type == 2 )
+
+//             if ( fl_buttonpos == config.skin.flistbo[FL_MAXBUTTON] ) { releasedir(filelist); return; } else
+                if ( config.skin.flistbo[fl_buttonpos] == FL_BUTTONQUIT ) { releasedir(filelist); return; } else
+  
+		   if ( config.skin.flistbo[fl_buttonpos] == FL_MINBUTTON && file_seek(current[depth], filelist)->type == 2 )
 		     filelist = camp_chdir(filelist); else {
 			fl_dofunction(filelist, playlist);
 		     }
@@ -285,11 +301,13 @@ return filelist;
    
 void fl_updatebuttons(int add) {
 int i;
+   if ( config.skin.flistbo[fl_buttonpos+add] == -1 ) return;
+   
    fl_buttonpos = fl_buttonpos + add;
-   for (i=0;i<7;i++) {
+   for (i=FL_MINBUTTON;i<(FL_MAXBUTTON+1);i++) {
       if ( !config.skin.fy[i] && !config.skin.fx[i] ) continue;
       printf("\e[%d;%dH",config.skin.fy[i], config.skin.fx[i]);
-      if (config.skin.flistbo[fl_buttonpos-1] == i) printf("%s", config.skin.fa[i]); else
+      if (config.skin.flistbo[fl_buttonpos] == i) printf("%s", config.skin.fa[i]); else
 	printf("%s", config.skin.fi[i]);
    }
    fflush(stdout);
@@ -301,9 +319,10 @@ struct playlistent *temp;
 char name[31], artist[31], buf[256];
 char j, cspos;
    
-   switch( config.skin.flistbo[fl_buttonpos-1] ) {
+   switch( config.skin.flistbo[fl_buttonpos] ) {
       
     case 0: /* add */
+
       filelist = file_seek(0, filelist);
       while ( filelist->next != NULL ) {
 	 sprintf(buf, "%s%s", cdir, filelist->name);
@@ -340,16 +359,23 @@ char j, cspos;
       break;
 
     case 4: /* save playlist */
-      saveplaylist(*playlist, file_seek(current[depth], filelist)->name);
+      saveplaylist(*playlist, file_seek(current[depth], filelist)->name, FALSE);
       break;
       
     case 5: /* clear playlist */
       clearplaylist(playlist);
       break;
-
-    case 6:
+/*
+    case 6:  Quit 
       fl_buttonpos = FL_MAXBUTTON+1;
       break;
+*/
+    case 7: /* recurse playlist */
+      j = fl_maxpos;
+      recurseplaylist(filelist, playlist, cdir);
+      fl_maxpos = j;
+      break;
+
    } /* switch */
    return;
 }
@@ -405,11 +431,13 @@ struct filelistent *filelist = (struct filelistent*)malloc(sizeof(struct filelis
 void releasedir(struct filelistent *filelist) {
 struct filelistent *temp;
 
-   while ( filelist->prev != NULL ) filelist = filelist->prev;
-   while ( filelist != NULL ) {
-      temp     = filelist;
-      filelist = filelist->next;
-      free(temp);
+   if (filelist != NULL) {
+	 	while ( filelist->prev != NULL ) filelist = filelist->prev;
+		while ( filelist != NULL ) {
+		      temp     = filelist;
+		      filelist = filelist->next;
+		      free(temp);
+		}
    } 
 }
 
@@ -556,7 +584,7 @@ gzFile gzfd;
 }
 
 
-void saveplaylist(struct playlistent *playlist, char *filename) {
+void saveplaylist(struct playlistent *playlist, char *filename, char directsave) {
 FILE   *fd;
 fd_set stdinfds;
 char   cplid3 = TRUE, ch, *buf, *buf2;
@@ -572,46 +600,55 @@ gzFile gzfd;
    buf2 = malloc(500);
    while ( playlist->prev != NULL ) playlist = playlist->prev;
    
-   sprintf(buf, "\e[?25h%s", config.skin.flistmsg[3]);
-   l_status(buf);
-   strcpy(buf2, filename);
-   strcpy(buf2, readyxline(config.skin.texty, config.skin.textx+ansi_strlen(config.skin.flistmsg[3]), buf2, config.skin.textw-ansi_strlen(config.skin.flistmsg[3]), &exitchar, (int*)&ch));
-   if ( exitchar == 27 || !buf2[0] ) {
-      l_status("\e[?25l");
-      fl_updatebuttons(0);
-      free(buf);
-      free(buf2);
-      return;
-   } 
-   
+   if ( directsave ) strcpy(buf2, filename); else {
+      sprintf(buf, "\e[?25h%s", config.skin.flistmsg[3]);
+      l_status(buf);
+      strcpy(buf2, filename);
+      strcpy(buf2, readyxline(config.skin.texty, config.skin.textx+ansi_strlen(config.skin.flistmsg[3]), buf2, config.skin.textw-ansi_strlen(config.skin.flistmsg[3]), &exitchar, (int*)&ch));
+      if ( exitchar == 27 || !buf2[0] ) {
+	 l_status("\e[?25l");
+	 fl_updatebuttons(0);
+	 free(buf);
+	 free(buf2);
+	 return;
+      }
+
+      l_status(config.skin.flistmsg[4]); /* Save w/ ID3 tags and shiit ? y/n */
+      FD_ZERO(&stdinfds);
+      FD_SET(0, &stdinfds);
+      select(1, &stdinfds, NULL, NULL, NULL);
+      
+   }
+
    if ( strchr(buf2, '/') == NULL )
      sprintf(buf, "%s/%s", cdir, buf2); else
      strcpy(buf, buf2);
-        
-   l_status(config.skin.flistmsg[4]); /* Save w/ ID3 tags and shiit ? y/n */
-   FD_ZERO(&stdinfds);
-   FD_SET(0, &stdinfds);
-   select(1, &stdinfds, NULL, NULL, NULL);
-   if ( toupper(getchar()) == 'N' ) { 
-      fd = fopen(buf, "w");
+   
+   /* kinda messy, here's the getchar from 10 lines above.. eh, yeah .. it werks :) */
+    if ( !directsave && toupper(getchar()) == 'N' ) {
       cplid3 = FALSE; 
-   } else     
+      fd = fopen(buf, "w");
+   } else
 #ifdef HAVE_LIBZ
      if ( config.compresspl ) {
 	gzfd = gzopen(buf, "wb");
-	gzwrite(gzfd, "CPL+ID3 1.3\n", 12); 
+	gzwrite(gzfd, "CPL+ID3 1.3\n", 12);
      } else {
 	fd = fopen(buf, "wb");	   
 	fputs("CPL+ID3 1.3\n", fd); 
      }
 #else
-   fd = fopen(buf, "w");
-   fputs("CPL+ID3 1.3\n", fd);
+     {
+	fd = fopen(buf, "w");
+	fputs("CPL+ID3 1.3\n", fd);
+     }
 #endif
    
-   sprintf(buf, "\e[?25l%s", config.skin.flistmsg[5]);
-   l_status(buf);
-
+   if ( !directsave ) {      
+      sprintf(buf, "\e[?25l%s", config.skin.flistmsg[5]);
+      l_status(buf);
+   }
+   
    if ( cplid3 ) 
      do {
 	memcpy((void*)&getpl, (void*)playlist, sizeof(struct oneplaylistent));
@@ -620,14 +657,15 @@ gzFile gzfd;
 	  gzwrite(gzfd, (void*)&getpl, sizeof(struct oneplaylistent)); else
 	  fwrite((void*)&getpl, sizeof(struct oneplaylistent), 1, fd);
 #else
-	fwrite((void*)&getpl, sizeof(struct oneplaylistent), 1, fd);
+	   fwrite((void*)&getpl, sizeof(struct oneplaylistent), 1, fd);
 #endif
 	if ( playlist->next != NULL ) playlist = playlist->next;
      } while (playlist->next != NULL);
    else 
      do {
-	fputs(playlist->name, fd);
-	fputc('\n', fd);
+	fprintf(fd, "%s\n", playlist->name);
+	//	   fputs(playlist->name, fd);
+	//	   fputc('\n', fd);
 	if ( playlist->next != NULL ) playlist = playlist->next;
      } while ( playlist->next != NULL );
 #ifdef HAVE_LIBZ
@@ -636,8 +674,10 @@ gzFile gzfd;
 #else
    fclose(fd);
 #endif
-   l_status(NULL);
-   fl_updatebuttons(0);
+   if ( !directsave ) {
+      l_status(NULL);
+      fl_updatebuttons(0);
+   }
    free(buf);
    free(buf2);
    return;
@@ -668,12 +708,47 @@ void fl_search(char ch, struct filelistent *filelist)   { /* skippa ner till en 
       }
    }
 }
-   
-   
+
+void recurseplaylist (struct filelistent *filelist, struct playlistent **playlist, char *dir) {
+int botonviejo;
+
+  if (!filelist) return;
+
+  while (filelist->prev != NULL)
+	  filelist=filelist->prev;
+  while (filelist->next != NULL) {
+	if (strcmp(filelist->name,".") &&
+	    strcmp(filelist->name,"..")) {
+  	 if ( (strstr(lowercases(filelist->name), ".mp3") != NULL) &&
+	     filelist->type == 1 ) 
+	           filelist->tagged = TRUE;
+	   if (filelist->type == 2) {
+	          struct filelistent *newlist;
+		  char olddir[256];
+		  char newdir[256];
+		  sprintf(newdir, "%s%s/",dir,filelist->name);
+                  strcpy (olddir,cdir);
+		  strcpy (cdir,newdir);
+		  newlist=loaddir(newdir);
+		  recurseplaylist (newlist, playlist,newdir);
+		  strcpy (cdir,olddir);
+		  releasedir (newlist);
+	   }
+	 }
+         filelist=filelist->next;
+  }
+  botonviejo=config.skin.flistbo[fl_buttonpos];
+  config.skin.flistbo[fl_buttonpos]=0;       // Agregar Archivos
+  fl_dofunction(filelist, playlist);
+  config.skin.flistbo[fl_buttonpos]=botonviejo;
+
+ }
+
+
 #ifdef USE_GPM_MOUSE
 int fl_domouse(struct filelistent **filelist, struct playlistent **playlist) {
 Gpm_Event event;
-int i, y=0;
+int i, j=0;
    
    Gpm_GetEvent(&event);
    
@@ -705,15 +780,18 @@ int i, y=0;
 	fl_showents(current[depth]-screenmark[depth], *filelist);
      } else   
      
-     for(i=0;i<FL_MAXBUTTON;i++)
-       if ( event.y == config.skin.fy[i] && event.x >= (config.skin.fx[i]-config.skin.fmouseexpand) && event.x < (config.skin.fx[i]+config.skin.fw[i]+config.skin.fmouseexpand) ) { fl_buttonpos = i+1; y=TRUE; break; }
+     for(i=FL_MINBUTTON;i<(FL_MAXBUTTON+1);i++)
+       if ( event.y == config.skin.fy[i] && event.x >= (config.skin.fx[i]-config.skin.fmouseexpand) && event.x < (config.skin.fx[i]+config.skin.fw[i]+config.skin.fmouseexpand) ) {
+          for(;j<(FL_MAXBUTTON+1);j++)
+	    if ( config.skin.flistbo[j] == i )
+	      fl_buttonpos = j;
+	  if ( config.skin.flistbo[fl_buttonpos] == FL_BUTTONQUIT ) 
+	    return 1;
+	  fl_updatebuttons(0);
+	  fl_dofunction(*filelist, playlist);
+	  break; 
+       }
    
-   if ( y ) {
-      if ( fl_buttonpos == FL_MAXBUTTON ) 
-	 return 1;
-      fl_updatebuttons(0);
-      fl_dofunction(*filelist, playlist);
-   }
    
      /* left button - any click/move */
      if ( event.buttons & 4 && \

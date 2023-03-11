@@ -26,9 +26,11 @@ rctools:
 
 install:
 	if test -f $(HOME)/.camp; then rm -f $(HOME)/.camp; fi
+	if test -f $(HOME)/.camp/camprc; then mv -f $(HOME)/.camp/camprc $(HOME)/.camp/camprc.bak-pre1.5; fi
 	./mkinstalldirs $(BINDIR) $(HOME)/.camp
 	install -s -m 0755 ./camp     $(BINDIR)
 	install    -m 0600 ./camp.ini $(HOME)/.camp/camprc
+	install    -m 0600 ./tip.txt  $(HOME)/.camp/tip.txt
 	
 .c.o:	
 	$(CC) $(DEFS) $(CFLAGS) -c $<
