@@ -21,7 +21,7 @@
 # define FALSE 0
 #endif
 
-#define CAMP_VERSION "1.6"
+#define CAMP_VERSION "1.7"
 
 #define    MINBUTTON 0
 #define    MAXBUTTON 16
@@ -52,6 +52,12 @@
 #define CAMP_DESC  3
 #define CAMP_RET   4
 #define CAMP_UNDEF 5 /* Undefined.. like external programs and crap */
+
+#define CONF_BUF_LEN 256
+#define IS_SPACE(chr_) ((chr_) == ' ' || (chr_) == '\t')
+#define IS_CRLF(chr_) ((chr_) == '\r' || (chr_) == '\n')
+
+#define ID3_PAD_CH 0   /* was ' ' for some reason */
 
 /* structures */
 struct filelistent {
@@ -97,7 +103,7 @@ struct currentplaylistent {
 };
 
 struct ID3 {
-    char tag[4];
+    char tag[3];
     char songname[30];
     char artist[30];
     char album[30];
@@ -234,7 +240,6 @@ void sortplaylist(struct playlistent **playlist);
 
 
 /* filelist.o */
-
 void recurseplaylist (struct filelistent *filelist, struct playlistent **playlist, char *dir);
 void fl_search(char ch, struct filelistent *filelist);
 void fl_showents( int startpos, struct filelistent *filelist );
@@ -254,7 +259,6 @@ struct filelistent *sortfilelist( struct filelistent *filelist );
 struct ID3 usable2id3(struct usableID3 *usabletag);
 struct usableID3 id32usable(struct ID3 *tag);
 void id3edit(char *filename, struct playlistent *playlist);
-char *fuckspaces(char *lame, int maxpos);
 char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bitrate, char *name, char *artist, char *misc, char *album, char *year, unsigned char *genre);
 char writemp3info(char *filename, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre);
 
@@ -275,7 +279,9 @@ char *mpg123_control(char *command); /* 1t'z the n3w sh1t */
 /* cconfig.o */
 struct configstruct getconfig(char *configfile);
 void loadskin(char *name, struct configstruct *config);
-int parseconfig(char *str, char *arg, char *value);
+int parseconfig(const char *str, char **arg, char **value);
+char is_val_true(char *value);
+char *randomskin(char *rbuf);
 int probe_dir(char *dir);
 
 /* misc.o */
@@ -284,6 +290,8 @@ int ansi_strlen(char *string);
 char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitchar, int *modified);
 char *strtrim(char *text, char trimchar);
 char *replace(char *text, char oldc, char newc);
+void cpy_replace(char *dst, const char *src, char oldc, char newc);
+void cpy_strip_end(char *dst, const char *src, unsigned int maxpos);
 char *xys(unsigned char number, char ch);
 char *lowercases(char *str);
 void lowcases( char *strng );

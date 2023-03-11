@@ -581,12 +581,18 @@ void unloadskin(struct skinconfig *skin)
     for(i=0; i<3; i++)   if (skin->modetext[i]) free(skin->modetext[i]);
     for(i=0; i<2; i++)   if (skin->stereotext[i]) free(skin->stereotext[i]);
 
-    for(i=FL_MINBUTTON; i<(FL_MAXBUTTON); i++)   if (skin->fi[i]) free(skin->fi[i]);
-    for(i=FL_MINBUTTON; i<(FL_MAXBUTTON); i++)   if (skin->fa[i]) free(skin->fa[i]);
-    for(i=PL_MINBUTTON; i<(PL_MAXBUTTON); i++)   if (skin->pi[i]) free(skin->pi[i]);
-    for(i=PL_MINBUTTON; i<(PL_MAXBUTTON); i++)   if (skin->pa[i]) free(skin->pa[i]);
-    for(i=MINBUTTON;   i<(MAXBUTTON); i++)      if (skin->mi[i]) free(skin->mi[i]);
-    for(i=MINBUTTON;   i<(MAXBUTTON); i++)      if (skin->ma[i]) free(skin->ma[i]);
+    for(i=FL_MINBUTTON; i<(FL_MAXBUTTON); i++) {
+        if (skin->fi[i]) free(skin->fi[i]);
+        if (skin->fa[i]) free(skin->fa[i]);
+    }
+    for(i=PL_MINBUTTON; i<(PL_MAXBUTTON); i++) {
+        if (skin->pi[i]) free(skin->pi[i]);
+        if (skin->pa[i]) free(skin->pa[i]);
+    }
+    for(i=MINBUTTON;    i<(MAXBUTTON);    i++) {
+        if (skin->mi[i]) free(skin->mi[i]);
+        if (skin->ma[i]) free(skin->ma[i]);
+    }
 
     if (skin->mtextc)      free(skin->mtextc);
     if (skin->textc)       free(skin->textc);
@@ -611,6 +617,7 @@ void unloadskin(struct skinconfig *skin)
     if (skin->id3tc)       free(skin->id3tc);
     if (skin->id3sc)       free(skin->id3sc);
     if (skin->findbarc)    free(skin->findbarc);
+    if (skin->volc)        free(skin->volc);
 
     free(skin->main);
     free(skin->playlist);
@@ -695,9 +702,13 @@ uintptr_t dofunction(int forcedbutton)
     case 3: /* stop */
         if ( playsong && slavepid ) {
             playsong = FALSE;
-            if ( config.mpg123 )
-                mpg123_control("STOP\n");
-            else
+            if ( config.mpg123 ) {
+//                mpg123_control("JUMP 0\n"); // hack
+//                mpg123_control("STOP\n"); // Interface doesn't seem to work
+                // pause in lack of a better solution
+                kill(slavepid, SIGSTOP);
+                pausesong = TRUE;
+            } else
                 killslave();
         }
         updatedata();
@@ -986,8 +997,8 @@ void dolircd(char atmain)
             if ( !strcasecmp(c, "skip+") )    if ( dofunction(2) ) call_player(pl_seek(filenumber, &playlist));
 
             if ( !strcasecmp(c, "stop") )     dofunction(3);
-            if ( !strcasecmp(c, "seek-") )     dofunction(7);
-            if ( !strcasecmp(c, "seek+") )     dofunction(9);
+            if ( !strcasecmp(c, "seek-") )    dofunction(7);
+            if ( !strcasecmp(c, "seek+") )    dofunction(9);
 
             if ( atmain ) {
                 if ( !strcasecmp(c, "playmode") ) dofunction(4);
@@ -1008,7 +1019,7 @@ void dolircd(char atmain)
                 if ( !strcasecmp(c, "fork") )     dofunction(13);
             }
 
-            if ( !strcasecmp(c, "mute") )        dofunction(14);
+            if ( !strcasecmp(c, "mute") )         dofunction(14);
 # ifdef HAVE_SYS_SOUNDCARD_H
             if ( !strcasecmp(c, "vol+") ) set_volume(config.voldev, config.volstep);
             if ( !strcasecmp(c, "vol-") ) set_volume(config.voldev, -config.volstep);

@@ -80,11 +80,11 @@ char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, 
         bitrate = bitrate_table[version][lay - 1][(buf[2] >> 4) & 0x0F];
         sampling_frequency = samplerate_table[version][(buf[2] >> 2) & 0x3];
         /* padding = (buf[2] >> 1) & 0x01;
-         extension = buf[2] & 0x01;
-         error_protection = !(buf[1] & 0x1);
-         mode_ext = (buf[3] >> 4) & 0x03;
-         copyright = (buf[3] >> 3) & 0x01;
-         original = (buf[3] >> 2) & 0x01;
+        extension = buf[2] & 0x01;
+        error_protection = !(buf[1] & 0x1);
+        mode_ext = (buf[3] >> 4) & 0x03;
+        copyright = (buf[3] >> 3) & 0x01;
+        original = (buf[3] >> 2) & 0x01;
         emphasis = (buf[3]) & 0x3; */
         stereo = (((buf[3] >> 6) & 0x03) == 3) ? 0 : 1;
         if ( bit_rate )    *bit_rate    = bitrate;
@@ -97,12 +97,12 @@ char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, 
     }
 
     if ( !strncmp(filetag.tag, "TAG", 3) ) {
-        if ( name   ) strcpy(name, fuckspaces(filetag.songname, 30));
-        if ( artist ) strcpy(artist, fuckspaces(filetag.artist, 30));
-        if ( misc   ) strcpy(misc, fuckspaces(filetag.misc, 30));
-        if ( album  ) strcpy(album, fuckspaces(filetag.album, 30));
-        if ( year   ) strcpy(year, fuckspaces(filetag.year, 4));
-        *genre = filetag.genre;
+        if ( name   ) cpy_strip_end(name,   filetag.songname, 30);
+        if ( artist ) cpy_strip_end(artist, filetag.artist,   30);
+        if ( misc   ) cpy_strip_end(misc,   filetag.misc,     30);
+        if ( album  ) cpy_strip_end(album,  filetag.album,    30);
+        if ( year   ) cpy_strip_end(year,   filetag.year,      4);
+        if ( genre  ) *genre = filetag.genre;
         return TRUE;
     } else
         return FALSE;
@@ -117,17 +117,17 @@ char writemp3info(char *filename, char *name, char *artist, char *misc, char *al
 
     fd = fopen(filename, "r+");
     if ( fd == NULL ) return FALSE;
-    strcpy(filetag.tag, "TAG");
+    memcpy(filetag.tag, "TAG", 3);
     strcpy(filetag.songname, name);
-    for(i=strlen(name); i<30; i++) filetag.songname[i] = 32;
+    for(i=strlen(name);   i<30; i++) filetag.songname[i] = ID3_PAD_CH;
     strcpy(filetag.artist, artist);
-    for(i=strlen(artist); i<30; i++) filetag.artist[i] = 32;
+    for(i=strlen(artist); i<30; i++) filetag.artist[i] = ID3_PAD_CH;
     strcpy(filetag.album, album);
-    for(i=strlen(album); i<30; i++) filetag.album[i] = 32;
+    for(i=strlen(album);  i<30; i++) filetag.album[i] = ID3_PAD_CH;
     strcpy(filetag.year, year);
-    for(i=strlen(year); i<4; i++) filetag.year[i] = 32;
+    for(i=strlen(year);   i<4;  i++) filetag.year[i] = ID3_PAD_CH;
     strcpy(filetag.misc, misc);
-    for(i=strlen(misc); i<30; i++) filetag.misc[i] = 32;
+    for(i=strlen(misc);   i<30; i++) filetag.misc[i] = ID3_PAD_CH;
     filetag.genre = genre;
     fseek(fd, -128, SEEK_END);
     fread(buf, 3, 1, fd);
@@ -138,21 +138,6 @@ char writemp3info(char *filename, char *name, char *artist, char *misc, char *al
     fwrite((void*)&filetag, 128, 1, fd);
     fclose(fd);
     return TRUE;
-}
-
-
-char *fuckspaces(char *lame, int maxpos)
-{
-    int i;
-    static char buf[256];
-    strcpy(buf, lame);
-    buf[maxpos] = 0;
-    for (i=maxpos-1; i>-1; i--)
-        if ( buf[i] == '\r' ) buf[i] = 0;
-    for(i=maxpos-1; i>-1; i--)
-        if (lame[i] == ' ') buf[i] = 0;
-        else return buf;
-    return buf;
 }
 
 void id3edit(char *filename, struct playlistent *playlist)

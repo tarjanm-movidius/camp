@@ -295,10 +295,38 @@ char *replace(char *text, char oldc, char newc)
 {
     int i;
 
-    for(i=0; i<strlen(text); i++)
+    for (i = 0; text[i]; i++)
         if ( text[i] == oldc ) text[i] = newc;
 
     return text;
+}
+
+void cpy_replace(char *dst, const char *src, char oldc, char newc)
+{
+    unsigned int i;
+
+    for (i = 0; src[i]; i++)
+        if ( src[i] == oldc )
+            dst[i] = newc;
+        else
+            dst[i] = src[i];
+
+    dst[i] = 0;
+}
+
+void cpy_strip_end(char *dst, const char *src, unsigned int maxpos)
+{
+    unsigned int i;
+
+    for (i = 0; i < maxpos && src[i]; i++)
+        dst[i] = src[i];
+    if(i) {
+        i--;
+        while (i && (IS_CRLF(dst[i]) || IS_SPACE(dst[i]))) i--;
+        if (!IS_CRLF(dst[i]) && !IS_SPACE(dst[i])) i++;
+    }
+
+    dst[i] = 0;
 }
 
 #ifdef HAVE_TERMIOS_H

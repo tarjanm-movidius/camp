@@ -398,16 +398,16 @@ void pl_updatebuttons(int add)
 void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, int forcedbutton)
 {
     struct playlistent *temp = NULL;
-//    int length;
+    int length;
 
     if ( forcedbutton == -1 ) forcedbutton = config.skin.plistbo[pl_buttonpos];
 
     switch( forcedbutton ) {
 
     case 0: /* browse */
-//        length = currloc;
+        length = currloc;
         getfiles(playlist);
-//        currloc = length;
+        currloc = length;
         if ( config.skin.fclr ) printf("\e[0m\e[2J");
         printf("\e[0m\e[1;1H%s", config.skin.playlist);
         if ( config.skin.mainatpl ) {

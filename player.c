@@ -53,14 +53,14 @@ void playnext(int sig)
         signal(SIGCHLD, playnext);
 }
 
-
 void killslave()
 {
     if ( !slavepid ) return;
     signal(SIGCHLD, SIG_IGN);
     if ( pausesong ) kill(slavepid, SIGCONT);
     pausesong = FALSE;
-    if ( config.nicekill ) kill(slavepid, SIGTERM);
+    if ( config.nicekill )
+        kill(slavepid, SIGTERM);
     else
         kill(slavepid, SIGKILL);
     if ( config.kill2pids ) kill(slavepid+1, SIGKILL); /* This is no good, but it (usually) works for multithreaded-buffering players ;) */
@@ -278,7 +278,7 @@ char *mpg123_control(char *command)
     } else { /* read .. */
 
         i = 1;
-        while ( i ) { /* As long as mpg123 has sonething to report.. */
+        while ( i ) { /* As long as mpg123 has something to report.. */
 
             FD_ZERO(&rfds);
             FD_SET(mpgrfd, &rfds);
@@ -295,21 +295,22 @@ char *mpg123_control(char *command)
                  * something like fgets .. please inform me if there is such a command :)
                  * MT:  ssize_t getline(char **restrict lineptr, size_t *restrict n, FILE *restrict stream); */
 
-                for (j = 0; read(mpgrfd, &buf[j], 1) != 0 && buf[j] != '\n' && buf[j] != '\r'; j++);
+                for (j = 0; read(mpgrfd, &buf[j], 1) != 0 && buf[j] && !IS_CRLF(buf[j]); j++);
                 buf[j] = 0;
 
                 if ( !strncmp(buf, "@R ", 3) ) {
                     /* Get mpg123 version
                     Format: @R MPG123 0.59s-mh4
-                       or..    @R MPG123  .. older
+                       or.. @R MPG123  .. older
+                       or in the 21st century:
+                            @R MPG123 (ThOr) v7
+                    Older version than 0.59s that cannot handle the quickjump
                     */
-                    strcpy(buf, (char*)strchr(buf, ' ')+1 ); /* @R  */
-                    if ( strchr(buf, ' ') ) {
-                        strcpy(buf, (char*)strchr(buf, ' ')+1 ); /* Cut away "MPG123" */
-                        /* Make a better version check here later on .. */
-                        config.mpg123fastjump = TRUE;
-                    } else /* Older version than 0.59s that cannot handle the quickjump */
+
+                    if ( buf[10] == '0' && strncmp(buf+10, "0.59s", 4) < 0 )
                         config.mpg123fastjump = FALSE;
+                    else
+                        config.mpg123fastjump = TRUE;
                 }
 
                 if ( command )

@@ -11,20 +11,18 @@
 #include <sys/types.h>
 
 
-char *randomskin(char *rbuf);
-
 struct configstruct getconfig(char *configfile)
 {
     struct configstruct cconfig;
-    char buf[513], arg[513], value[513];
+    char *buf, *arg, *value;
     int  i, j, k;
     FILE *fd;
 
+    buf = (char*)malloc(CONF_BUF_LEN);
     memset((void*)&cconfig, 0, sizeof(cconfig));
 
     if ( !exist(configfile) ) {
-        printf("The configfile %s does not exist! Copy camp.ini from the \
-distribution package, and modify it to fit your needs!\n", configfile);
+        printf("The configfile %s does not exist! Copy camp.ini from the distribution package, and modify it to fit your needs!\n", configfile);
         exit(-1);
     }
 
@@ -54,14 +52,8 @@ distribution package, and modify it to fit your needs!\n", configfile);
 
     fd = fopen(configfile, "r");
 
-    while ( fgets((char*)buf, 499, fd) != NULL ) {
-        strtrim(buf, '\n');
-        if ( buf[0] == '#' || buf[0] == 0 ) continue;
-        strncpy(arg, buf, strchrpos(buf, '=', 1) );
-        arg[strchrpos(buf, '=', 1)] = 0;
-        strcpy(value, buf+strchrpos(buf, '=', 1)+1 );
-        strcpy(arg, strtrim(arg, ' '));
-        strcpy(value, strtrim(value, ' '));
+    while ( fgets((char*)buf, CONF_BUF_LEN, fd) != NULL ) {
+        if ( !parseconfig(buf, &arg, &value) ) continue;
 
         if ( !strcasecmp(arg, "player") ) {
             if ( !strchr(value, '/') ) {
@@ -77,7 +69,7 @@ distribution package, and modify it to fit your needs!\n", configfile);
             }
 
             printf("Using %s (%s) as player\n", cconfig.playername, value);
-            cconfig.playerargv[0] = (char*)malloc(strlen(cconfig.playername)+1);
+            cconfig.playerargv[0] = (char*)realloc(cconfig.playerargv[0], strlen(cconfig.playername)+1);
             strcpy(cconfig.playerargv[0], cconfig.playername);
         } else if ( !strcasecmp(arg, "playmode") )
             if ( !strcasecmp(value, "random") )
@@ -99,52 +91,26 @@ distribution package, and modify it to fit your needs!\n", configfile);
                 if ( !strcasecmp(arg, "dropfile") )
                     strcpy(cconfig.dropfile, value);
                 else if ( !strcasecmp(arg, "dropinfo") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.dropinfo = TRUE;
-                    else
-                        cconfig.dropinfo = FALSE;
+                    cconfig.dropinfo = is_val_true(value);
                 else if ( !strcasecmp(arg, "mpg123mode") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.mpg123 = TRUE;
-                    else
-                        cconfig.mpg123 = FALSE;
+                    cconfig.mpg123 = is_val_true(value);
                 else if ( !strcasecmp(arg, "defplaylist") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.defpl = TRUE;
-                    else
-                        cconfig.defpl = FALSE;
+                    cconfig.defpl = is_val_true(value);
                 else if ( !strcasecmp(arg, "readid3") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.useid3 = TRUE;
-                    else
-                        cconfig.useid3 = FALSE;
+                    cconfig.useid3 = is_val_true(value);
                 else if ( !strcasecmp(arg, "rescaninfo") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.rescanid3 = TRUE;
-                    else
-                        cconfig.rescanid3 = FALSE;
+                    cconfig.rescanid3 = is_val_true(value);
                 else if ( !strcasecmp(arg, "compresspl") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.compresspl = TRUE;
-                    else
-                        cconfig.compresspl = FALSE;
+                    cconfig.compresspl = is_val_true(value);
                 else if ( !strcasecmp(arg, "scrollname") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.scrollsn = TRUE;
-                    else
-                        cconfig.scrollsn = FALSE;
+                    cconfig.scrollsn = is_val_true(value);
                 else if ( !strcasecmp(arg, "userc") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.userc = TRUE;
-                    else
-                        cconfig.userc = FALSE;
+                    cconfig.userc = is_val_true(value);
                 else if ( !strcasecmp(arg, "nicekill") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.nicekill = TRUE;
-                    else
-                        cconfig.nicekill = FALSE;
+                    cconfig.nicekill = is_val_true(value);
                 else if ( !strcasecmp(arg, "skin") )
-                    if ( !strcasecmp(value, "random") ) loadskin(randomskin(buf), &cconfig);
+                    if ( !strcasecmp(value, "random") )
+                        loadskin(randomskin(buf), &cconfig);
                     else
                         loadskin(value, &cconfig);
                 else if ( !strcasecmp(arg, "rctime") )
@@ -158,46 +124,24 @@ distribution package, and modify it to fit your needs!\n", configfile);
                 else if ( !strcasecmp(arg, "playerprio") )
                     cconfig.playerprio = atoi(value);
                 else if ( !strcasecmp(arg, "kill2pids") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.kill2pids = TRUE;
-                    else
-                        cconfig.kill2pids = FALSE;
+                    cconfig.kill2pids = is_val_true(value);
                 else if ( !strcasecmp(arg, "hidedot") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.hidedot = TRUE;
-                    else
-                        cconfig.hidedot = FALSE;
+                    cconfig.hidedot = is_val_true(value);
                 else if ( !strcasecmp(arg, "dontreopen") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.dontreopen = TRUE;
-                    else
-                        cconfig.dontreopen = FALSE;
+                    cconfig.dontreopen = is_val_true(value);
                 else if ( !strcasecmp(arg, "lockvt") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.lockvt = TRUE;
-                    else
-                        cconfig.lockvt = FALSE;
+                    cconfig.lockvt = is_val_true(value);
                 else if ( !strcasecmp(arg, "forkonerror") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.forkseg = TRUE;
-                    else
-                        cconfig.forkseg = FALSE;
+                    cconfig.forkseg = is_val_true(value);
                 else if ( !strcasecmp(arg, "tip") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.showtip = TRUE;
-                    else
-                        cconfig.showtip = FALSE;
+                    cconfig.showtip = is_val_true(value);
                 else if ( !strcasecmp(arg, "startincwd") )
-                    if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
-                        cconfig.startincwd = TRUE;
-                    else
-                        cconfig.startincwd = FALSE;
+                    cconfig.startincwd = is_val_true(value);
                 else if ( !strcasecmp(arg, "showlength" ) )
-                    if ( !strcasecmp(value, "both") )   cconfig.showtime = 3;
+                    if      ( !strcasecmp(value, "both") )     cconfig.showtime = 3;
                     else if ( !strcasecmp(value, "playlist") ) cconfig.showtime = 2;
                     else if ( !strcasecmp(value, "main") )     cconfig.showtime = 1;
-                    else
-                        cconfig.showtime = 0;
+                    else                                       cconfig.showtime = 0;
                 else if ( !strcasecmp(arg, "timemode" ) )
                     if ( !strcasecmp(value, "reverse") || !strcasecmp(value, "remaining" ) )
                         cconfig.timemode = 1;
@@ -227,9 +171,9 @@ distribution package, and modify it to fit your needs!\n", configfile);
                     for(k = 1; k < 15; k++)
                         if ( cconfig.playerargv[k] == NULL ) break;
                     for (i = 0; k < 15 && value[i]; ) {
-                        while (value[i] == ' ') i++;
+                        while (IS_SPACE(value[i])) i++;
                         j = i;
-                        while (value[i] != ' ' && value[i]) i++;
+                        while (value[i] && !IS_SPACE(value[i])) i++;
                         if (i != j) {
                             cconfig.playerargv[k] = (char*)malloc(i-j+1);
                             memcpy(cconfig.playerargv[k], &value[j], i-j);
@@ -242,10 +186,9 @@ distribution package, and modify it to fit your needs!\n", configfile);
 
     fclose(fd);
 
-
     if ( cconfig.dontreopen ) printf("NOT Reopening stdin, stdout!\n");
 
-//   printf("%s\n", cconfig.playername);
+//  printf("%s\n", cconfig.playername);
     if ( cconfig.playername[0] == 0 ) {
         printf("You need to set a default player in ~/.camp/camprc!\n");
         exit(-1);
@@ -255,32 +198,32 @@ distribution package, and modify it to fit your needs!\n", configfile);
         strcpy(cconfig.rate, "-r");
         strcpy(cconfig.quiet, "-q");
         strcpy(cconfig.device, "-a");
-        /*      printf(" downmix = -m\n");
-              printf(" rate    = -r\n");
-              printf(" quiet   = -q\n");
-              printf(" device  = -a\n");
-              printf("Using nice kill\n"); */
-        cconfig.nicekill = TRUE;
+/*      printf(" downmix = -m\n");
+        printf(" rate    = -r\n");
+        printf(" quiet   = -q\n");
+        printf(" device  = -a\n");
+        printf("Using nice kill\n");
+        cconfig.nicekill = TRUE; */
     } else if ( !strcmp(cconfig.playername, "xaudio") ) {
         printf("Using defaults for xaudio\n");
         strcpy(cconfig.downmix, "-mono=mix");
         cconfig.rate[0] = 0;
         cconfig.quiet[0] = 0;
         strcpy(cconfig.device, "-output=");
-        /*	printf(" downmix = -mono=mix\n");
-        	printf(" rate    = n/a\n");
-        	printf(" quiet   = n/a\n");
-        	printf(" device  = -output=\n"); */
+/*      printf(" downmix = -mono=mix\n");
+        printf(" rate    = n/a\n");
+        printf(" quiet   = n/a\n");
+        printf(" device  = -output=\n"); */
     } else if ( !strcmp(cconfig.playername, "amp") ) {
         printf("Using defaults for amp\n");
         strcpy(cconfig.downmix, "-downmix");
         cconfig.rate[0] = 0;
         strcpy(cconfig.quiet, "-q");
         cconfig.device[0] = 0;
-        /*	printf(" downmix = -downmix\n");
-        	printf(" rate    = n/a\n");
-        	printf(" quiet   = -q\n");
-        	printf(" device  = n/a\n"); */
+/*      printf(" downmix = -downmix\n");
+        printf(" rate    = n/a\n");
+        printf(" quiet   = -q\n");
+        printf(" device  = n/a\n"); */
     } else
         printf("The player \"%s\" is unknown to me, no arguments added.\n", cconfig.playername);
 
@@ -288,9 +231,9 @@ distribution package, and modify it to fit your needs!\n", configfile);
         printf("\e[1mWARNING! Setting mpg123mode = true in ~/.camp/camprc without having mpg123 as the player will result in failure trying to play music!!\e[0m\n");
 
     if ( cconfig.quiet[0] != 0 ) {
-        for(i=0; i<15; i++)
+        for(i=0; i<14; i++)
             if ( cconfig.playerargv[i] == NULL ) break;
-        cconfig.playerargv[i] = (char*)malloc(strlen(cconfig.quiet)+1);
+        cconfig.playerargv[i] = (char*)realloc(cconfig.playerargv[i], strlen(cconfig.quiet)+1);
         strcpy(cconfig.playerargv[i], cconfig.quiet);
     }
 
@@ -301,8 +244,6 @@ distribution package, and modify it to fit your needs!\n", configfile);
         i++ ;
     }
     printf("\n");
-
-
 
     switch(cconfig.playmode) {
     case 0:
@@ -343,7 +284,6 @@ distribution package, and modify it to fit your needs!\n", configfile);
     else
         printf("Will show time as time elapsed\n");
 
-
 #ifdef HAVE_LIBZ
     if ( cconfig.compresspl ) printf("Saved playlists (with id3 tags) will be compressed.\n");
     else
@@ -353,8 +293,8 @@ distribution package, and modify it to fit your needs!\n", configfile);
     cconfig.compresspl = FALSE;
 #endif
 
+    free(buf);
     return cconfig;
-
 }
 
 void loadskin(char *name, struct configstruct *config)
@@ -362,8 +302,9 @@ void loadskin(char *name, struct configstruct *config)
     int    fd,i,version=0;
     FILE  *filefd;
     struct stat statbuf;
-    char buf[513], arg[513], value[513], skin_home[490];
+    char *buf, *arg, *value, skin_home[CONF_BUF_LEN-16];
 
+    buf = (char*)malloc(CONF_BUF_LEN);
     memset((void*)&config->skin, 0, sizeof(struct skinconfig));
 
     for(fd=MINBUTTON; fd<(MAXBUTTON+1); fd++) {
@@ -408,7 +349,7 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
     fstat(fd, &statbuf);
-    config->skin.main = (char*)malloc(statbuf.st_size+1);
+    config->skin.main = (char*)realloc(config->skin.main, statbuf.st_size+1);
     read(fd, config->skin.main, statbuf.st_size);
     close(fd);
     config->skin.main[statbuf.st_size] = 0;
@@ -420,7 +361,7 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
     fstat(fd, &statbuf);
-    config->skin.playlist = (char*)malloc(statbuf.st_size+1);
+    config->skin.playlist = (char*)realloc(config->skin.playlist, statbuf.st_size+1);
     read(fd, config->skin.playlist, statbuf.st_size);
     close(fd);
     config->skin.playlist[statbuf.st_size] = 0;
@@ -432,7 +373,7 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
     fstat(fd, &statbuf);
-    config->skin.filelist = (char*)malloc(statbuf.st_size+1);
+    config->skin.filelist = (char*)realloc(config->skin.filelist, statbuf.st_size+1);
     read(fd, config->skin.filelist, statbuf.st_size);
     close(fd);
     config->skin.filelist[statbuf.st_size] = 0;
@@ -444,7 +385,7 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
     fstat(fd, &statbuf);
-    config->skin.id3 = (char*)malloc(statbuf.st_size+1);
+    config->skin.id3 = (char*)realloc(config->skin.id3, statbuf.st_size+1);
     read(fd, config->skin.id3, statbuf.st_size);
     close(fd);
     config->skin.id3[statbuf.st_size] = 0;
@@ -456,9 +397,9 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
 
-    while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */
+    while ( fgets((char*)buf, CONF_BUF_LEN, filefd) != NULL ) { /* parse skin configuration */
 
-        if ( !parseconfig(buf, arg, value) ) continue;
+        if ( !parseconfig(buf, &arg, &value) ) continue;
 
         if ( !strcasecmp(arg, "version") ) {
             version = atoi(value);
@@ -467,8 +408,8 @@ void loadskin(char *name, struct configstruct *config)
                 exit(-1);
             }
         } else if ( !strcasecmp(arg, "textcolor") ) {
-            config->skin.mtextc = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.mtextc, replace(value, '&', 27));
+            config->skin.mtextc = (char*)realloc(config->skin.mtextc, strlen(value)+1);
+            cpy_replace(config->skin.mtextc, value, '&', 27);
         } else if ( !strcasecmp(arg, "textx") )
             config->skin.mtextx = atoi(value);
         else if ( !strcasecmp(arg, "texty") )
@@ -478,17 +419,17 @@ void loadskin(char *name, struct configstruct *config)
         else if ( !strcasecmp(arg, "startbutton") )
             config->skin.msb = atoi(value);
         else if ( !strcasecmp(arg, "lockpass") ) {
-            config->skin.mainmsg[0] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.mainmsg[0], replace(value, '&', 27));
+            config->skin.mainmsg[0] = (char*)realloc(config->skin.mainmsg[0], strlen(value)+1);
+            cpy_replace(config->skin.mainmsg[0], value, '&', 27);
         } else if ( !strcasecmp(arg, "lockpassagain") ) {
-            config->skin.mainmsg[1] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.mainmsg[1], replace(value, '&', 27));
+            config->skin.mainmsg[1] = (char*)realloc(config->skin.mainmsg[1], strlen(value)+1);
+            cpy_replace(config->skin.mainmsg[1], value, '&', 27);
         } else if ( !strcasecmp(arg, "unlock") ) {
-            config->skin.mainmsg[2] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.mainmsg[2], replace(value, '&', 27));
+            config->skin.mainmsg[2] = (char*)realloc(config->skin.mainmsg[2], strlen(value)+1);
+            cpy_replace(config->skin.mainmsg[2], value, '&', 27);
         } else if ( !strcasecmp(arg, "jumpsong") ) {
-            config->skin.mainmsg[3] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.mainmsg[3], replace(value, '&', 27));
+            config->skin.mainmsg[3] = (char*)realloc(config->skin.mainmsg[3], strlen(value)+1);
+            cpy_replace(config->skin.mainmsg[3], value, '&', 27);
         } else
 
 
@@ -535,14 +476,14 @@ void loadskin(char *name, struct configstruct *config)
             else if ( !strcasecmp(arg, "modetextw") )
                 config->skin.modetextw = atoi(value);
             else if ( !strcasecmp(arg, "modenormal") ) {
-                config->skin.modetext[0] = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.modetext[0], replace(value, '&', 27));
+                config->skin.modetext[0] = (char*)realloc(config->skin.modetext[0], strlen(value)+1);
+                cpy_replace(config->skin.modetext[0], value, '&', 27);
             } else if ( !strcasecmp(arg, "modeloop") ) {
-                config->skin.modetext[1] = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.modetext[1], replace(value, '&', 27));
+                config->skin.modetext[1] = (char*)realloc(config->skin.modetext[1], strlen(value)+1);
+                cpy_replace(config->skin.modetext[1], value, '&', 27);
             } else if ( !strcasecmp(arg, "moderandom") ) {
-                config->skin.modetext[2] = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.modetext[2], replace(value, '&', 27));
+                config->skin.modetext[2] = (char*)realloc(config->skin.modetext[2], strlen(value)+1);
+                cpy_replace(config->skin.modetext[2], value, '&', 27);
             } else if ( !strcasecmp(arg, "stereox") )
                 config->skin.stereox = atoi(value);
             else if ( !strcasecmp(arg, "stereoy") )
@@ -550,39 +491,39 @@ void loadskin(char *name, struct configstruct *config)
             else if ( !strcasecmp(arg, "stereow") )
                 config->skin.stereow = atoi(value);
             else if ( !strcasecmp(arg, "monotext") ) {
-                config->skin.stereotext[0] = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.stereotext[0], replace(value, '&', 27));
+                config->skin.stereotext[0] = (char*)realloc(config->skin.stereotext[0], strlen(value)+1);
+                cpy_replace(config->skin.stereotext[0], value, '&', 27);
             } else if ( !strcasecmp(arg, "stereotext") ) {
-                config->skin.stereotext[1] = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.stereotext[1], replace(value, '&', 27));
+                config->skin.stereotext[1] = (char*)realloc(config->skin.stereotext[1], strlen(value)+1);
+                cpy_replace(config->skin.stereotext[1], value, '&', 27);
             } else if ( !strcasecmp(arg, "songnumberx") )
                 config->skin.songnumberx = atoi(value);
             else if ( !strcasecmp(arg, "songnumbery") )
                 config->skin.songnumbery = atoi(value);
             else if ( !strcasecmp(arg, "songnamecolor") ) {
-                config->skin.songnamec = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.songnamec, replace(value, '&', 27));
+                config->skin.songnamec = (char*)realloc(config->skin.songnamec, strlen(value)+1);
+                cpy_replace(config->skin.songnamec, value, '&', 27);
             } else if ( !strcasecmp(arg, "songnumbercolor") ) {
-                config->skin.songnumberc = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.songnumberc, replace(value, '&', 27));
+                config->skin.songnumberc = (char*)realloc(config->skin.songnumberc, strlen(value)+1);
+                cpy_replace(config->skin.songnumberc, value, '&', 27);
             } else if ( !strcasecmp(arg, "bitratecolor") ) {
-                config->skin.bitratec = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.bitratec, replace(value, '&', 27));
+                config->skin.bitratec = (char*)realloc(config->skin.bitratec, strlen(value)+1);
+                cpy_replace(config->skin.bitratec, value, '&', 27);
             } else if ( !strcasecmp(arg, "sampleratecolor") ) {
-                config->skin.sampleratec = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.sampleratec, replace(value, '&', 27));
+                config->skin.sampleratec = (char*)realloc(config->skin.sampleratec, strlen(value)+1);
+                cpy_replace(config->skin.sampleratec, value, '&', 27);
             } else if ( !strcasecmp(arg, "timecolor") ) {
-                config->skin.timec = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.timec, replace(value, '&', 27));
+                config->skin.timec = (char*)realloc(config->skin.timec, strlen(value)+1);
+                cpy_replace(config->skin.timec, value, '&', 27);
             } else if ( !strcasecmp(arg, "stereocolor") ) {
-                config->skin.stereoc = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.stereoc, replace(value, '&', 27));
+                config->skin.stereoc = (char*)realloc(config->skin.stereoc, strlen(value)+1);
+                cpy_replace(config->skin.stereoc, value, '&', 27);
             } else if ( !strcasecmp(arg, "modetextcolor") ) {
-                config->skin.modetextc = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.modetextc, replace(value, '&', 27));
+                config->skin.modetextc = (char*)realloc(config->skin.modetextc, strlen(value)+1);
+                cpy_replace(config->skin.modetextc, value, '&', 27);
             } else if ( !strcasecmp(arg, "volumecolor") ) {
-                config->skin.volc = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.volc, replace(value, '&', 27));
+                config->skin.volc = (char*)realloc(config->skin.volc, strlen(value)+1);
+                cpy_replace(config->skin.volc, value, '&', 27);
             } else
 
                 /* warder, here you got your h0wt-keyz :> */
@@ -772,107 +713,107 @@ void loadskin(char *name, struct configstruct *config)
                                     /* .. button layout .. */
 
                                     if ( !strcasecmp(arg, "skipbi") ) {
-                                        config->skin.mi[0] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[0], replace(value, '&', 27));
+                                        config->skin.mi[0] = (char*)realloc(config->skin.mi[0], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[0], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "skipba") ) {
-                                        config->skin.ma[0] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[0], replace(value, '&', 27));
+                                        config->skin.ma[0] = (char*)realloc(config->skin.ma[0], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[0], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "playi") ) {
-                                        config->skin.mi[1] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[1], replace(value, '&', 27));
+                                        config->skin.mi[1] = (char*)realloc(config->skin.mi[1], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[1], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "playa") ) {
-                                        config->skin.ma[1] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[1], replace(value, '&', 27));
+                                        config->skin.ma[1] = (char*)realloc(config->skin.ma[1], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[1], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "skipfi") ) {
-                                        config->skin.mi[2] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[2], replace(value, '&', 27));
+                                        config->skin.mi[2] = (char*)realloc(config->skin.mi[2], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[2], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "skipfa") ) {
-                                        config->skin.ma[2] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[2], replace(value, '&', 27));
+                                        config->skin.ma[2] = (char*)realloc(config->skin.ma[2], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[2], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "stopi") ) {
                                         config->skin.mi[3] =(char*) malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[3], replace(value, '&', 27));
+                                        cpy_replace(config->skin.mi[3], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "stopa") ) {
-                                        config->skin.ma[3] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[3], replace(value, '&', 27));
+                                        config->skin.ma[3] = (char*)realloc(config->skin.ma[3], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[3], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "modei") ) {
-                                        config->skin.mi[4] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[4], replace(value, '&', 27));
+                                        config->skin.mi[4] = (char*)realloc(config->skin.mi[4], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[4], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "modea") ) {
-                                        config->skin.ma[4] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[4], replace(value, '&', 27));
+                                        config->skin.ma[4] = (char*)realloc(config->skin.ma[4], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[4], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "pli") ) {
-                                        config->skin.mi[5] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[5], replace(value, '&', 27));
+                                        config->skin.mi[5] = (char*)realloc(config->skin.mi[5], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[5], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "pla") ) {
-                                        config->skin.ma[5] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[5], replace(value, '&', 27));
+                                        config->skin.ma[5] = (char*)realloc(config->skin.ma[5], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[5], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "custi") ) {
-                                        config->skin.mi[6] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[6], replace(value, '&', 27));
+                                        config->skin.mi[6] = (char*)realloc(config->skin.mi[6], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[6], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "custa") ) {
-                                        config->skin.ma[6] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[6], replace(value, '&', 27));
+                                        config->skin.ma[6] = (char*)realloc(config->skin.ma[6], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[6], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "seekbi") ) {
-                                        config->skin.mi[7] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[7], replace(value, '&', 27));
+                                        config->skin.mi[7] = (char*)realloc(config->skin.mi[7], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[7], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "seekba") ) {
-                                        config->skin.ma[7] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[7], replace(value, '&', 27));
+                                        config->skin.ma[7] = (char*)realloc(config->skin.ma[7], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[7], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "pausei") ) {
-                                        config->skin.mi[8] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[8], replace(value, '&', 27));
+                                        config->skin.mi[8] = (char*)realloc(config->skin.mi[8], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[8], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "pausea") ) {
-                                        config->skin.ma[8] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[8], replace(value, '&', 27));
+                                        config->skin.ma[8] = (char*)realloc(config->skin.ma[8], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[8], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "seekfi") ) {
-                                        config->skin.mi[9] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[9], replace(value, '&', 27));
+                                        config->skin.mi[9] = (char*)realloc(config->skin.mi[9], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[9], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "seekfa") ) {
-                                        config->skin.ma[9] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[9], replace(value, '&', 27));
+                                        config->skin.ma[9] = (char*)realloc(config->skin.ma[9], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[9], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "jumpi") ) {
-                                        config->skin.mi[10] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[10], replace(value, '&', 27));
+                                        config->skin.mi[10] = (char*)realloc(config->skin.mi[10], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[10], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "jumpa") ) {
-                                        config->skin.ma[10] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[10], replace(value, '&', 27));
+                                        config->skin.ma[10] = (char*)realloc(config->skin.ma[10], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[10], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "locki") ) {
-                                        config->skin.mi[11] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[11], replace(value, '&', 27));
+                                        config->skin.mi[11] = (char*)realloc(config->skin.mi[11], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[11], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "locka") ) {
-                                        config->skin.ma[11] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[11], replace(value, '&', 27));
+                                        config->skin.ma[11] = (char*)realloc(config->skin.ma[11], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[11], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "desci") ) {
-                                        config->skin.mi[12] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[12], replace(value, '&', 27));
+                                        config->skin.mi[12] = (char*)realloc(config->skin.mi[12], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[12], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "desca") ) {
-                                        config->skin.ma[12] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[12], replace(value, '&', 27));
+                                        config->skin.ma[12] = (char*)realloc(config->skin.ma[12], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[12], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "forki") ) {
-                                        config->skin.mi[13] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[13], replace(value, '&', 27));
+                                        config->skin.mi[13] = (char*)realloc(config->skin.mi[13], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[13], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "forka") ) {
-                                        config->skin.ma[13] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[13], replace(value, '&', 27));
+                                        config->skin.ma[13] = (char*)realloc(config->skin.ma[13], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[13], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "mutei") ) {
-                                        config->skin.mi[14] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[14], replace(value, '&', 27));
+                                        config->skin.mi[14] = (char*)realloc(config->skin.mi[14], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[14], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "mutea") ) {
-                                        config->skin.ma[14] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[14], replace(value, '&', 27));
+                                        config->skin.ma[14] = (char*)realloc(config->skin.ma[14], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[14], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "vol-i") ) {
-                                        config->skin.mi[15] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[15], replace(value, '&', 27));
+                                        config->skin.mi[15] = (char*)realloc(config->skin.mi[15], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[15], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "vol-a") ) {
-                                        config->skin.ma[15] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[15], replace(value, '&', 27));
+                                        config->skin.ma[15] = (char*)realloc(config->skin.ma[15], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[15], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "vol+i") ) {
-                                        config->skin.mi[16] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.mi[16], replace(value, '&', 27));
+                                        config->skin.mi[16] = (char*)realloc(config->skin.mi[16], strlen(value)+1);
+                                        cpy_replace(config->skin.mi[16], value, '&', 27);
                                     } else if ( !strcasecmp(arg, "vol+a") ) {
-                                        config->skin.ma[16] = (char*)malloc(strlen(value)+1);
-                                        strcpy(config->skin.ma[16], replace(value, '&', 27));
+                                        config->skin.ma[16] = (char*)realloc(config->skin.ma[16], strlen(value)+1);
+                                        cpy_replace(config->skin.ma[16], value, '&', 27);
                                     } else
 
                                         /* .. and locations .. */
@@ -1002,8 +943,8 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
 
-    while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */
-        if ( !parseconfig(buf, arg, value) ) continue;
+    while ( fgets((char*)buf, CONF_BUF_LEN, filefd) != NULL ) { /* parse skin configuration */
+        if ( !parseconfig(buf, &arg, &value) ) continue;
 
         if ( !strcasecmp(arg, "clearscreen" ) )
             if ( !strcasecmp(value, "true") ) config->skin.pclr = TRUE;
@@ -1038,14 +979,14 @@ void loadskin(char *name, struct configstruct *config)
         else
 
             if ( !strcasecmp(arg, "listcolori") ) {
-                config->skin.plistci = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.plistci, replace(value, '&', 27));
+                config->skin.plistci = (char*)realloc(config->skin.plistci, strlen(value)+1);
+                cpy_replace(config->skin.plistci, value, '&', 27);
             } else if ( !strcasecmp(arg, "listcolora") ) {
-                config->skin.plistca = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.plistca, replace(value, '&', 27));
+                config->skin.plistca = (char*)realloc(config->skin.plistca, strlen(value)+1);
+                cpy_replace(config->skin.plistca, value, '&', 27);
             } else if ( !strcasecmp(arg, "listcolorc") ) {
-                config->skin.plistcc = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.plistcc, replace(value, '&', 27));
+                config->skin.plistcc = (char*)realloc(config->skin.plistcc, strlen(value)+1);
+                cpy_replace(config->skin.plistcc, value, '&', 27);
             } else
 
                 if ( !strcasecmp(arg, "findbarx") )
@@ -1055,8 +996,8 @@ void loadskin(char *name, struct configstruct *config)
                 else if ( !strcasecmp(arg, "findbarw") )
                     config->skin.findbarw = atoi(value);
                 else if ( !strcasecmp(arg, "findbarc") ) {
-                    config->skin.findbarc = (char*)malloc(strlen(value)+1);
-                    strcpy(config->skin.findbarc, replace(value, '&', 27));
+                    config->skin.findbarc = (char*)realloc(config->skin.findbarc, strlen(value)+1);
+                    cpy_replace(config->skin.findbarc, value, '&', 27);
                 } else
 
                     if ( !strcasecmp(arg, "browsex") )
@@ -1104,47 +1045,47 @@ void loadskin(char *name, struct configstruct *config)
                     else
 
                         if ( !strcasecmp(arg, "browsei") ) {
-                            config->skin.pi[0] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pi[0], replace(value, '&', 27));
+                            config->skin.pi[0] = (char*)realloc(config->skin.pi[0], strlen(value)+1);
+                            cpy_replace(config->skin.pi[0], value, '&', 27);
                         } else if ( !strcasecmp(arg, "browsea") ) {
-                            config->skin.pa[0] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pa[0], replace(value, '&', 27));
+                            config->skin.pa[0] = (char*)realloc(config->skin.pa[0], strlen(value)+1);
+                            cpy_replace(config->skin.pa[0], value, '&', 27);
                         } else if ( !strcasecmp(arg, "playi") ) {
-                            config->skin.pi[1] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pi[1], replace(value, '&', 27));
+                            config->skin.pi[1] = (char*)realloc(config->skin.pi[1], strlen(value)+1);
+                            cpy_replace(config->skin.pi[1], value, '&', 27);
                         } else if ( !strcasecmp(arg, "playa") ) {
-                            config->skin.pa[1] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pa[1], replace(value, '&', 27));
+                            config->skin.pa[1] = (char*)realloc(config->skin.pa[1], strlen(value)+1);
+                            cpy_replace(config->skin.pa[1], value, '&', 27);
                         } else if ( !strcasecmp(arg, "removei") ) {
-                            config->skin.pi[2] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pi[2], replace(value, '&', 27));
+                            config->skin.pi[2] = (char*)realloc(config->skin.pi[2], strlen(value)+1);
+                            cpy_replace(config->skin.pi[2], value, '&', 27);
                         } else if ( !strcasecmp(arg, "removea") ) {
-                            config->skin.pa[2] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pa[2], replace(value, '&', 27));
+                            config->skin.pa[2] = (char*)realloc(config->skin.pa[2], strlen(value)+1);
+                            cpy_replace(config->skin.pa[2], value, '&', 27);
                         } else if ( !strcasecmp(arg, "newlsti") ) {
-                            config->skin.pi[3] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pi[3], replace(value, '&', 27));
+                            config->skin.pi[3] = (char*)realloc(config->skin.pi[3], strlen(value)+1);
+                            cpy_replace(config->skin.pi[3], value, '&', 27);
                         } else if ( !strcasecmp(arg, "newlsta") ) {
-                            config->skin.pa[3] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pa[3], replace(value, '&', 27));
+                            config->skin.pa[3] = (char*)realloc(config->skin.pa[3], strlen(value)+1);
+                            cpy_replace(config->skin.pa[3], value, '&', 27);
                         } else if ( !strcasecmp(arg, "desci") ) {
-                            config->skin.pi[4] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pi[4], replace(value, '&', 27));
+                            config->skin.pi[4] = (char*)realloc(config->skin.pi[4], strlen(value)+1);
+                            cpy_replace(config->skin.pi[4], value, '&', 27);
                         } else if ( !strcasecmp(arg, "desca") ) {
-                            config->skin.pa[4] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pa[4], replace(value, '&', 27));
+                            config->skin.pa[4] = (char*)realloc(config->skin.pa[4], strlen(value)+1);
+                            cpy_replace(config->skin.pa[4], value, '&', 27);
                         } else if ( !strcasecmp(arg, "sorti") ) {
-                            config->skin.pi[5] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pi[5], replace(value, '&', 27));
+                            config->skin.pi[5] = (char*)realloc(config->skin.pi[5], strlen(value)+1);
+                            cpy_replace(config->skin.pi[5], value, '&', 27);
                         } else if ( !strcasecmp(arg, "sorta") ) {
-                            config->skin.pa[5] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pa[5], replace(value, '&', 27));
+                            config->skin.pa[5] = (char*)realloc(config->skin.pa[5], strlen(value)+1);
+                            cpy_replace(config->skin.pa[5], value, '&', 27);
                         } else if ( !strcasecmp(arg, "backi") ) {
-                            config->skin.pi[6] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pi[6], replace(value, '&', 27));
+                            config->skin.pi[6] = (char*)realloc(config->skin.pi[6], strlen(value)+1);
+                            cpy_replace(config->skin.pi[6], value, '&', 27);
                         } else if ( !strcasecmp(arg, "backa") ) {
-                            config->skin.pa[6] = (char*)malloc(strlen(value)+1);
-                            strcpy(config->skin.pa[6], replace(value, '&', 27));
+                            config->skin.pa[6] = (char*)realloc(config->skin.pa[6], strlen(value)+1);
+                            cpy_replace(config->skin.pa[6], value, '&', 27);
                         }
 
     }
@@ -1159,8 +1100,8 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
 
-    while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */
-        if ( !parseconfig(buf, arg, value) ) continue;
+    while ( fgets((char*)buf, CONF_BUF_LEN, filefd) != NULL ) { /* parse skin configuration */
+        if ( !parseconfig(buf, &arg, &value) ) continue;
 
         if ( !strcasecmp(arg, "clearscreen" ) )
             if ( !strcasecmp(value, "true") ) config->skin.fclr = TRUE;
@@ -1175,8 +1116,8 @@ void loadskin(char *name, struct configstruct *config)
                 if ( config->skin.flistbo[i] < 0 || config->skin.flistbo[i] > 9 ) config->skin.flistbo[i] = -1;
             }
         } else if ( !strcasecmp(arg, "textcolor") ) {
-            config->skin.textc = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.textc, replace(value, '&', 27));
+            config->skin.textc = (char*)realloc(config->skin.textc, strlen(value)+1);
+            cpy_replace(config->skin.textc, value, '&', 27);
         } else if ( !strcasecmp(arg, "textx") )
             config->skin.textx = atoi(value);
         else if ( !strcasecmp(arg, "texty") )
@@ -1184,23 +1125,23 @@ void loadskin(char *name, struct configstruct *config)
         else if ( !strcasecmp(arg, "textw") )
             config->skin.textw = atoi(value);
         else if ( !strcasecmp(arg, "loading") ) {
-            config->skin.flistmsg[0] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.flistmsg[0], replace(value, '&', 27));
+            config->skin.flistmsg[0] = (char*)realloc(config->skin.flistmsg[0], strlen(value)+1);
+            cpy_replace(config->skin.flistmsg[0], value, '&', 27);
         } else if ( !strcasecmp(arg, "direrror") ) {
-            config->skin.flistmsg[1] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.flistmsg[1], replace(value, '&', 27));
+            config->skin.flistmsg[1] = (char*)realloc(config->skin.flistmsg[1], strlen(value)+1);
+            cpy_replace(config->skin.flistmsg[1], value, '&', 27);
         } else if ( !strcasecmp(arg, "wrongplaylist") ) {
-            config->skin.flistmsg[2] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.flistmsg[2], replace(value, '&', 27));
+            config->skin.flistmsg[2] = (char*)realloc(config->skin.flistmsg[2], strlen(value)+1);
+            cpy_replace(config->skin.flistmsg[2], value, '&', 27);
         } else if ( !strcasecmp(arg, "saveas") ) {
-            config->skin.flistmsg[3] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.flistmsg[3], replace(value, '&', 27));
+            config->skin.flistmsg[3] = (char*)realloc(config->skin.flistmsg[3], strlen(value)+1);
+            cpy_replace(config->skin.flistmsg[3], value, '&', 27);
         } else if ( !strcasecmp(arg, "saveid3tags") ) {
-            config->skin.flistmsg[4] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.flistmsg[4], replace(value, '&', 27));
+            config->skin.flistmsg[4] = (char*)realloc(config->skin.flistmsg[4], strlen(value)+1);
+            cpy_replace(config->skin.flistmsg[4], value, '&', 27);
         } else if ( !strcasecmp(arg, "saving") ) {
-            config->skin.flistmsg[5] = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.flistmsg[5], replace(value, '&', 27));
+            config->skin.flistmsg[5] = (char*)realloc(config->skin.flistmsg[5], strlen(value)+1);
+            cpy_replace(config->skin.flistmsg[5], value, '&', 27);
         } else if ( !strcasecmp(arg, "mouseexpand") )
             config->skin.fmouseexpand = atoi(value);
         else if ( !strcasecmp(arg, "listlines") )
@@ -1214,23 +1155,23 @@ void loadskin(char *name, struct configstruct *config)
         else
 
             if ( !strcasecmp(arg, "listcolorfilei") ) {
-                config->skin.flistcfi = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.flistcfi, replace(value, '&', 27));
+                config->skin.flistcfi = (char*)realloc(config->skin.flistcfi, strlen(value)+1);
+                cpy_replace(config->skin.flistcfi, value, '&', 27);
             } else if ( !strcasecmp(arg, "listcolorfilea") ) {
-                config->skin.flistcfa = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.flistcfa, replace(value, '&', 27));
+                config->skin.flistcfa = (char*)realloc(config->skin.flistcfa, strlen(value)+1);
+                cpy_replace(config->skin.flistcfa, value, '&', 27);
             } else if ( !strcasecmp(arg, "listcolordiri") ) {
-                config->skin.flistcdi = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.flistcdi, replace(value, '&', 27));
+                config->skin.flistcdi = (char*)realloc(config->skin.flistcdi, strlen(value)+1);
+                cpy_replace(config->skin.flistcdi, value, '&', 27);
             } else if ( !strcasecmp(arg, "listcolordira") ) {
-                config->skin.flistcda = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.flistcda, replace(value, '&', 27));
+                config->skin.flistcda = (char*)realloc(config->skin.flistcda, strlen(value)+1);
+                cpy_replace(config->skin.flistcda, value, '&', 27);
             } else if ( !strcasecmp(arg, "listtagi") ) {
-                config->skin.flistcti = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.flistcti, replace(value, '&', 27));
+                config->skin.flistcti = (char*)realloc(config->skin.flistcti, strlen(value)+1);
+                cpy_replace(config->skin.flistcti, value, '&', 27);
             } else if ( !strcasecmp(arg, "listtaga") ) {
-                config->skin.flistcta = (char*)malloc(strlen(value)+1);
-                strcpy(config->skin.flistcta, replace(value, '&', 27));
+                config->skin.flistcta = (char*)realloc(config->skin.flistcta, strlen(value)+1);
+                cpy_replace(config->skin.flistcta, value, '&', 27);
             } else
 
                 if ( !strcasecmp(arg, "addx") )
@@ -1284,53 +1225,53 @@ void loadskin(char *name, struct configstruct *config)
                 else
 
                     if ( !strcasecmp(arg, "addi") ) {
-                        config->skin.fi[0] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fi[0], replace(value, '&', 27));
+                        config->skin.fi[0] = (char*)realloc(config->skin.fi[0], strlen(value)+1);
+                        cpy_replace(config->skin.fi[0], value, '&', 27);
                     } else if ( !strcasecmp(arg, "adda") ) {
-                        config->skin.fa[0] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fa[0], replace(value, '&', 27));
+                        config->skin.fa[0] = (char*)realloc(config->skin.fa[0], strlen(value)+1);
+                        cpy_replace(config->skin.fa[0], value, '&', 27);
                     } else if ( !strcasecmp(arg, "tagi") ) {
-                        config->skin.fi[1] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fi[1], replace(value, '&', 27));
+                        config->skin.fi[1] = (char*)realloc(config->skin.fi[1], strlen(value)+1);
+                        cpy_replace(config->skin.fi[1], value, '&', 27);
                     } else if ( !strcasecmp(arg, "taga") ) {
-                        config->skin.fa[1] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fa[1], replace(value, '&', 27));
+                        config->skin.fa[1] = (char*)realloc(config->skin.fa[1], strlen(value)+1);
+                        cpy_replace(config->skin.fa[1], value, '&', 27);
                     } else if ( !strcasecmp(arg, "untagi") ) {
-                        config->skin.fi[2] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fi[2], replace(value, '&', 27));
+                        config->skin.fi[2] = (char*)realloc(config->skin.fi[2], strlen(value)+1);
+                        cpy_replace(config->skin.fi[2], value, '&', 27);
                     } else if ( !strcasecmp(arg, "untaga") ) {
-                        config->skin.fa[2] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fa[2], replace(value, '&', 27));
+                        config->skin.fa[2] = (char*)realloc(config->skin.fa[2], strlen(value)+1);
+                        cpy_replace(config->skin.fa[2], value, '&', 27);
                     } else if ( !strcasecmp(arg, "loadpi") ) {
-                        config->skin.fi[3] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fi[3], replace(value, '&', 27));
+                        config->skin.fi[3] = (char*)realloc(config->skin.fi[3], strlen(value)+1);
+                        cpy_replace(config->skin.fi[3], value, '&', 27);
                     } else if ( !strcasecmp(arg, "loadpa") ) {
-                        config->skin.fa[3] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fa[3], replace(value, '&', 27));
+                        config->skin.fa[3] = (char*)realloc(config->skin.fa[3], strlen(value)+1);
+                        cpy_replace(config->skin.fa[3], value, '&', 27);
                     } else if ( !strcasecmp(arg, "savepi") ) {
-                        config->skin.fi[4] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fi[4], replace(value, '&', 27));
+                        config->skin.fi[4] = (char*)realloc(config->skin.fi[4], strlen(value)+1);
+                        cpy_replace(config->skin.fi[4], value, '&', 27);
                     } else if ( !strcasecmp(arg, "savepa") ) {
-                        config->skin.fa[4] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fa[4], replace(value, '&', 27));
+                        config->skin.fa[4] = (char*)realloc(config->skin.fa[4], strlen(value)+1);
+                        cpy_replace(config->skin.fa[4], value, '&', 27);
                     } else if ( !strcasecmp(arg, "cleari") ) {
-                        config->skin.fi[5] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fi[5], replace(value, '&', 27));
+                        config->skin.fi[5] = (char*)realloc(config->skin.fi[5], strlen(value)+1);
+                        cpy_replace(config->skin.fi[5], value, '&', 27);
                     } else if ( !strcasecmp(arg, "cleara") ) {
-                        config->skin.fa[5] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fa[5], replace(value, '&', 27));
+                        config->skin.fa[5] = (char*)realloc(config->skin.fa[5], strlen(value)+1);
+                        cpy_replace(config->skin.fa[5], value, '&', 27);
                     } else if ( !strcasecmp(arg, "backi") ) {
-                        config->skin.fi[6] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fi[6], replace(value, '&', 27));
+                        config->skin.fi[6] = (char*)realloc(config->skin.fi[6], strlen(value)+1);
+                        cpy_replace(config->skin.fi[6], value, '&', 27);
                     } else if ( !strcasecmp(arg, "backa") ) {
-                        config->skin.fa[6] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fa[6], replace(value, '&', 27));
+                        config->skin.fa[6] = (char*)realloc(config->skin.fa[6], strlen(value)+1);
+                        cpy_replace(config->skin.fa[6], value, '&', 27);
                     } else if ( !strcasecmp(arg, "direi") ) {
-                        config->skin.fi[7] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fi[7], replace(value, '&', 27));
+                        config->skin.fi[7] = (char*)realloc(config->skin.fi[7], strlen(value)+1);
+                        cpy_replace(config->skin.fi[7], value, '&', 27);
                     } else if ( !strcasecmp(arg, "direa") ) {
-                        config->skin.fa[7] = (char*)malloc(strlen(value)+1);
-                        strcpy(config->skin.fa[7], replace(value, '&', 27));
+                        config->skin.fa[7] = (char*)realloc(config->skin.fa[7], strlen(value)+1);
+                        cpy_replace(config->skin.fa[7], value, '&', 27);
                     }
     }
     fclose(filefd);
@@ -1344,27 +1285,27 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
 
-    while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */
-        if ( !parseconfig(buf, arg, value) ) continue;
+    while ( fgets((char*)buf, CONF_BUF_LEN, filefd) != NULL ) { /* parse skin configuration */
+        if ( !parseconfig(buf, &arg, &value) ) continue;
 
         if ( !strcasecmp(arg, "clearscreen" ) )
             if ( !strcasecmp(value, "true") ) config->skin.iclr = TRUE;
             else
                 config->skin.iclr = FALSE;
         else if ( !strcasecmp(arg, "filenamec") ) {
-            config->skin.id3fnc = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.id3fnc, replace(value, '&', 27));
+            config->skin.id3fnc = (char*)realloc(config->skin.id3fnc, strlen(value)+1);
+            cpy_replace(config->skin.id3fnc, value, '&', 27);
         } else if ( !strcasecmp(arg, "filenamew") )
             config->skin.id3fnw = atoi(value);
         else if ( !strcasecmp(arg, "textcolor") ) {
-            config->skin.id3tc = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.id3tc, replace(value, '&', 27));
+            config->skin.id3tc = (char*)realloc(config->skin.id3tc, strlen(value)+1);
+            cpy_replace(config->skin.id3tc, value, '&', 27);
         } else if ( !strcasecmp(arg, "savec") ) {
-            config->skin.id3sc = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.id3sc, replace(value, '&', 27));
+            config->skin.id3sc = (char*)realloc(config->skin.id3sc, strlen(value)+1);
+            cpy_replace(config->skin.id3sc, value, '&', 27);
         } else if ( !strcasecmp(arg, "savet") ) {
-            config->skin.id3st = (char*)malloc(strlen(value)+1);
-            strcpy(config->skin.id3st, replace(value, '&', 27));
+            config->skin.id3st = (char*)realloc(config->skin.id3st, strlen(value)+1);
+            cpy_replace(config->skin.id3st, value, '&', 27);
         } else if ( !strcasecmp(arg, "artistx") )
             config->skin.ix[0] = atoi(value);
         else if ( !strcasecmp(arg, "artisty") )
@@ -1525,29 +1466,83 @@ void loadskin(char *name, struct configstruct *config)
 
     /* we do not check everything... (yet)  */
 
+    free(buf);
     printf("done\n");
 }
 
-int parseconfig(char *str, char *arg, char *value)
+int parseconfig(const char *str, char **arg, char **value)
 {
-    strtrim(str, '\n');
-    if ( str[0] == '#' || str[0] == 0 ) return FALSE;
-    strncpy(arg, str, strchrpos(str, '=', 1) );
-    arg[strchrpos(str, '=', 1)] = 0;
-    strcpy(value, str+strchrpos(str, '=', 1)+1 );
-    strcpy(arg, strtrim(arg, ' '));
-    strcpy(value, strtrim(value, ' '));
-    if ( value[0] == '\"' ) strcpy(value, strtrim(value, '\"'));
+    int i = 0, j;
+
+    while (IS_SPACE(str[i])) i++;
+    if (!str[i] || str[i] == '#' || IS_CRLF(str[i])) return FALSE;
+    *arg = (char*)&str[i]; j = i;
+    while (str[i] && str[i] != '=' && !IS_CRLF(str[i])) i++;
+    if((j = i - j)) {
+        j--;
+        while (j && IS_SPACE((*arg)[j])) j--;
+        if (!IS_SPACE((*arg)[j])) j++;
+    }
+    (*arg)[j] = 0;
+
+    if(str[i]) {
+        i++;
+        while (IS_SPACE(str[i])) i++;
+        if(str[i] == '\"') {
+            i++;
+            *value = (char*)&str[i]; j = i;
+            while (str[i] && str[i] != '\"' && !IS_CRLF(str[i])) i++;
+            j = i - j;
+        } else {
+            *value = (char*)&str[i]; j = i;
+            while (str[i] && !IS_CRLF(str[i])) i++;
+            if((j = i - j)) {
+                j--;
+                while (j && IS_SPACE((*value)[j])) j--;
+                if (!IS_SPACE((*value)[j])) j++;
+            }
+        }
+        (*value)[j] = 0;
+    } else
+        *value = (char*)&str[i];
+
     return TRUE;
 }
 
-char *randomskin(char *rbuf)
+char is_val_true(char *value)
 {
-    int wich, i;
-    FILE *filefd;
-    char *buf = (char*)malloc(500);
+    switch(value[0]) {
 
-    memset(buf, 0, 500);
+    case '1':
+        if ( value[1] == 0 )
+            return TRUE;
+        break;
+
+    case 'T':
+    case 't':
+        if ( (value[1] == 'R' || value[1] == 'r' ) \
+          && (value[2] == 'U' || value[2] == 'u' ) \
+          && (value[3] == 'E' || value[3] == 'e' ) \
+          && value[4] == 0 )
+            return TRUE;
+        break;
+
+    case 'Y':
+    case 'y':
+        if ( (value[1] == 'E' || value[1] == 'e' ) \
+          && (value[2] == 'S' || value[2] == 's' ) \
+          && value[3] == 0 )
+            return TRUE;
+        break;
+    }
+
+    return FALSE;
+}
+
+char *randomskin(char *buf)
+{
+    int i;
+    FILE *filefd;
 
     sprintf(buf, "%s/.camp/skins/random", getenv("HOME"));
     filefd = fopen(buf, "r");
@@ -1556,19 +1551,17 @@ char *randomskin(char *rbuf)
         exit(-1);
     }
 
-    fgets((char*)buf, 499, filefd);
+    fgets((char*)buf, CONF_BUF_LEN, filefd);
     strtrim(buf, '\n');
-    wich = myrand(atoi(buf))+1;
+    i = myrand(atoi(buf))+1;
 
-    for(i=0; i!=wich; i++)
-        fgets((char*)buf, 499, filefd);
+    while(i--)
+        fgets((char*)buf, CONF_BUF_LEN, filefd);
     strtrim(buf, '\n');
 
     fclose(filefd);
 
-    strcpy(rbuf, buf);
-
-    return rbuf;
+    return buf;
 }
 
 int probe_dir(char *dir)

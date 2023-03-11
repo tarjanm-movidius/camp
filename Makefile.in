@@ -22,8 +22,8 @@ rctools:
 	$(CC) $(CFLAGS) -o testrc testrc.c
 
 install:
-	if test -f $(HOME)/.camp; then rm -f $(HOME)/.camp; fi
-	if test -f $(HOME)/.camp/camprc; then mv -f $(HOME)/.camp/camprc $(HOME)/.camp/camprc.bak-pre1.5; fi
+	if test -f $(HOME)/.camp; then rm -Irv $(HOME)/.camp; fi
+	if test -f $(HOME)/.camp/camprc; then mv -fv $(HOME)/.camp/camprc $(HOME)/.camp/camprc.bak-pre1.5; fi
 	./mkinstalldirs $(BINDIR) $(HOME)/.camp
 	install -s -m 0755 ./camp     $(BINDIR)
 	strip $(BINDIR)/camp
