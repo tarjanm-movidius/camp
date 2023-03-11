@@ -97,7 +97,7 @@ struct currentplaylistent {
 };
 
 struct ID3 {
-    char tag[3];
+    char tag[4];
     char songname[30];
     char artist[30];
     char album[30];
@@ -223,12 +223,12 @@ int canexit(void);
 unsigned int pl_count( struct playlistent *playlist );
 struct playlistent *pl_seek( unsigned int pos, struct playlistent **playlist );
 void pl_search(char ch, struct playlistent *playlist, unsigned int *);
-void pl_showents( int startpos, struct playlistent *playlist, unsigned int *);
+void pl_showents( int startpos, struct playlistent *playlist, const unsigned int *);
 void pl_updatebuttons(int add);
 void l_status(char *text);
 void clearplaylist(struct playlistent **playlist);
 void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, int forcedbutton);
-void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
+void addfiletolist(struct playlistent **playlist, char *filename, const char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
 void rplaylist(struct playlistent **playlist, unsigned int *filenumber);
 void sortplaylist(struct playlistent **playlist);
 
@@ -255,7 +255,7 @@ struct ID3 usable2id3(struct usableID3 *usabletag);
 struct usableID3 id32usable(struct ID3 *tag);
 void id3edit(char *filename, struct playlistent *playlist);
 char *fuckspaces(char *lame, int maxpos);
-char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bitrate, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre);
+char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bitrate, char *name, char *artist, char *misc, char *album, char *year, unsigned char *genre);
 char writemp3info(char *filename, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre);
 
 /* fork.o */

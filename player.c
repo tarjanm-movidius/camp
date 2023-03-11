@@ -82,10 +82,10 @@ void slave(char *filename)
     while ( Gpm_Close() != 0 ) ;
 #endif
     if ( !config.dontreopen ) {
-        freopen("/dev/null", "w", stdout);
-        freopen("/dev/null", "w", stderr);
+        if(freopen("/dev/null", "w", stdout) == NULL) perror("freopen(stdout)");
+        if(freopen("/dev/null", "w", stderr) == NULL) perror("freopen(stderr)");
     }
-    for(i=0; i<15; i++)
+    for(i=0; i<14; i++)
         if (config.playerargv[i] == NULL) break;
     config.playerargv[i] = (char*)malloc(strlen(filename)+1);
     strcpy(config.playerargv[i], filename);
@@ -111,7 +111,7 @@ void call_player(struct playlistent *pl)
     memcpy((void*)&currentfile, (void*)pl, sizeof(struct oneplaylistent));
 
     if ( config.rescanid3 || ( !config.useid3 && !pl->length ) ) {
-        if ( getmp3info(pl->name, &pl->mode, &pl->samplerate, &pl->bitrate, name, artist, NULL, NULL, NULL, 0 ) ) {
+        if ( getmp3info(pl->name, &pl->mode, &pl->samplerate, &pl->bitrate, name, artist, NULL, NULL, NULL, NULL ) ) {
             if ( artist[0] ) sprintf(pl->showname, "%s - %s", artist, name );
             else
                 strcpy(pl->showname, name);
@@ -142,7 +142,7 @@ void call_player(struct playlistent *pl)
         if ( config.dropinfo ) {
             fd = fopen(config.dropfile, "w");
             if ( fd ) {
-                fprintf(fd, "camp\n%s\n%s\n%s\n%d\n%d\n", CAMP_VERSION, currentfile.name, currentfile.showname, currentfile.bitrate, currentfile.samplerate);
+                fprintf(fd, "camp\n%s\n%s\n%s\n%u\n%u\n", CAMP_VERSION, currentfile.name, currentfile.showname, currentfile.bitrate, currentfile.samplerate);
                 fclose(fd);
             }
         }
@@ -234,14 +234,14 @@ char *mpg123_control(char *command)
             close(insocks[0]);
             close(insocks[1]);
 
-            for(i=0; i<15; i++)
+            for(i=0; i<13; i++)
                 if (config.playerargv[i] == NULL) break;
 
             config.playerargv[i] = (char*)malloc(3);
             strcpy(config.playerargv[i], "-R");
             i++;
             config.playerargv[i] = (char*)malloc(1);
-            strcpy(config.playerargv[i], "");
+            config.playerargv[i][0] = 0;
             sprintf(buf, "%s/%s", config.playerpath, config.playername);
 
             if ( execve(buf, config.playerargv, NULL) == -1 ) {

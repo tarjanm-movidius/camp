@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
         }
         pl_seek(0, &playlist);
         while ( playlist->next ) {
-            fprintf(stderr, "%-5d %s\n", playlist->number, playlist->showname);
+            fprintf(stderr, "%-5u %s\n", playlist->number, playlist->showname);
             fflush(stderr);
             if ( dump == 2 ) {
                 strcpy(buf, playlist->showname);
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
         fd = fopen(PID_FILE, "r");
         fscanf(fd, "%u\n", &j);
         fclose(fd);
-        sprintf(buf, "/proc/%d", j);
+        sprintf(buf, "/proc/%u", j);
         if ( !kill(j, 0) || exist(buf) ) {
             if ( force )
                 printf("Another camp session is already running (--force specified, overriding kill).\n");
@@ -807,18 +807,18 @@ uintptr_t dofunction(int forcedbutton)
         buf2 = (char*)malloc(256);
         printf("\e[?25h"); /* cursor on */
         sprintf(buf, "\e[%sm\e[%d;%dH%s\e[%d;%dH%s", config.skin.mtextc, config.skin.mtexty, config.skin.mtextx, xys(config.skin.mtextw, ' '), config.skin.mtexty, config.skin.mtextx, config.skin.mainmsg[3]);
-        sprintf(buf2, "%s%d%d", config.skin.mainmsg[3], 0, playlistents);
+        sprintf(buf2, "%s%d%u", config.skin.mainmsg[3], 0, playlistents);
         do {
             printf(buf, 1, playlistents);
             mod = 27;
             filenumber = atoi(readyxline(config.skin.mtexty, config.skin.mtextx+(ansi_strlen(buf2)-4), pass, 4, &ec, &mod));
-            sprintf(pass, "%d", filenumber);
+            sprintf(pass, "%u", filenumber);
             if ( filenumber == 0 || ec == 27 || !mod ) {
                 filenumber = -1;
                 break;
             }
             filenumber--;
-        } while( filenumber < 0 || filenumber > playlistents-1 );
+        } while( filenumber > playlistents-1 );
         free(buf);
         free(buf2);
         printf("\e[%sm\e[%d;%dH%s", config.skin.mtextc, config.skin.mtexty, config.skin.mtextx, xys(config.skin.mtextw, ' '));
@@ -1047,10 +1047,10 @@ void updatedata()
     if ( quiet ) return;
 
     if ( currentfile.showname[0] != 0 ) {
-        if ( config.skin.sampleratey + config.skin.sampleratex > 0 ) printf("\e[%sm\e[%d;%dH%5d", config.skin.sampleratec, config.skin.sampleratey, config.skin.sampleratex, currentfile.samplerate);
-        if ( config.skin.bitratey + config.skin.bitratex > 0 ) printf("\e[%sm\e[%d;%dH%3d", config.skin.bitratec, config.skin.bitratey, config.skin.bitratex, currentfile.bitrate);
+        if ( config.skin.sampleratey + config.skin.sampleratex > 0 ) printf("\e[%sm\e[%d;%dH%5u", config.skin.sampleratec, config.skin.sampleratey, config.skin.sampleratex, currentfile.samplerate);
+        if ( config.skin.bitratey + config.skin.bitratex > 0 ) printf("\e[%sm\e[%d;%dH%3u", config.skin.bitratec, config.skin.bitratey, config.skin.bitratex, currentfile.bitrate);
         if ( config.skin.stereoy + config.skin.stereox > 0 ) printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s", config.skin.stereoc, config.skin.stereoy, config.skin.stereox, xys(config.skin.stereow, ' '), config.skin.stereoy, config.skin.stereox, config.skin.stereotext[currentfile.mode]);
-        if ( config.skin.songnumbery + config.skin.songnumberx > 0 ) printf("\e[%sm\e[%d;%dH%4d\e[%d;%dH%-4d", config.skin.songnumberc, config.skin.songnumbery, config.skin.songnumberx, filenumber+1, config.skin.songnumbery, config.skin.songnumberx+5, playlistents);
+        if ( config.skin.songnumbery + config.skin.songnumberx > 0 ) printf("\e[%sm\e[%d;%dH%4u\e[%d;%dH%-4u", config.skin.songnumberc, config.skin.songnumbery, config.skin.songnumberx, filenumber+1, config.skin.songnumbery, config.skin.songnumberx+5, playlistents);
     }
     updatesongtime('u');
     printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s", config.skin.modetextc, config.skin.modetexty, config.skin.modetextx, xys(config.skin.modetextw, ' '), config.skin.modetexty, config.skin.modetextx, config.skin.modetext[(int)config.playmode]);
@@ -1069,11 +1069,11 @@ void updatesongtime(char ch)
     struct timeval currenttime;
     int reverse_time;
     FILE *fd;
-    char buf[256], scrl = 1;
+    char buf[256], scrll = 1;
 
     if ( quiet && ( ch == 'u' || ch == 'f' ) ) return;
 
-    if ( ch == 'f' ) scrl = 3;
+    if ( ch == 'f' ) scrll = 3;
 
     switch(ch) {
 
@@ -1099,18 +1099,18 @@ void updatesongtime(char ch)
             if ( !config.timemode )
                 printf("\e[%sm\e[%d;%dH00\e[%d;%d00", config.skin.timec, config.skin.timey, config.skin.timex, config.skin.timey, config.skin.timex+3);
             else
-                printf("\e[%sm\e[%d;%dH%02ld\e[%d;%dH%02ld", config.skin.timec, config.skin.timey, config.skin.timex, currentfile.length/60, config.skin.timey, config.skin.timex+3, currentfile.length%60);
+                printf("\e[%sm\e[%d;%dH%02lu\e[%d;%dH%02lu", config.skin.timec, config.skin.timey, config.skin.timex, currentfile.length/60, config.skin.timey, config.skin.timex+3, currentfile.length%60);
             if ( ( config.showtime == 3 || config.showtime == 1 ) && strncasecmp(playlist->showname, "http://", 7) )
-                printf("\e[%sm\e[%d;%dH%s\e[%d;%dH[%02lu:%02lu] %s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, currentfile.length / 60, currentfile.length % 60, scrollsongname(scrl));
+                printf("\e[%sm\e[%d;%dH%s\e[%d;%dH[%02lu:%02lu] %s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, currentfile.length / 60, currentfile.length % 60, scrollsongname(scrll));
             else
-                printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, scrollsongname(scrl));
+                printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, scrollsongname(scrll));
             fflush(stdout);
             return;
         }
 
-        if ( ( config.showtime == 3 || config.showtime == 1 ) && strncasecmp(playlist->showname, "http://", 7) ) printf("\e[%sm\e[%d;%dH%s\e[%d;%dH[%02lu:%02lu] %s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, currentfile.length / 60, currentfile.length % 60, scrollsongname(scrl));
+        if ( ( config.showtime == 3 || config.showtime == 1 ) && strncasecmp(playlist->showname, "http://", 7) ) printf("\e[%sm\e[%d;%dH%s\e[%d;%dH[%02lu:%02lu] %s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, currentfile.length / 60, currentfile.length % 60, scrollsongname(scrll));
         else
-            printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, scrollsongname(scrl));
+            printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, scrollsongname(scrll));
         /* guess this is the best way of doing this, since we don't want the player to type this,. */
         if ( pausesong ) return;
         if ( config.timemode ) {
@@ -1143,7 +1143,7 @@ void updatesongtime(char ch)
     case 'w':
         sprintf(buf, "%s/time.camp", TMP_DIR);
         fd = fopen(buf, "w");
-        fprintf(fd, "%lu\n%lu\n", starttime.tv_sec, starttime.tv_usec);
+        fprintf(fd, "%ld\n%ld\n", starttime.tv_sec, starttime.tv_usec);
         fclose(fd);
         break;
 
@@ -1151,7 +1151,7 @@ void updatesongtime(char ch)
         sprintf(buf, "%s/time.camp", TMP_DIR);
         fd = fopen(buf, "r");
         if ( !fd ) break;
-        fscanf(fd, "%lu\n%lu\n", &starttime.tv_sec, &starttime.tv_usec);
+        fscanf(fd, "%ld\n%ld\n", &starttime.tv_sec, &starttime.tv_usec);
         fclose(fd);
         unlink(buf);
         break;
@@ -1163,7 +1163,7 @@ void updatesongtime(char ch)
 char *scrollsongname(char action)
 {
     static char scrolledname[100];
-    static int i, wichway;
+    static int i = 0, wichway = 1;
 
     if ( action == 0 ) {
         i = -1;
@@ -1179,7 +1179,7 @@ char *scrollsongname(char action)
     }
 
     if ( action == 1 ) {
-        if ( config.scrollsn && strlen(currentfile.showname) > (config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8) && action == 1 ) {
+        if ( config.scrollsn && strlen(currentfile.showname) > (config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8) ) {
             if ( i+ (config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8) == strlen(currentfile.showname) && wichway == 1 )
                 wichway = -1;
             else /* <- */
@@ -1191,14 +1191,14 @@ char *scrollsongname(char action)
 
     /* action == 3, only print! */
 
-    if ( action == 3 ) {
+//    if ( action == 3 ) {
         if ( i == -1 )
             strncpy(scrolledname, currentfile.showname, config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8 );
         else
             strncpy(scrolledname, currentfile.showname+i, config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8 );
-    }
+//    }
 
-    strncpy(scrolledname, currentfile.showname+i, config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8 );
+//    strncpy(scrolledname, currentfile.showname+i, config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8 );
 
     return scrolledname;
 }

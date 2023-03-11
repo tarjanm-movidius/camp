@@ -920,7 +920,7 @@ int lirc_code2char(struct lirc_config *config,char *code,char **string)
     struct lirc_config_entry *scan;
 
     *string=NULL;
-    if(sscanf(code, "%*x %x %*s %*s\n", &rep) == 1) {
+    if(sscanf(code, "%*x %x %*s %*s\n", (unsigned int *)&rep) == 1) {
         backup=strdup(code);
         if(backup==NULL) return(-1);
 

@@ -32,7 +32,6 @@ extern char use_lircd;
 void disappear(void)
 {
     FILE *fd;
-    int  i;
 
 #ifdef USE_GPM_MOUSE
     while ( Gpm_Close() != 0 ); /* No need for the mouse anymore */
@@ -50,7 +49,7 @@ void disappear(void)
         fprintf(fd, "%d\n", getpid());
         fclose(fd);
 #ifdef HAVE_SYS_IOCTL_H
-        i = open ("/dev/tty", O_RDWR);
+        int i = open ("/dev/tty", O_RDWR);
         ioctl (i, TIOCNOTTY, (char *)0); /* detach from tty */
         close(i);
 #endif
@@ -107,7 +106,7 @@ void sigusr1(int signr)
 
     sprintf(buf, "%s/data.camp", TMP_DIR);
     fd = fopen(buf, "w");
-    fprintf(fd, "%d\n%d\n%lu\n", slavepid, filenumber, currentfile.frame);
+    fprintf(fd, "%u\n%u\n%lu\n", slavepid, filenumber, currentfile.frame);
     fclose(fd);
 
     updatesongtime('w');
@@ -141,11 +140,11 @@ void stealback(void)
         printf("No session to steal!\n");
         exit(0);
     }
-    fscanf(fd, "%d\n", &oldpid);
+    fscanf(fd, "%u\n", &oldpid);
     fclose(fd);
-    printf("Stealing (pid: %d)... ", oldpid);
+    printf("Stealing (pid: %u)... ", oldpid);
     fflush(stdout);
-    sprintf(buf,"/proc/%d",oldpid);
+    sprintf(buf,"/proc/%u",oldpid);
     if (getuid()!=0) {
         if (stat (buf,&statbuf) == -1) {
             printf("\nNothing to steal... :-(\n");
@@ -195,7 +194,7 @@ void stealback(void)
         printf("No data found, can't steal!\n");
         exit(0);
     }
-    fscanf(fd, "%d\n%d\n%lu\n", &slavepid, &filenumber, &currentfile.frame);
+    fscanf(fd, "%u\n%u\n%lu\n", &slavepid, &filenumber, &currentfile.frame);
     fclose(fd);
     sprintf(buf, "%s/data.camp", TMP_DIR);
     unlink(buf);
@@ -205,7 +204,7 @@ void stealback(void)
         loadplaylist(&playlist, buf, FALSE);
         pl_seek(filenumber, &playlist);
         unlink(buf);
-        printf("done!\nplayer pid: %d, playing \"%s\" (%d)\n", slavepid, playlist->showname, filenumber+1);
+        printf("done!\nplayer pid: %u, playing \"%s\" (%u)\n", slavepid, playlist->showname, filenumber+1);
         memcpy((void*)&currentfile, playlist, sizeof(struct oneplaylistent));
         if ( config.mpg123 ) {
             signal(SIGCHLD, playnext);

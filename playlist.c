@@ -42,7 +42,7 @@ int pl_buttonpos, pl_screenmark=0;
 
 void rplaylist(struct playlistent **playlist, unsigned int *filenumber)
 {
-    int    ch, ch2, prevsong=-1;
+    int    ch = 0, ch2, prevsong=-1;
     fd_set fds;
     struct timeval counter;
 
@@ -114,8 +114,6 @@ void rplaylist(struct playlistent **playlist, unsigned int *filenumber)
                 if ( pl_dolircd(playlist, filenumber) ) return;
             }
 #endif
-
-            ch = 0;
 
             if ( FD_ISSET(0, &fds) ) {
                 ch = getchar();
@@ -300,7 +298,7 @@ void pl_search(char ch, struct playlistent *playlist, unsigned int *filenumber)
 }
 
 
-void pl_showents( int startpos, struct playlistent *playlist, unsigned int *filenumber )
+void pl_showents( int startpos, struct playlistent *playlist, const unsigned int *filenumber )
 {
     int i=0, k=0;
     char shortname[100];
@@ -329,7 +327,7 @@ void pl_showents( int startpos, struct playlistent *playlist, unsigned int *file
         strncat(shortname, playlist->showname, config.skin.plistw-(5+strlen(shortname)));
         for (k=strlen(shortname); k<config.skin.plistw-5; k++) shortname[k] = ' ';
 
-        printf("\e[%d;%dH%-4.d %s", config.skin.plisty+i, config.skin.plistx, playlist->number+1, shortname);
+        printf("\e[%d;%dH%-4.u %s", config.skin.plisty+i, config.skin.plistx, playlist->number+1, shortname);
         i++;
         if (i>=config.skin.plistlines) break;
         playlist = playlist->next;
@@ -400,16 +398,16 @@ void pl_updatebuttons(int add)
 void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, int forcedbutton)
 {
     struct playlistent *temp = NULL;
-    int length;
+//    int length;
 
     if ( forcedbutton == -1 ) forcedbutton = config.skin.plistbo[pl_buttonpos];
 
     switch( forcedbutton ) {
 
     case 0: /* browse */
-        length = currloc;
+//        length = currloc;
         getfiles(playlist);
-        currloc = length;
+//        currloc = length;
         if ( config.skin.fclr ) printf("\e[0m\e[2J");
         printf("\e[0m\e[1;1H%s", config.skin.playlist);
         if ( config.skin.mainatpl ) {
@@ -433,7 +431,7 @@ void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, int 
         *filenumber = pl_current;
         playsong = TRUE;
         pl_seek(pl_current, playlist);
-        length = (*playlist)->length;
+//        length = (*playlist)->length;
         call_player(*playlist);
 //      if ( length != (*playlist)->length )
         pl_showents(pl_current-pl_screenmark, *playlist,filenumber);
@@ -631,7 +629,7 @@ char *lowercases(char *str)
 }
 
 
-void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 )
+void addfiletolist(struct playlistent **playlist, char *filename, const char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 )
 {
     char   name[31], artist[31], cwd[254], *buf;
     int    cspos, j, lastdot;
@@ -661,7 +659,7 @@ void addfiletolist(struct playlistent **playlist, char *filename, char *showname
         strcpy((*playlist)->name, filename);
 
     if ( !showname ) {
-        if ( scanid3 && getmp3info(filename, &mode, &samplerate, &bitrate, name, artist, NULL, NULL, NULL, 0) && artist[0]+name[0] ) {
+        if ( scanid3 && getmp3info(filename, &mode, &samplerate, &bitrate, name, artist, NULL, NULL, NULL, NULL) && artist[0]+name[0] ) {
             if ( artist[0] && name[0] ) sprintf(buf, "%s - %s", artist, name );
             else if ( artist[0] ) sprintf(buf, "%s - (unknown)", artist);
             else

@@ -35,7 +35,7 @@ unsigned int samplerate_table[3][4] =  {
 extern struct configstruct config;
 extern char currloc;
 
-char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bit_rate, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre)
+char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bit_rate, char *name, char *artist, char *misc, char *album, char *year, unsigned char *genre)
 {
     FILE *fd;
     struct ID3 filetag;
@@ -102,7 +102,7 @@ char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, 
         if ( misc   ) strcpy(misc, fuckspaces(filetag.misc, 30));
         if ( album  ) strcpy(album, fuckspaces(filetag.album, 30));
         if ( year   ) strcpy(year, fuckspaces(filetag.year, 4));
-        genre = filetag.genre;
+        *genre = filetag.genre;
         return TRUE;
     } else
         return FALSE;
@@ -117,7 +117,7 @@ char writemp3info(char *filename, char *name, char *artist, char *misc, char *al
 
     fd = fopen(filename, "r+");
     if ( fd == NULL ) return FALSE;
-    strcpy(filetag.tag, "TAG"); /* the NULL will get at songname[0] but who cares? :) */
+    strcpy(filetag.tag, "TAG");
     strcpy(filetag.songname, name);
     for(i=strlen(name); i<30; i++) filetag.songname[i] = 32;
     strcpy(filetag.artist, artist);
@@ -178,7 +178,7 @@ void id3edit(char *filename, struct playlistent *playlist)
     else
         buf[cspos] = 0;
 
-    if ( !getmp3info(filename, NULL, NULL, NULL, name, artist, misc, album, year, genre) ) {
+    if ( !getmp3info(filename, NULL, NULL, NULL, name, artist, misc, album, year, &genre) ) {
         name[0]   = 0;
         artist[0] = 0;
         album[0]  = 0;
