@@ -12,14 +12,11 @@ build:
 
 main:	$(OBJS) 
 	$(CC) $(CFLAGS) $(LIBS) -o camp $(OBJS)
-	@echo "Now, type \"make install\" to install the binary and default configfile." 
 	@echo ""
-	@echo "-- IMPORTANT! READ THIS ( yeah, you too :) ) --"
-	@echo "If NOT doing \"make install\", please create $(HOME)/.camp, and"
-	@echo "copy camp.ini to $(HOME)/.camp/camprc, and lirc.ini to $(HOME)/.camp/lircrc."
-	@echo "EVEN IF you are doing a \"make install\" you need to copy skins.tar to"
-	@echo "$(HOME)/.camp and execute \"cd $(HOME)/.camp ; tar xvf skins.tar\""
 	@echo "If you are planning to use a LPT remote control, run \"make rctools\"."
+	@echo ""
+	@echo "Type \"make install\" to install the binary and default configfile." 
+	@echo "Additionally, type \"make install-skins\" to install the current skin-pack." 
 	@echo ""
 rctools:
 	$(CC) $(CFLAGS) -o testrc testrc.c
@@ -31,6 +28,15 @@ install:
 	install -s -m 0755 ./camp     $(BINDIR)
 	install    -m 0600 ./camp.ini $(HOME)/.camp/camprc
 	install    -m 0600 ./tip.txt  $(HOME)/.camp/tip.txt
+	@echo ""
+	@echo "Type \"make install-skins\" to install the current skin-pack." 
+
+
+install-skins:
+	./mkinstalldirs $(HOME)/.camp/skins
+	cp skins.tar $(HOME)/.camp
+	( cd $(HOME)/.camp && tar xvf skins.tar )
+	@echo "Done!"
 	
 .c.o:	
 	$(CC) $(DEFS) $(CFLAGS) -c $<

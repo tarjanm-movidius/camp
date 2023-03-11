@@ -96,6 +96,10 @@ distribution package, and modify it to fit your needs!\n", configfile);
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.mpg123 = TRUE; else
 	cconfig.mpg123 = FALSE; else
+	if ( !strcasecmp(arg, "defplaylist") )
+	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
+	    cconfig.defpl = TRUE; else
+	cconfig.defpl = FALSE; else
 	if ( !strcasecmp(arg, "readid3") ) 
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.useid3 = TRUE; else
@@ -180,6 +184,10 @@ distribution package, and modify it to fit your needs!\n", configfile);
 	  cconfig.rc.skipb = atoi(value); else
 	if ( !strcasecmp(arg, "skipf") )
 	  cconfig.rc.skipf = atoi(value); else
+	if ( !strcasecmp(arg, "seekb") )
+	  cconfig.rc.seekb = atoi(value); else
+	if ( !strcasecmp(arg, "seekf") )
+	  cconfig.rc.seekf = atoi(value); else
 	if ( !strcasecmp(arg, "vol-") )
 	  cconfig.rc.voldec = atoi(value); else
 	if ( !strcasecmp(arg, "vol+") )
@@ -217,41 +225,44 @@ distribution package, and modify it to fit your needs!\n", configfile);
       exit(-1);
    } else
    if ( !strcmp(cconfig.playername, "mpg123") ) {
-      printf("Using defaults for mpg123:\n");
+      printf("Using defaults for mpg123\n");
       strcpy(cconfig.downmix, "-m");
       strcpy(cconfig.rate, "-r");
       strcpy(cconfig.quiet, "-q");
       strcpy(cconfig.device, "-a");      
-      printf(" downmix = -m\n");
+/*      printf(" downmix = -m\n");
       printf(" rate    = -r\n");
       printf(" quiet   = -q\n");
       printf(" device  = -a\n");
-      printf("Using nice kill\n");
+      printf("Using nice kill\n"); */
       cconfig.nicekill = TRUE;
    } else
      if ( !strcmp(cconfig.playername, "xaudio") ) {
-	printf("Using defaults for xaudio:\n");
+	printf("Using defaults for xaudio\n");
 	strcpy(cconfig.downmix, "-mono=mix");
 	cconfig.rate[0] = 0;
 	cconfig.quiet[0] = 0;
 	strcpy(cconfig.device, "-output=");      
-	printf(" downmix = -mono=mix\n");
+/*	printf(" downmix = -mono=mix\n");
 	printf(" rate    = n/a\n");
 	printf(" quiet   = n/a\n");
-	printf(" device  = -output=\n");
+	printf(" device  = -output=\n"); */
      } else
      if ( !strcmp(cconfig.playername, "amp") ) {
-	printf("Using defaults for amp:\n");
+	printf("Using defaults for amp\n");
 	strcpy(cconfig.downmix, "-downmix");
 	cconfig.rate[0] = 0;
 	strcpy(cconfig.quiet, "-q");
 	cconfig.device[0] = 0;
-	printf(" downmix = -downmix\n");
+/*	printf(" downmix = -downmix\n");
 	printf(" rate    = n/a\n");
 	printf(" quiet   = -q\n");
-	printf(" device  = n/a\n");
+	printf(" device  = n/a\n"); */
      } else
      printf("The player \"%s\" is unknown to me, no arguments added.\n", cconfig.playername);
+
+   if ( strcmp(cconfig.playername, "mpg123") && cconfig.mpg123 )
+     printf("\e[1mWARNING! Setting mpg123mode = true in ~/.camp/camprc without having mpg123 as the player will result in failure trying to play music!!\e[0m\n");
    
    if ( cconfig.quiet[0] != 0 ) {
       for(i=0;i<15;i++)
@@ -334,6 +345,7 @@ char buf[500], arg[500], value[500], skin_home[500];
    config->skin.mh[16] = '+';
    config->skin.mpclr = TRUE;
    config->skin.miclr = TRUE;
+   config->skin.piclr = TRUE;
    
    config->skin.id3fnw = 39;
    /* I fucked up in v1.00, included this in the structure, but NEVER used it, so set default for "old" skins */
@@ -491,6 +503,8 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.stereox = atoi(value); else
 	if ( !strcasecmp(arg, "stereoy") )
 	  config->skin.stereoy = atoi(value); else
+	if ( !strcasecmp(arg, "stereow") )
+	  config->skin.stereow = atoi(value); else
 	if ( !strcasecmp(arg, "monotext") ) {
 	   config->skin.stereotext[0] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.stereotext[0], replace(value, '&', 27)); } else
@@ -542,8 +556,12 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.mh[5] = value[0]; else
 	if ( !strcasecmp(arg, "custh") )
 	  config->skin.mh[6] = value[0]; else
+	if ( !strcasecmp(arg, "seekbh") )
+	  config->skin.mh[7] = value[0]; else
 	if ( !strcasecmp(arg, "pauseh") )
 	  config->skin.mh[8] = value[0]; else
+	if ( !strcasecmp(arg, "seekfh") )
+	  config->skin.mh[9] = value[0]; else
 	if ( !strcasecmp(arg, "jumph") )
 	  config->skin.mh[10] = value[0]; else
 	if ( !strcasecmp(arg, "lockh") )
@@ -575,8 +593,12 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.mju[5] = atoi(value); else
 	if ( !strcasecmp(arg, "custu") )
 	  config->skin.mju[6] = atoi(value); else
+	if ( !strcasecmp(arg, "seekbu") )
+	  config->skin.mju[7] = atoi(value); else
 	if ( !strcasecmp(arg, "pauseu") )
 	  config->skin.mju[8] = atoi(value); else
+	if ( !strcasecmp(arg, "seekfu") )
+	  config->skin.mju[9] = atoi(value); else
 	if ( !strcasecmp(arg, "jumpu") )
 	  config->skin.mju[10] = atoi(value); else
 	if ( !strcasecmp(arg, "locku") )
@@ -606,8 +628,12 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.mjd[5] = atoi(value); else
 	if ( !strcasecmp(arg, "custd") )
 	  config->skin.mjd[6] = atoi(value); else
+	if ( !strcasecmp(arg, "seekbd") )
+	  config->skin.mjd[7] = atoi(value); else
 	if ( !strcasecmp(arg, "paused") )
 	  config->skin.mjd[8] = atoi(value); else
+	if ( !strcasecmp(arg, "seekfd") )
+	  config->skin.mjd[9] = atoi(value); else
 	if ( !strcasecmp(arg, "jumpd") )
 	  config->skin.mjd[10] = atoi(value); else
 	if ( !strcasecmp(arg, "lockd") )
@@ -637,8 +663,12 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.mjl[5] = atoi(value); else
 	if ( !strcasecmp(arg, "custl") )
 	  config->skin.mjl[6] = atoi(value); else
+	if ( !strcasecmp(arg, "seekbl") )
+	  config->skin.mjl[7] = atoi(value); else
 	if ( !strcasecmp(arg, "pausel") )
 	  config->skin.mjl[8] = atoi(value); else
+	if ( !strcasecmp(arg, "seekfl") )
+	  config->skin.mjl[9] = atoi(value); else
 	if ( !strcasecmp(arg, "jumpl") )
 	  config->skin.mjl[10] = atoi(value); else
 	if ( !strcasecmp(arg, "lockl") )
@@ -668,8 +698,12 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.mjr[5] = atoi(value); else
 	if ( !strcasecmp(arg, "custr") )
 	  config->skin.mjr[6] = atoi(value); else
+	if ( !strcasecmp(arg, "seekbr") )
+	  config->skin.mjr[7] = atoi(value); else
 	if ( !strcasecmp(arg, "pauser") )
 	  config->skin.mjr[8] = atoi(value); else
+	if ( !strcasecmp(arg, "seekfr") )
+	  config->skin.mjr[9] = atoi(value); else
 	if ( !strcasecmp(arg, "jumpr") )
 	  config->skin.mjr[10] = atoi(value); else
 	if ( !strcasecmp(arg, "lockr") )
@@ -729,12 +763,24 @@ char buf[500], arg[500], value[500], skin_home[500];
 	if ( !strcasecmp(arg, "custa") ) {
 	   config->skin.ma[6] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.ma[6], replace(value, '&', 27)); } else	
+	if ( !strcasecmp(arg, "seekbi") ) {
+	   config->skin.mi[7] = (char*)malloc(strlen(value)+1);
+	   strcpy(config->skin.mi[7], replace(value, '&', 27)); } else
+	if ( !strcasecmp(arg, "seekba") ) {
+	   config->skin.ma[7] = (char*)malloc(strlen(value)+1);
+	   strcpy(config->skin.ma[7], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "pausei") ) {
 	   config->skin.mi[8] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.mi[8], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "pausea") ) {
 	   config->skin.ma[8] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.ma[8], replace(value, '&', 27)); } else
+	if ( !strcasecmp(arg, "seekfi") ) {
+	   config->skin.mi[9] = (char*)malloc(strlen(value)+1);
+	   strcpy(config->skin.mi[9], replace(value, '&', 27)); } else
+	if ( !strcasecmp(arg, "seekfa") ) {
+	   config->skin.ma[9] = (char*)malloc(strlen(value)+1);
+	   strcpy(config->skin.ma[9], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "jumpi") ) {
 	   config->skin.mi[10] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.mi[10], replace(value, '&', 27)); } else
@@ -822,12 +868,24 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.my[6] = atoi(value); else
 	if ( !strcasecmp(arg, "custw") )
 	  config->skin.mw[6] = atoi(value); else
+	if ( !strcasecmp(arg, "seekbx") )
+	  config->skin.mx[7] = atoi(value); else
+	if ( !strcasecmp(arg, "seekby") )
+	  config->skin.my[7] = atoi(value); else
+	if ( !strcasecmp(arg, "seekbw") )
+	  config->skin.mw[7] = atoi(value); else
 	if ( !strcasecmp(arg, "pausex") )
 	  config->skin.mx[8] = atoi(value); else
 	if ( !strcasecmp(arg, "pausey") )
 	  config->skin.my[8] = atoi(value); else
 	if ( !strcasecmp(arg, "pausew") )
 	  config->skin.mw[8] = atoi(value); else
+	if ( !strcasecmp(arg, "seekfx") )
+	  config->skin.mx[9] = atoi(value); else
+	if ( !strcasecmp(arg, "seekfy") )
+	  config->skin.my[9] = atoi(value); else
+	if ( !strcasecmp(arg, "seekfw") )
+	  config->skin.mw[9] = atoi(value); else
 	if ( !strcasecmp(arg, "jumpx") )
 	  config->skin.mx[10] = atoi(value); else
 	if ( !strcasecmp(arg, "jumpy") )
@@ -870,7 +928,11 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.my[16] = atoi(value); else
 	if ( !strcasecmp(arg, "vol+w") )
 	  config->skin.mw[16] = atoi(value);
-	
+
+//      for(i=MINBUTTON;i<(MAXBUTTON+1);i++)
+//	printf("%d: %c\n", i, config->skin.mh[i]);
+      
+      
    }
 
    if ( version < 100 || version >= 110 ) {
@@ -904,6 +966,9 @@ char buf[500], arg[500], value[500], skin_home[500];
 	      if ( config->skin.plistbo[i] < 0 || config->skin.plistbo[i] > 9 ) config->skin.plistbo[i] = -1;
 	   }
 	} else
+        if ( !strcasecmp(arg, "clearscreenafterid3" ) )
+	  if ( !strcasecmp(value, "true") ) config->skin.piclr = TRUE; else
+	config->skin.piclr = FALSE; else
 	if ( !strcasecmp(arg, "mainvisible") )
 	  config->skin.mainatpl = atoi(value); else
 	if ( !strcasecmp(arg, "id3editvisible") )

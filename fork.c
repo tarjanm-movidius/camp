@@ -21,11 +21,12 @@
 # include <gpm.h>
 #endif
 
-extern char quiet, quitmode, checkkill, currloc;
+extern char quiet, quitmode, checkkill, currloc, playsong;
 extern unsigned int slavepid, filenumber;
 extern struct playlistent *playlist;
-extern struct oneplaylistent currentfile;
+extern struct currentplaylistent currentfile;
 extern struct configstruct config;
+extern char use_lircd;
 
 void disappear(void) {
 FILE *fd;
@@ -57,7 +58,14 @@ int  i;
       quiet = TRUE;
       quitmode = 2;
       while ( !kill(slavepid, 0) ) {
+
+	 if ( config.mpg123 )
+	   mpg123_control(NULL);
+
 	 usleep( config.rctime );
+#ifdef LIRCD
+         if ( use_lircd ) dolircd(0);
+#endif 
 #ifdef RC_ENABLED
 	 if ( config.userc ) checkrc();
 #endif 
@@ -65,6 +73,10 @@ int  i;
       playnext(-1);
       
       while ( TRUE ) {
+
+	 if ( config.mpg123 )
+	   mpg123_control(NULL);
+
 	 usleep( config.rctime );
 #ifdef RC_ENABLED
 	 if ( config.userc ) checkrc();
@@ -74,7 +86,7 @@ int  i;
 
     default:
       quitmode = 1;
-      exit(0);     
+      exit();     
       
   }
 }
@@ -92,14 +104,14 @@ struct oneplaylistent getpl;
       
    sprintf(buf, "%s/data.camp", TMP_DIR);
    fd = fopen(buf, "w");
-   fprintf(fd, "%d\n%d\n", slavepid, filenumber);
+   fprintf(fd, "%d\n%d\n%d\n", slavepid, filenumber, currentfile.frame);
    fclose(fd);
    
    updatesongtime('w');
    
    if ( quitmode == 0 ) quitmode = 3; else
      quitmode = 2;
-   exit(0);
+   exit();
    
 }
 
@@ -115,7 +127,7 @@ struct stat statbuf;
    fd = fopen(PID_FILE, "r");
    if ( !fd ) {
       printf("No session to steal!\n");
-      exit(0);
+      exit();
    }
    fscanf(fd, "%d\n", &oldpid);
    fclose(fd);
@@ -146,9 +158,10 @@ struct stat statbuf;
    memcpy((char*)&entry, getutline((struct utmp*)&entry), sizeof(struct utmp));
    endutent();
    
-   if ( ! entry.ut_host[0] ) strcpy(entry.ut_host, "local console");
-   
-   fprintf(fd, "%s at %s from %s.\n", entry.ut_user, entry.ut_line, entry.ut_host);
+   if ( ! entry.ut_host[0] ) 
+    fprintf(fd, "%s at %s from local console.\n", entry.ut_user, entry.ut_line); else
+     fprintf(fd, "%s at %s from %s.\n", entry.ut_user, entry.ut_line, entry.ut_host);
+
 #else
    fprintf(fd, "%s at %s.\n", getenv("USER"), ttyname(0));
 #endif
@@ -161,9 +174,9 @@ struct stat statbuf;
    fd = fopen(buf, "r");
    if ( !fd ) {
       printf("No data found, can't steal!\n");
-      exit(0);
+      exit();
    }
-   fscanf(fd, "%d\n%d\n", &slavepid, &filenumber);
+   fscanf(fd, "%d\n%d\n%d\n", &slavepid, &filenumber, &currentfile.frame);
    fclose(fd);
    sprintf(buf, "%s/data.camp", TMP_DIR);
    unlink(buf);
@@ -175,6 +188,13 @@ struct stat statbuf;
       unlink(buf);
       printf("done!\nplayer pid: %d, playing \"%s\" (%d)\n", slavepid, playlist->showname, filenumber+1);
       memcpy((void*)&currentfile, playlist, sizeof(struct oneplaylistent));
+      if ( config.mpg123 ) {
+	 playsong = TRUE;
+	 sprintf(buf, "LOAD %s\n", currentfile.name);
+	 (void*)mpg123_control(buf); 
+	 sprintf(buf, "JUMP +%d\n", currentfile.frame);
+	 (void*)mpg123_control(buf); 
+      }
    } else printf("done!\n");
       
    updatesongtime('r');
@@ -190,7 +210,7 @@ char buf[256];
    fd = fopen(PID_FILE, "r");
    if ( !fd ) {
       printf("No session to kill!\n");
-      exit(0);
+      exit();
    }
    fscanf(fd, "%d\n", &oldpid);
    fclose(fd);
@@ -202,7 +222,7 @@ char buf[256];
    fd = fopen(buf, "r");
    if ( !fd ) {
       printf("No session to kill!\n");
-      exit(0);
+      exit();
    }
    fscanf(fd, "%d\n", &oldpid);
    fclose(fd);
@@ -215,5 +235,5 @@ char buf[256];
    sprintf(buf, "%s/time.camp", TMP_DIR);
    unlink(buf);
    printf("done!\n");
-   exit(0);
+   exit();
 }

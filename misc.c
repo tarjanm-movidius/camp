@@ -22,6 +22,7 @@ extern struct lirc_config *lircd_config;
 #endif
 
 extern char **environ;
+extern struct configstruct config;
 
 int ansi_strlen(char *string) {
 int i=0, len=0; /* returns length of a string with ansi codes stripped off */
@@ -42,6 +43,7 @@ unsigned char maxpos=0, pos;
 static char buf[256];
 char buf2[256];
 char *ir, *c;
+struct timeval counter;
    
    if ( preval != NULL ) {
       strcpy(buf, preval);
@@ -52,13 +54,22 @@ char *ir, *c;
    printf("\e[%d;%dH%s", y, x, buf); fflush(stdout);
      
    do {
+
+      if ( config.mpg123 )
+	mpg123_control(NULL);
+      
+#ifdef RC_ENABLED
+      if ( config.userc ) checkrc();
+#endif
+      counter.tv_usec = config.rctime;
+      counter.tv_sec  = 0;
       ch = 0;
       FD_ZERO(&fds);
       FD_SET(fileno(stdin), &fds);
 #ifdef LIRCD
       if ( use_lircd ) {
 	 FD_SET(lirc_lircd, &fds);
-	 if ( select(lirc_lircd+1, &fds, NULL, NULL, NULL) != -1 )
+	 if ( select(lirc_lircd+1, &fds, NULL, NULL, &counter) != -1 )
 	   if ( FD_ISSET(lirc_lircd, &fds) ) dolircd(0); else
 	 
 	 /*{ // Hmm, this was the old code to wander around in the fields with the remote-control, ripped it out :)
@@ -74,10 +85,10 @@ char *ir, *c;
 	   
 	   if FD_ISSET(fileno(stdin), &fds) ch = getchar();
       } else 
-	if ( select(fileno(stdin)+1, &fds, NULL, NULL, NULL) != -1 )
+	if ( select(fileno(stdin)+1, &fds, NULL, NULL, &counter) != -1 )
 	  if FD_ISSET(fileno(stdin), &fds) ch = getchar();
 #else
-      if ( select(fileno(stdin)+1, &fds, NULL, NULL, NULL) != -1 )
+      if ( select(fileno(stdin)+1, &fds, NULL, NULL, &counter) != -1 )
 	if FD_ISSET(fileno(stdin), &fds) ch = getchar();
 #endif
       if ( ch == 3 && canexit() ) exit(0); /* ^C */
@@ -170,6 +181,10 @@ struct timeval starttime, currenttime;
    
    tmp[0] = 0;
    while ( ch != 13 ) {      
+
+      if ( config.mpg123 )
+	        mpg123_control(NULL);
+      
       gettimeofday(&currenttime, NULL);
       if ( currenttime.tv_sec == starttime.tv_sec+10 ) {
 	 text[0] = 0;

@@ -63,12 +63,15 @@ fd_set fds;
       return;
    }
    if ( config.skin.fclr ) printf("\e[0m\e[2J");
-   printf("\e[1;1H%s", config.skin.filelist);
+   printf("\e[0m\e[1;1H%s", config.skin.filelist);
    fl_showents(0, filelist);
    fl_updatebuttons(0);
    
    while ( TRUE ) {
-
+      
+      if ( config.mpg123 )
+	mpg123_control(NULL);
+      
       if ( checkkill && kill(slavepid, 0) == -1 ) {
          checkkill = FALSE;
          playnext(-1);

@@ -1,5 +1,4 @@
 #include <sys/types.h>
-
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -43,7 +42,7 @@ struct timeval counter;
    currloc = CAMP_PL;
    pl_buttonpos = config.skin.psb;
    if ( config.skin.pclr ) printf("\e[0m\e[2J");
-   printf("\e[1;1H%s", config.skin.playlist);
+   printf("\e[0m\e[1;1H%s", config.skin.playlist);
    if ( config.skin.mainatpl ) {
       updatedata();
       updatesongtime('f');
@@ -65,6 +64,9 @@ struct timeval counter;
    
    while ( TRUE ) {
 
+      if ( config.mpg123 )
+	mpg123_control(NULL);
+            
       if ( checkkill && kill(slavepid, 0) == -1 ) {      
 	 checkkill = FALSE;
 	 playnext(-1);
@@ -116,6 +118,10 @@ struct timeval counter;
 		 printf("\e[0m\e[2J\e[1;1H%s", config.skin.playlist);
 		    pl_showents(pl_current-pl_screenmark, *playlist,filenumber);
 		    pl_updatebuttons(0);
+		 if ( config.skin.mainatpl ) {
+		    updatedata();
+		    updatesongtime('f');
+		 }		 
 	      } else				    
 	      if ( ch == 13 ) {
 		 pl_dofunction(playlist, filenumber, -1);
@@ -240,7 +246,7 @@ int i;
       tmp=strtok(c," ");
       while (tmp != NULL) {
 	 
-	 if ( !strcasestr(pl->showname, (char*)&tmp) ) {
+	 if ( !strcasestr(pl->showname, tmp) ) {
 	    strcpy(c,buftmp);
 	    free(buftmp);
 	    return 0;
@@ -395,7 +401,11 @@ int length;
       getfiles(playlist);
       currloc = length;
       if ( config.skin.fclr ) printf("\e[0m\e[2J");
-      printf("\e[1;1H%s", config.skin.playlist);
+      printf("\e[0m\e[1;1H%s", config.skin.playlist);
+      if ( config.skin.mainatpl ) {
+	 updatedata();
+	 updatesongtime('f');
+      }
       pl_maxpos = pl_count(*playlist)-1;
       if ( *playlist == NULL )
 	pl_maxpos = pl_screenmark = pl_current = 0; else
@@ -471,8 +481,9 @@ int length;
       clear_lirc();
 #endif
       findit(NULL,0);
+      if ( config.skin.miclr ) printf("\e[0m\e[2J");
       if ( config.skin.pclr ) printf("\e[0m\e[2J");
-      printf("\e[1;1H%s", config.skin.playlist);
+      printf("\e[0m\e[1;1H%s", config.skin.playlist);
       pl_showents(pl_current-pl_screenmark, *playlist,filenumber);
       pl_updatebuttons(0);
       return;
@@ -610,6 +621,9 @@ int    cspos, j, lastdot;
 struct stat statf;
 size_t filesize;
    
+   if ( config.mpg123 )
+     mpg123_control(NULL);
+   
    if ( !exist(filename) && strncasecmp(filename, "http://", 7) ) return;
    buf = (char*)malloc(300);
    
@@ -638,11 +652,12 @@ size_t filesize;
      } else 
      if ( !strncasecmp(filename, "http://", 7) ) {
 	strncpy( (*playlist)->showname, filename, 100 );
+	(*playlist)->showname[99] = 0;
      } else
      { /* no id3/empty id3 */
 	strncpy(buf, filename, 256);
 	lastdot=0; cspos=0;
-	for(j=0;j<strlen(buf);j++) {
+	for(j=0;(j<strlen(buf) && cspos<99) ;j++) {
 #ifdef NICE_NAMES
 	   if ( buf[j] == '.' ) lastdot = cspos;
 	   if ( buf[j] == '.' || buf[j] == '_' ) (*playlist)->showname[cspos] = 32; else
@@ -658,7 +673,7 @@ size_t filesize;
 	   if ( buf[j] == '/' ) cspos = 0; else
 	     cspos++;
 	}
-	if ( lastdot ) (*playlist)->showname[lastdot] = 0; /* rip off extension */
+	if ( lastdot && cspos != 99) (*playlist)->showname[lastdot] = 0; /* rip off extension */
      }
    
    if ( bitrate ) {
@@ -700,6 +715,7 @@ unsigned int playlistents = pl_count(*playlist);
    sortedlist->number = 0;
    
    for(i=0;i<playlistents;i++) {
+      if ( config.mpg123 ) (void*)mpg123_control(NULL); 
       pl_seek(0, playlist);
       temp = *playlist;
       while ( (*playlist)->next != NULL && *playlist != NULL ) {

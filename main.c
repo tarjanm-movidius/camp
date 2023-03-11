@@ -58,12 +58,12 @@ const char keys[] = { '1', '4', '5', '6' };
 
 extern int pl_current, pl_screenmark, pl_maxpos;
 
-char playsong=TRUE, quiet=FALSE, pausesong=FALSE, force=FALSE, checkkill=FALSE, quitmode=0, buttonpos, muted=FALSE, use_lircd=TRUE, alwayslocked=FALSE;
+char playsong=FALSE, quiet=FALSE, pausesong=FALSE, force=FALSE, checkkill=FALSE, quitmode=0, buttonpos, muted=FALSE, use_lircd=TRUE, alwayslocked=FALSE;
 char nosteal = FALSE;
 char currloc = CAMP_MAIN;/* We are here */
 char passwd[15];
 struct playlistent *playlist = NULL;
-struct oneplaylistent currentfile;
+struct currentplaylistent currentfile;
 unsigned int slavepid=0, playlistents=0, filenumber=0;
 int selval;
 struct configstruct config;
@@ -76,6 +76,8 @@ char *progname = "camp";
 extern int lirc_lircd;
 struct lirc_config *lircd_config = NULL;
 #endif
+
+
 
 int main(int argc, char *argv[]) {
 unsigned int j;
@@ -94,10 +96,10 @@ int left, right;
 
    if ( config.showtip ) if ( !showtip() ) config.showtip = FALSE;
 
-//   signal(SIGTERM, sighandler);
+   signal(SIGTERM, sighandler);
 //   signal(SIGTERM, SIG_IGN);
    signal(SIGUSR2, sighandler);
-//   signal(SIGSEGV, sighandler);
+   signal(SIGSEGV, sighandler);
    signal(SIGHUP,  sighandler);
    
 #ifdef USE_GPM_MOUSE   
@@ -133,7 +135,7 @@ int left, right;
 	      i++;
 	      unloadskin(&config.skin);
 	      loadskin(argv[i], &config);	      
-	     } else
+	   } else
 	   if ( !strcasecmp(argv[i], "-b") || !strcasecmp(argv[i], "--background") ) {
 	      quitmode = 1; 
 	      quiet = TRUE;
@@ -206,11 +208,19 @@ int left, right;
       }
    }
    
-   if ( !playlist )
-     playsong = FALSE; else
-     if ( config.skin.platmain )
-       pl_maxpos = pl_count(playlist)-1;
-	     
+   if ( !playlist && config.defpl ) {
+      sprintf(buf, "%s/.camp/default.pl", getenv("HOME"));
+      if ( exist(buf)) {
+	 loadplaylist(&playlist, buf, FALSE);
+	 playsong = TRUE;
+      }
+   } else if ( playlist ) playsong = TRUE;
+   
+   
+   
+   if ( config.skin.platmain )
+     pl_maxpos = pl_count(playlist)-1;
+   
    
 #ifdef RC_ENABLED
    if ( config.userc ) {
@@ -244,29 +254,31 @@ int left, right;
 #endif
 
    if ( config.mpg123 ) {
-      (void*)mpg123_control(NULL);
+      playsong = TRUE;
+//      (void*)mpg123_control(NULL);
       printf("Awaiting mpg123 to become ready.."); fflush(stdout);
-//      (void*)mpg123_control("#@R MPG123");
       (void*)mpg123_control("#@R MPG123");
 //      sleep(2);
 //      mpg123_control("load /Mp3/12. Sy & Demo - Tears Run Cold.mp3\n");
       printf("Rock 'n' roll!\n");      
    }
    
-   if ( config.showtip ) sleep(5); else usleep(250000);
+   if ( config.showtip ) sleep(4); else usleep(250000);
    myinit();
 
    atexit(myexit);
    
    if ( playlist && playsong ) {
       playlistents = pl_count(playlist);
-      if ( !slavepid || config.mpg123 ) {
+      if ( !slavepid || ( config.mpg123 && !checkkill ) ) {
 	 if ( config.playmode == 2 ) filenumber = myrand(playlistents);
 	 call_player(pl_seek(filenumber, &playlist));
       } else {
 	 signal(SIGCHLD, playnext);
       }       
    }
+   
+   if ( config.mpg123 ) checkkill = FALSE;
    
    if ( quitmode == 1 ) disappear();
 
@@ -310,6 +322,7 @@ int left, right;
 
       if ( config.mpg123 )
 	mpg123_control(NULL);
+
       updatesongtime('u');
       
       if ( checkkill && kill(slavepid, 0) == -1 ) {
@@ -352,18 +365,17 @@ int left, right;
 		 updatedata();
 		 updatesongtime('f');
 		 updatebuttons(0);
-		 if ( config.skin.platmain ) {
-		    pl_showents(pl_current-pl_screenmark, playlist, &filenumber);
-		 }
+		 if ( config.skin.platmain ) pl_showents(pl_current-pl_screenmark, playlist, &filenumber);
 	      } else
 	      if (ch == 13 && dofunction(-1)) call_player(pl_seek(filenumber, &playlist)); else
 	      for(i=MINBUTTON;i<(MAXBUTTON+1);i++)
 		if ( ch == config.skin.mh[i] ) {
-		     if ( config.skin.ma[i] != NULL && config.skin.mi[i] != NULL ) {
+		     if ( config.skin.ma[i] && config.skin.mi[i] ) {
 			buttonpos = i;
 			updatebuttons(0);
 		     }
 		     if ( dofunction(i) ) call_player(pl_seek(filenumber, &playlist));
+		   break;
 		  }
 	 } /* FD_ISSET */
       } /* select */
@@ -483,8 +495,14 @@ char buf[100], buf2[100];
    
    signal(SIGCHLD, SIG_IGN);
    
-   if ( quitmode == 0 )  /* 0 = normal, 1 = forking, 2 = "forked-steal" quit  3 = "steal" quit*/
+   if ( quitmode == 0 ) {  /* 0 = normal, 1 = forking, 2 = "forked-steal" quit  3 = "steal" quit*/
       if ( playsong || config.mpg123 ) killslave();
+      if ( config.defpl) {
+	 sprintf(buf, "%s/.camp/default.pl", getenv("HOME"));
+	 saveplaylist(playlist, buf, TRUE);
+      }
+
+   }
    
    if ( alwayslocked && quitmode != 2 ) { 
       i = open("/dev/console",O_WRONLY);	       
@@ -500,6 +518,7 @@ char buf[100], buf2[100];
    /* clean up some shit */
    unloadskin(&config.skin);
    for(i=0;i<15;i++) if (config.playerargv[i]) free(config.playerargv[i]);
+
    if ( playlist != NULL ) clearplaylist(&playlist);
 
 #ifdef HAVE_TERMIOS_H
@@ -510,7 +529,7 @@ char buf[100], buf2[100];
 
    if ( quitmode != 2 && currloc != CAMP_UNDEF ) {
 	printf("\e[0m\e[2J\e[1;1H%s", chromansi);
-	printf("\e[0mConsole Ansi Mpeg3 Player interface %s.%d by inm (inm@m1crosoft.com)\n", CAMP_VERSION, BUILD);
+	printf("\e[0mConsole Ansi Mpeg3 Player interface %s.%d by inm (inm@sector7.nu)\n", CAMP_VERSION, BUILD);
 	printf("\e[?25h");
      }
    
@@ -526,7 +545,9 @@ char buf[100], buf2[100];
 	unlink(buf);
      } else printf("Session stolen by unknown!\n");
     break;
-    default: if ( !force ) unlink(PID_FILE); 
+    default: 
+      if ( !force ) unlink(PID_FILE); 
+      break;
    }
 }
 
@@ -721,7 +742,10 @@ FILE *fd;
       fflush(stdout);
       break;
   
-    case 7: /* rew (reserved) */
+    case 7: /* rew (mpg123 mode only) */
+      if ( config.mpg123 )
+	(void*)mpg123_control("JUMP -150\n");
+        updatesongtime('u');
       break;
       
     case 8: /* pause */
@@ -737,7 +761,10 @@ FILE *fd;
 	}
       return 0;
       
-    case 9: /* ff (reserved) */
+    case 9: /* ff (mpg123 mode only) */
+      if ( config.mpg123 )
+	(void*)mpg123_control("JUMP +150\n");
+        updatesongtime('u');
       break;
 
     case 10: /* jump */
@@ -811,6 +838,7 @@ FILE *fd;
       printf("\e[%sm\e[%d;%dH%s", config.skin.mtextc, config.skin.mtexty, config.skin.mtextx, xys(config.skin.mtextw, ' '));
       updatebuttons(0);
       updatedata();
+      updatesongtime('f');
       printf("\e[?25l"); /* cursor off */
       break;
       
@@ -825,8 +853,10 @@ FILE *fd;
       quiet = FALSE;
       if ( config.skin.miclr ) printf("\e[0m\e[2J");
       printf("\e[1;1H%s", config.skin.main);
-      updatedata();
+      if ( config.skin.platmain ) pl_showents(pl_current-pl_screenmark, playlist, &filenumber);
       updatebuttons(0);
+      updatedata();
+      updatesongtime('f');
       break;
 
     case 13: /* fork() */
@@ -915,7 +945,10 @@ int ret;
       if ( !strcasecmp(c, "skip-") )    if ( dofunction(0) ) call_player(pl_seek(filenumber, &playlist)); 
       if ( !strcasecmp(c, "play") )     if ( dofunction(1) ) call_player(pl_seek(filenumber, &playlist));
       if ( !strcasecmp(c, "skip+") )    if ( dofunction(2) ) call_player(pl_seek(filenumber, &playlist));
+
       if ( !strcasecmp(c, "stop") )     (void*)dofunction(3); 
+      if ( !strcasecmp(c, "seek-") )     (void*)dofunction(7); 
+      if ( !strcasecmp(c, "seek+") )     (void*)dofunction(9);
       
       if ( atmain ) {
 	 if ( !strcasecmp(c, "playmode") ) (void*)dofunction(4); 
@@ -975,11 +1008,11 @@ int l, r;
    if ( currentfile.showname[0] != 0 ) {
       if ( config.skin.sampleratey + config.skin.sampleratex > 0 ) printf("\e[%sm\e[%d;%dH%5d", config.skin.sampleratec, config.skin.sampleratey, config.skin.sampleratex, currentfile.samplerate);
       if ( config.skin.bitratey + config.skin.bitratex > 0 ) printf("\e[%sm\e[%d;%dH%3d", config.skin.bitratec, config.skin.bitratey, config.skin.bitratex, currentfile.bitrate);
-      if ( config.skin.stereoy + config.skin.stereox > 0 ) printf("\e[%sm\e[%d;%dH%s", config.skin.stereoc, config.skin.stereoy, config.skin.stereox, config.skin.stereotext[currentfile.mode]);
+      if ( config.skin.stereoy + config.skin.stereox > 0 ) printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s", config.skin.stereoc, config.skin.stereoy, config.skin.stereox, xys(config.skin.stereow, ' '), config.skin.stereoy, config.skin.stereox, config.skin.stereotext[currentfile.mode]);
       if ( config.skin.songnumbery + config.skin.songnumberx > 0 ) printf("\e[%sm\e[%d;%dH%4d\e[%d;%dH%-4d", config.skin.songnumberc, config.skin.songnumbery, config.skin.songnumberx, filenumber+1, config.skin.songnumbery, config.skin.songnumberx+5, playlistents);
    }
    updatesongtime('u');
-   printf("\e[%sm\e[%d;%dH%s", config.skin.modetextc, config.skin.modetexty, config.skin.modetextx, config.skin.modetext[config.playmode]);
+   printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s", config.skin.modetextc, config.skin.modetexty, config.skin.modetextx, xys(config.skin.modetextw, ' '), config.skin.modetexty, config.skin.modetextx, config.skin.modetext[config.playmode]);
 #ifdef HAVE_SYS_SOUNDCARD_H
    set_volume(config.voldev, 0);
 #else
@@ -1008,7 +1041,15 @@ char buf[256], scrl = 1;
       
     case 'u':
     case 'f':
-      gettimeofday(&currenttime, NULL);
+      if ( config.mpg123 ) { /* dirty fix */
+	 if ( playsong ) {
+	 currentfile.length = currentfile.played + currentfile.left;
+	 currenttime.tv_sec = currentfile.played;
+	 } else currenttime.tv_sec = currentfile.played;	 
+	 starttime.tv_sec   = 0;
+      } else
+	gettimeofday(&currenttime, NULL);
+      
       if ( ch == 'u' && oldcurrenttime.tv_sec == currenttime.tv_sec ) return;
       oldcurrenttime.tv_sec = currenttime.tv_sec;
       
@@ -1040,13 +1081,17 @@ char buf[256], scrl = 1;
       fflush(stdout);
       break;
    
-    case 'e':
-      gettimeofday(&pause_end, NULL);
-      starttime.tv_sec += pause_end.tv_sec - pause_start.tv_sec;
+    case 'e': /* pause end */
+      if ( !config.mpg123 ) {
+	 gettimeofday(&pause_end, NULL);
+	 starttime.tv_sec += pause_end.tv_sec - pause_start.tv_sec;
+      }
       break;
       
-    case 'p':
-      gettimeofday(&pause_start, NULL);
+    case 'p': /* pause start */
+      if ( !config.mpg123 ) {
+	 gettimeofday(&pause_start, NULL);
+      }
       break;
       
     case 'w':

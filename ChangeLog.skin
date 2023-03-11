@@ -1,5 +1,8 @@
 CAMP Skin Changelog
 
+2002-03-20: v1.5.3455
+ Added seek buttons for rew/ff functionality in mpg123 mode.
+
 2002-02-24: v1.5.3284
  Added a textbar for the search-text to the playlist window.
  Added new buttons "+" and "-" for volume control to the main window.

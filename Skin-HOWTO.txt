@@ -1,12 +1,24 @@
+Skin version 1.03 additions:
+
+MAIN screen:
+------------
+Two new buttons:
+A button to seek backward in songs (New variables: seekbx, seekby, seekbw, seekbi,
+ seekba, seekbu, seekbd, seekbl, seekbr, seekbh)
+A button to seek forward in songs (New variables: seekfx, seekfy, seekfw, seekfi,
+ seekfa, seekfu, seekfd, seekfl, seekfr, seekfh)
+
+
+
 Skin version 1.02 additions:
 
 MAIN screen:
 ------------
 Two new buttons:
 A button to lower the volume (New variables: vol-x, vol-y, vol-w, vol-i,
- vol-a, vol-u, vol-d, vol-l, vol-r)
+ vol-a, vol-u, vol-d, vol-l, vol-r, vol-h)
 A button to raise the volume (New variables: vol+x, vol+y, vol+w, vol+i,
- vol+a, vol+u, vol+d, vol+l, vol+r)
+ vol+a, vol+u, vol+d, vol+l, vol+r, vol+h)
 
 PLAYLIST editor:
 ----------------

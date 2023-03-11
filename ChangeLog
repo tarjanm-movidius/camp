@@ -5,12 +5,20 @@ CAMP Changelog
 - Remove
 ! Known bug
 
-2002-02-18: v1.5-beta3.32
+2002-03-20: v1.5.3.3544
+* Fixed a stupid bug wich fucked up the playlist-search (my bad)
+* Fixed a bug (segfault) with filenames w/o id3, whith a lenght >100 chars
+* Fixed IR (lircd) remote support in background mode.
+* Fixed lots of small segfault bugs.
++ mpg123 jukebox mode now added and complete.
++ Added some more skin stuff, once again, and a new skin 'leetamp'
+
+2002-02-24: v1.5-beta3.3295
 ! mpg123-jukebox mode is still non-functional.
 * camp didn't report another running camp, if you didn't have access to
   the process running it.
 * Upgraded to use LIRCD 0.6.5 headers.
-* Fixed a few bugs in the patches and added some skin-stuff for them.
+* Fixed a few bugs in the patches and added some skin-stuff for the patches.
 * Merged Andoni Zubimendi's patches against 1.4.2835 as follows:
 
  2001-03-15:

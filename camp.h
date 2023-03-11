@@ -80,6 +80,18 @@ struct oneplaylistent {
    unsigned long length;
 };
 
+struct currentplaylistent {
+   char name[256];
+   char showname[100];
+   unsigned int samplerate;
+   unsigned int bitrate;
+   unsigned char mode;
+   unsigned long length;
+   unsigned long played;
+   unsigned long left;
+   unsigned long frame;
+};
+
 struct ID3 {
    char tag[3];
    char songname[30];
@@ -99,8 +111,8 @@ struct usableID3 {
 };
 
 struct skinconfig {
-   char mpclr, miclr, pclr, fclr, iclr;
-   char mx[MAXBUTTON+1], my[MAXBUTTON+1], mw[MAXBUTTON+1], *ma[MAXBUTTON+1], *mi[MAXBUTTON], mh[MAXBUTTON+1];
+   char mpclr, miclr, piclr, pclr, fclr, iclr;
+   char mx[MAXBUTTON+1], my[MAXBUTTON+1], mw[MAXBUTTON+1], *ma[MAXBUTTON+1], *mi[MAXBUTTON+1], mh[MAXBUTTON+1];
    char mju[MAXBUTTON+1], mjd[MAXBUTTON+1], mjl[MAXBUTTON+1], mjr[MAXBUTTON+1];
    char px[PL_MAXBUTTON+1], py[PL_MAXBUTTON+1], pw[PL_MAXBUTTON+1], *pa[PL_MAXBUTTON+1], *pi[PL_MAXBUTTON+1];
    char fx[FL_MAXBUTTON+1], fy[FL_MAXBUTTON+1], fw[FL_MAXBUTTON+1], *fa[FL_MAXBUTTON+1], *fi[FL_MAXBUTTON+1];
@@ -117,7 +129,7 @@ struct skinconfig {
    char mouseexpand, pmouseexpand, fmouseexpand;
    char standardrows;
    char songnamey, songnamex, modetexty, modetextx, modetextw, bitratex, bitratey;
-   char timey, timex, stereox, stereoy, songnamew, sampleratex, sampleratey;
+   char timey, timex, stereox, stereoy, stereow, songnamew, sampleratex, sampleratey;
    char songnumberx, songnumbery, volx, voly;
    char platmain, id3atmain;
    char mainatpl, id3atpl;
@@ -130,7 +142,7 @@ struct skinconfig {
 };
 
 struct rcconfig {
-   unsigned char play, pause, stop, skipb, skipf, volinc, voldec;
+   unsigned char play, pause, stop, skipb, skipf, seekb, seekf, volinc, voldec;
    unsigned int port;
 };
 
@@ -163,6 +175,7 @@ struct configstruct {
    char showtip;
    char forkseg;
    char mpg123;
+   char defpl;
    int playerprio;
    unsigned int rctime;
    unsigned int bufferdelay;
