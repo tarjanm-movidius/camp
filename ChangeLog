@@ -6,12 +6,22 @@ CAMP Changelog
 ! Known bug
 
 
-1999-04-xx: v1.3.xxxx
+1999-10-23: v1.4.2835
 
-* Input fields (save playlist, id3 editor) supports arrow moving.
-* Fixed a remote-control bug.
+* IR remote controls supported, via LIRCD.
+* Garbage removed when dumping id3 tags to stdout ( -d )
+* Moving with cursors now possible in id3-tag editor and save playlist field.
+* Nicer handling of filenames without ID3 tags.
+* Several major and minor design flaws fixed.
+* Remote Control support was fucked up, fixed. (I finally made myself a remote)
+* Camp will compile & run under FreeBSD/SunOS again, but without mouse/remote support
+* Glibc 2.1's ( 2.0 too? ) fgets() doesn't replace newline with NULL as libc5
+  does, therefore, text-playlist couldn't be loaded. Fixed.
++ Added support for gzip-compressing playlists via libz. (500kb -> 50kb)
++ Added support for scrolling long names at mainscreen.
+! If you play like 40000+ songs, in the same session, camp will segfault.
 
-1999-04-13: v1.3-beta3/final.2xxx
+1999-04-13: v1.3-beta3/final.2410
 
 * Fixed the trouble from 1373 (and all earlier), wich didn't load new songs
   when stealing, and being elsewhere than the mainscreen.

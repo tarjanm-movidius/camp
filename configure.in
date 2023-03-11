@@ -12,8 +12,19 @@ dnl Checks for programs.
 AC_PROG_CC
 #AC_PROG_INSTALL
 
-AC_CHECK_FUNCS(ioperm, [
-AC_MSG_CHECKING(whether to compile remote-control code)
+AC_MSG_CHECKING(whether to compile LIRCD remote control code)
+AC_ARG_WITH(lircd,[  --without-lircd         Don't compile code for using LIRC remote controls])
+
+if test "$with_lircd" != no; then
+ AC_MSG_RESULT(yes)
+ DEFINES="$DEFINES -DLIRCD=\\\"/dev/lircd\\\" -DLIRCCFGFILE=\\\".camp/lircrc\\\""
+ OBJS="$OBJS lirc_client.o"
+else
+ AC_MSG_RESULT(no)
+fi
+
+AC_CHECK_FUNCS(ioperm,[
+AC_MSG_CHECKING(whether to compile LPT remote control code)
 AC_ARG_WITH(rc,[  --without-rc            Don't compile code for using LPT remote control])
 
 if test "$with_rc" != no; then
@@ -26,7 +37,6 @@ fi
 ],)
 
 dnl Checks for libraries.
-
 
 AC_MSG_CHECKING(whether to compile with gpm if available)
 AC_ARG_WITH(gpm,[  --without-gpm           Don't compile with gpm even if found])
@@ -47,10 +57,11 @@ if test "$with_gpm" != no; then
    LIBS=$oldLIBS
   ])
   ])
-
 else
  AC_MSG_RESULT(no)
 fi
+
+AC_CHECK_LIB(z, gzopen)
 
 AC_CHECK_HEADERS(termios.h,,[
  AC_CHECK_LIB(ncurses,main,[

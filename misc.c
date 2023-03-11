@@ -6,8 +6,18 @@
 #include <sys/time.h>
 #include "camp.h"
 
+#ifdef HAVE_TERMIOS_H
+# include <fcntl.h>
+#endif
+
 #ifdef USE_GPM_MOUSE
 #include <gpm.h>
+#endif
+
+#ifdef LIRCD
+#include "lirc_client.h"
+extern int use_lircd, lirc_lircd; 
+extern struct lirc_config *lircd_config;
 #endif
 
 extern char **environ;
@@ -25,11 +35,12 @@ int i=0, len=0; /* returns length of a string with ansi codes stripped off */
 
 
 char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitchar, int *modified) {
-fd_set stdinfds;
+fd_set fds;
 int ch;
 unsigned char maxpos=0, pos;
 static char buf[256];
 char *buf2 = (char*)malloc(256);
+char *ir, *c;
    
    if ( preval != NULL ) {
       strcpy(buf, preval);
@@ -40,78 +51,103 @@ char *buf2 = (char*)malloc(256);
    printf("\e[%d;%dH%s", y, x, buf); fflush(stdout);
      
    do {
-      FD_ZERO(&stdinfds);
-      FD_SET(0, &stdinfds);
-      select(1, &stdinfds, NULL, NULL, NULL);
-      ch = getchar();
+      ch = 0;
+      FD_ZERO(&fds);
+      FD_SET(0, &fds);
+#ifdef LIRCD
+      if ( use_lircd ) {
+	 FD_SET(lirc_lircd, &fds);      
+	 select(lirc_lircd+1, &fds, NULL, NULL, NULL);
+	 if ( FD_ISSET(lirc_lircd, &fds) ) {
+	    ir = lirc_nextir();	    
+	    while ( ir && (c=lirc_ir2char(lircd_config,ir)) != NULL )
+	      if ( strlen(c) == 1 ) ch = c[0]; else
+	      if ( !strcasecmp(c, "play") || !strcasecmp(c, "jump") ) ch = 13; else
+	      if ( !strcasecmp(c, "skip-") ) ch = 127; else
+	      if ( !strcasecmp(c, "stop") ) ch = 27;
+	    if ( ir ) free(ir);	    	       
+	 }
+      } else 
+	select(1, &fds, NULL, NULL, NULL);      
+#else
+      select(1, &fds, NULL, NULL, NULL);
+#endif
+      if FD_ISSET(0, &fds) ch = getchar();
       if ( ch == 3 ) exit(0); /* ^C */
       
-      do {
-	 if ( ch == 1 ) { /* ^A */
-	    pos = 0;
-	    printf("\e[%d;%dH", y, x+pos);
-	 } else
-	   if ( ch == 5 ) { /* ^E */
-	      pos = maxpos;
-	      printf("\e[%d;%dH", y, x+pos);
+      if ( ch == 1 ) { /* ^A */
+	 pos = 0;
+	 printf("\e[%d;%dH", y, x+pos);
+      } else
+	if ( ch == 5 ) { /* ^E */
+	   pos = maxpos;
+	   printf("\e[%d;%dH", y, x+pos);
+	} else
+	if ( ch > 31 && maxpos < maxlen && ch != 127 ) { /* regulars */
+	   strcpy(buf2, &buf[pos]);
+	   buf[pos] = ch;
+	   strcpy(&buf[pos+1], buf2);
+	   maxpos++;
+	   pos++;
+	   printf("\e[%d;%dH%s\e[%d;%dH", y, x, buf, y, x+pos);
+	   if ( modified != NULL ) *modified = TRUE;
 	   } else
-	   if ( ch > 31 && maxpos < maxlen && ch != 127 ) { /* regulars */
-	      strcpy(buf2, &buf[pos]);
-	      buf[pos] = ch;
-	      strcpy(&buf[pos+1], buf2);
-	      maxpos++;
-	      pos++;
-	      printf("\e[%d;%dH%s\e[%d;%dH", y, x, buf, y, x+pos);
-	      if ( modified != NULL ) *modified = TRUE;
-	   } else
-	   if (ch == 127 && maxpos != 0 && pos != 0 ) { /* backspace */
-	      strcpy(buf2, &buf[pos]);
-	      strcpy(&buf[pos-1], buf2);
-	      maxpos--;
-	      pos--;
-	      printf("\e[%d;%dH%s \e[%d;%dH", y, x, buf, y, x+pos);
-	      if ( modified != NULL ) *modified = TRUE;
-	   } else
-	   if ( ch == 27 ) {
-	      ch = getchar();
-	      if ( ch == '[' ) {
-		 switch( getchar() ) {
-		  case 'A': 
-		    *exitchar = 'A';
-		    free(buf2);
-		    return buf;
-		  case 'B':
-		    *exitchar = 'B';
-		    free(buf2);
-		    return buf;
-		  case 'C':
-		    if ( pos != maxpos ) pos++;
-		    printf("\e[%d;%dH", y, x+pos);
-		    break;
-		  case 'D':
-		    if ( pos != 0 ) pos--;
-		    printf("\e[%d;%dH", y, x+pos);
-		    break;
-		  default: ;
-		 }
-	      } else {
-		 while ( getchar() != -1 ) ;
-		 *exitchar = 27;
+	if (ch == 127 && maxpos != 0 && pos != 0 ) { /* backspace */
+	   strcpy(buf2, &buf[pos]);
+	   strcpy(&buf[pos-1], buf2);
+	   maxpos--;
+	   pos--;
+	   printf("\e[%d;%dH%s \e[%d;%dH", y, x, buf, y, x+pos);
+	   if ( modified != NULL ) *modified = TRUE;
+	} else
+	if ( ch == 27 ) {
+#ifdef HAVE_TERMIOS_H
+	   fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
+#endif
+	   ch = getchar();
+	   if ( ch == '[' ) {
+	      switch( getchar() ) {
+	       case 'A': 
+		 *exitchar = 'A';
 		 free(buf2);
+#ifdef HAVE_TERMIOS_H
+		 fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
+#endif
 		 return buf;
+	       case 'B':
+		 *exitchar = 'B';
+		 free(buf2);
+#ifdef HAVE_TERMIOS_H
+		 fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
+#endif
+		 return buf;
+	       case 'C':
+		 if ( pos != maxpos ) pos++;
+		 printf("\e[%d;%dH", y, x+pos);
+		 break;
+	       case 'D':
+		 if ( pos != 0 ) pos--;
+		 printf("\e[%d;%dH", y, x+pos);
+		 break;
+	       default: ;
 	      }
-	   } else 
-	   if ( ch == 13 ) {
-	      *exitchar = 13;
+	      fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
+	   } else {
+	      while ( getchar() != -1 ) ;
+	      *exitchar = 27;
 	      free(buf2);
+	      fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);	      
 	      return buf;
 	   }
-	 
-	 fflush(stdout);
-	 ch = getchar();
-      } while ( ch != -1 );
+	} else 
+	if ( ch == 13 ) {
+	   *exitchar = 13;
+	   free(buf2);
+	   return buf;
+	}
+      
    } while ( TRUE );
-
+   
 free(buf2);
 return buf;
 }
@@ -184,7 +220,7 @@ fd_set fds;
    tv.tv_usec = usec;
    FD_ZERO(&fds);
    FD_SET(0, &fds);
-   if ( select(1, &fds, NULL, NULL, &tv) ) return TRUE; else
+   if ( select(fileno(stdin)+1, &fds, NULL, NULL, &tv) ) return TRUE; else
      return FALSE;
 }
 
@@ -216,13 +252,15 @@ int i;
    return text;
 }
 
+#ifdef HAVE_TERMIOS_H
 void termios_raw(struct termios *termios_p) {
    termios_p->c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-   termios_p->c_oflag &= ~OPOST;
+   termios_p->c_oflag &= ~(OPOST|CRTSCTS|PARENB);
    termios_p->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
    termios_p->c_cflag &= ~(CSIZE|PARENB);
    termios_p->c_cflag |= CS8;
 }
+#endif
 
 int my_system (char *command) { /* ripped out of system's manpage */
 int pid, status;

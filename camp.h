@@ -91,8 +91,8 @@ struct usableID3 {
 
 struct skinconfig {
    char pclr, fclr, iclr;
-   char mx[14], my[14], mw[14], *ma[14], *mi[14], mh[14];
-   char mju[14], mjd[14], mjl[14], mjr[14];
+   char mx[15], my[15], mw[15], *ma[15], *mi[15], mh[15];
+   char mju[15], mjd[15], mjl[15], mjr[15];
    char px[7], py[7], pw[7], *pa[7], *pi[7];
    char fx[7], fy[7], fw[7], *fa[7], *fi[7];
    char ix[7], iy[7], *modetext[3], *stereotext[2];
@@ -118,14 +118,11 @@ struct skinconfig {
 };
 
 struct rcconfig {
-   unsigned char play, stop, skipb, skipf, volinc, voldec;
+   unsigned char play, pause, stop, skipb, skipf, volinc, voldec;
    unsigned int port;
 };
 
 struct configstruct {
-   char modplayerpath[100];
-   char modplayername[100];
-   char *modplayerargv[15];
    char playerpath[100];
    char playername[100];
    char *playerargv[15];
@@ -143,7 +140,11 @@ struct configstruct {
    char ttymode;
    char volstep;
    char voldev;
+   char mutevol;
    char userc;
+   char compresspl;
+   char scrollsn;
+   char kill2pids;
    int playerprio;
    unsigned int rctime;
    unsigned int bufferdelay;
@@ -157,9 +158,17 @@ void pl_domouse(struct playlistent **playlist, unsigned int *filenumber);
 void my_Gpm_Init(struct Gpm_Connect *mouse);
 void my_Gpm_Purge(void);
 int fl_domouse(struct filelistent **filelist, struct playlistent **playlist);
+void close_gpm(void);
+#endif
+
+#ifdef LIRCD
+void dolircd(char atmain);
+void clear_lirc(void);
+unsigned char pl_dolircd(struct playlistent **playlist, unsigned int *filenumber);
 #endif
 
 /* main.o */
+char *scrollsongname(char action);
 void myexit(void);
 void myinit(void);
 void escfix(void);
@@ -177,7 +186,7 @@ void pl_showents( int startpos, struct playlistent *playlist );
 void pl_updatebuttons(int add);
 void l_status(char *text);
 void clearplaylist(struct playlistent **playlist);
-void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber);
+void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, char forcedbutton);
 void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
 void rplaylist(struct playlistent **playlist, unsigned int *filenumber);
 void sortplaylist(struct playlistent **playlist);
@@ -215,8 +224,6 @@ void call_player(struct playlistent *pl);
 void slave(char *filename);
 void killslave(void);
 void playnext(int);
-int modcheck(char *name);
-void mod_slave( char *filename );
 
 /* cconfig.o */
 struct configstruct getconfig(char *configfile);
@@ -233,9 +240,11 @@ char *xys(unsigned char number, char ch);
 char *lowercases(char *str);
 void lowcases( char *strng );
 void readpass(char *text, int len);
-void termios_raw(struct termios *termios_p);
 unsigned int  myrand(double maxval);
 unsigned char mykbhit(unsigned int sec, unsigned long usec);
+#ifdef HAVE_TERMIOS_H
+void termios_raw(struct termios *termios_p);
+#endif
 
 /* rc.o */
 unsigned char rcpressed(void);

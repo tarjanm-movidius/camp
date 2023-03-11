@@ -1,0 +1,93 @@
+Skin version 1.01 additions:
+
+MAIN screen:
+------------
+
+One new button:
+a button to mute the volume
+
+One new text field:
+Current volume percent, LOCKED format '00' (00-99%)
+
+
+
+
+Skin version 1.00:
+------------------
+
+One MAIN screen.
+One playlist editor screen.
+One fileselector screen. (If you are lazy, same ansi as playlist editor 
+        can be used, and you just add bifferend buttons in the config)
+One ID3-Editor screen. (can be put on top of main/playlist windows, or
+        a option to clear the screen before can be added in the config)
+
+That makes at least 2 big ansis, and one small. At most four big ;)
+
+There's also some text-strings in main/playlist/filebrowser that will come
+up wherever you want to, but if you want to check them, grab a old skin,
+with config-files, or even better, run camp and check ;)
+
+
+
+MAIN screen:
+------------
+
+The mainscreen in 1.00 contains 12 buttons, the buttons are:
+
+play
+stop
+pause
+skip backwards
+skip forward
+change mode (random, loop, normal)
+jump to song number
+lock screen
+id3 editor
+playlist editor
+custom button (ussually mixer)
+one button to put camp in the background and exit to shell (it will still play songs)
+
+
+Text fields:
+
+Current songname
+Current songtime, LOCKED format '00:00'
+Current songnumber/total songs, LOCKED format '0000/0000'
+Bitrate of current song, LOCKED format '000'
+Samplerate of current song, LOCKED format '00000'
+Some text or char that indicates current playmode, DEFAULT format: 'xxxx', 
+ where 'xxxx' can be 'rand', 'norm' or 'loop', strings are 100% definable.
+Some text or char that indicates if current file is stereo or mono, 
+ DEFAULT format: 'xx' where 'xx' can be 'st' or 'mo', another example
+ might be to use '*' for stereo and ' ' for mono.
+
+
+
+PLAYLIST editor:
+----------------
+
+The playlist editor in 1.00 contains 7 buttons, the buttons are:
+
+filebrowser window (add new files)
+play
+remove file from list
+clear list (remove all entries)
+id3 editor
+sort playlist by name
+a button that returns you to the main-screen
+
+
+
+FILEBROWSER window:
+----------------
+
+The filebrowser window in 1.00 contains 7 buttons, the buttons are:
+
+add tagged files to playlist
+auto-tag all files that end with .mp3
+untag all selected files
+load playlist
+save playlist
+clear list (remove all entries)
+a button that returns you to the playlist editor

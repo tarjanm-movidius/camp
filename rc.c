@@ -24,6 +24,7 @@ unsigned char in;
     * 4 = stop
     * 5 = vol -
     * 6 = vol +
+    * 7 = pause
     */
       
    if ( in == config.rc.play )
@@ -38,6 +39,8 @@ unsigned char in;
        return 5; else
      if ( in == config.rc.volinc )
        return 6; else
+     if ( in == config.rc.pause )
+       return 7; else
      return 0;      
    
 }
@@ -46,7 +49,7 @@ void checkrc(void) {
 static unsigned char lastvalue = 0;
 unsigned char currentvalue = rcpressed();
       
-   if ( lastvalue == currentvalue ) return;
+   if ( lastvalue == currentvalue && ( lastvalue < 5 || lastvalue > 6 ) ) return;
    lastvalue = currentvalue;
    
    switch ( currentvalue ) {
@@ -77,6 +80,9 @@ unsigned char currentvalue = rcpressed();
       break;
     case 6:
       set_volume(config.voldev, config.volstep);
+      break;
+    case 7:
+      if ( dofunction(8) ) call_player(pl_seek(filenumber, &playlist));
       break;
 #endif
     default: ;

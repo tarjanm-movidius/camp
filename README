@@ -18,9 +18,9 @@ CAMP - Console Ansi Mpeg3 Player interface version 1.3.x.
 	2.1 Install
 	2.2 Syntax ( switches that can be passed to camp )
 	2.3 Converting playlists
-	2.4 Configuration (~/.camp/camprc) format
+	2.4 Configuration ( ~/.camp/camprc ) format
 	2.5 Interface buttons, functions
-
+	2.6 Locations of other programs ( mpg123, lirc, .. )
 
 
 
@@ -144,6 +144,11 @@ volumedev  = device to change volume on, can be pcm, synth, main, or a
              numeric value, check SOUND_MIXER_??? values in sys/soundcard.h
 userc      = use remote control? can be overriden by --norc
 rctime     = time in microseconds between reads, keep at 900000 if no rc
+compresspl = compress playlist? (500kb playlist will be ~40k)
+             if you set this to 0, you can still read compressed playlists,
+             if camp was compile with zlib support.
+scrollname = Scroll title ala WinAmp at main screen if it's too long?
+
 yes, true or 1 will activate a setting, anything else will inactivate it.
 
 port,play,stop,skipb,skipf,vol+ & vol- are remote-control values.
@@ -162,7 +167,7 @@ My default config is as follows:
 skin       = rawlock
 player     = /usr/local/bin/mpg123
 switches   = 
-playerprio = -20
+playerprio = 0
 playmode   = random
 hidedot    = yes
 dontreopen = false
@@ -173,7 +178,10 @@ readid3    = true
 volumestep = 5
 volumedev  = pcm
 userc      = true
-rctime     = 75000
+rctime     = 25000
+scrollname = yes
+compresspl = yes
+
 # Remote-Control Configuration
 port  = 888
 play  = 79
@@ -293,11 +301,19 @@ Space:
  file.
 
 
+2.6 Locations of other programs - updated 1999-10-23
+
+mpg123 - http://www.mpg123.de/mpg123/mpg123-0.59r.tar.gz
+lirc   - http://fsinfo.cs.uni-sb.de/~columbus/lirc/software/lirc-0.5.4.tar.gz
+gpm    - ftp://animal.unipv.it/pub/gpm/gpm-1.18.0.tar.gz
+aumix  - http://jpj.net/~trevor/aumix/aumix-1.23.1.tar.gz
+
+
 -------------------------------------------------------
 Homepage: http://camp.goes.berzerk.nu
 Ftp-Site: -
-Email:    inm@m1crosoft.com & inm@camp.goes.berzerk.nu
-IRC:      inm, on efnet and ircnet
+Email:    inm@m1crosoft.com
+IRC:      inm om efnet, #camp
 ICQ:      6970303
 
 Please send me any kind of comments/bugs/ideas/skins.

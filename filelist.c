@@ -9,14 +9,22 @@
 #include <malloc.h>
 #include "camp.h"
 
+#ifdef HAVE_TERMIOS_H
+# include <fcntl.h>
+#endif
+
 #ifdef USE_GPM_MOUSE
 # include <gpm.h>
 #endif
 
+#ifdef HAVE_LIBZ
+# include <zlib.h>
+#endif
 
-extern char playsong, checkkill;
+extern char playsong, checkkill, use_lircd;
 extern struct configstruct config;
 extern unsigned int slavepid;
+extern int lirc_lircd, selval;
 
 int fl_buttonpos;
 unsigned int fl_maxpos=0, current[50];
@@ -26,7 +34,7 @@ void getfiles(struct playlistent **playlist) {
 struct filelistent *filelist = NULL;
 struct timeval counter;
 int i = 0;
-int ch = 0;
+int ch, ch2;
 fd_set fds;
    
    fl_buttonpos = config.skin.fsb+1;
@@ -51,7 +59,6 @@ fd_set fds;
    printf("\e[1;1H%s", config.skin.filelist);
    fl_showents(0, filelist);
    fl_updatebuttons(0);
-   ch = 0;
    
    while ( TRUE ) {
 
@@ -63,90 +70,108 @@ fd_set fds;
 #ifdef RC_ENABLED
       if ( config.userc ) checkrc();
 #endif
+
       counter.tv_usec = config.rctime;
       counter.tv_sec  = 0;
       FD_ZERO(&fds);
       FD_SET(0, &fds);
+      
 #ifdef USE_GPM_MOUSE
       if ( gpm_flag > 0 ) FD_SET(gpm_fd, &fds);
-      if ( select(gpm_flag > 0 ? gpm_fd+1 : 1, &fds, NULL, NULL, &counter) > 0 ) {
-	 if ( gpm_flag > 0 && FD_ISSET(gpm_fd, &fds) ) {
+#endif
+#ifdef LIRCD
+      if ( use_lircd ) FD_SET(lirc_lircd, &fds);
+#endif
+      
+      if ( select(selval, &fds, NULL, NULL, &counter) > 0 ) {
+#ifdef USE_GPM_MOUSE
+	 if ( gpm_flag > 0 && FD_ISSET(gpm_fd, &fds) ) {	    
 	    if ( fl_domouse(&filelist, playlist) ) {
-	       releasedir(filelist); 
-	       return; 
+	       releasedir(filelist);
+	       return;
 	    }
 	 }
-#else
-      if ( select(1, &fds, NULL, NULL, NULL) > 0 ) {
+#endif
+#ifdef LIRCD
+	 if ( use_lircd && FD_ISSET(lirc_lircd, &fds) ) dolircd(0);
 #endif
 	 ch = 0;
-	 if ( FD_ISSET(0, &fds) )
-	   while ( ch != -1 ) {
-	      ch = getchar();
-	      if ( ch == 3 ) { releasedir(filelist); exit(0); } else
-		if ( ch == 32 ) 
-		  switch(file_seek(current[depth], filelist)->type) {
-		   case 1: 
-		     togglemark(filelist, TRUE);
+	 if ( FD_ISSET(0, &fds) ) {
+	    ch = getchar();
+	    if ( ch == 3 ) { releasedir(filelist); exit(0); } else
+	      if ( ch == 32 ) 
+		switch(file_seek(current[depth], filelist)->type) {
+		 case 1: 
+		   togglemark(filelist, TRUE);
 		     fl_showents(current[depth]-screenmark[depth], filelist);
-		     break;
-		   case 2:
-		     filelist = camp_chdir(filelist);
-		  } else
+		   break;
+		 case 2:
+		   filelist = camp_chdir(filelist);
+		} else
 #ifdef HAVE_SYS_SOUNDCARD_H
-		if (ch == '+') set_volume(config.voldev, config.volstep);  else
-		if (ch == '-') set_volume(config.voldev, -config.volstep); else
+	      if (ch == '+') set_volume(config.voldev, config.volstep);  else
+	      if (ch == '-') set_volume(config.voldev, -config.volstep); else
 #endif			      
 		if ( ch == 27 ) {
+#ifdef HAVE_TERMIOS_H
+		   fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
+#endif
 		   ch = getchar();
 		   if ( ch == -1 ) {
 		      mykbhit(0, 250000);
-		    ch = getchar();
+		      ch = getchar();
 		   }
-		   if ( ch != '[' ) {
-		      releasedir(filelist);
+		   ch2 = getchar();
+#ifdef HAVE_TERMIOS_H
+		   fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
+#endif
+		   if ( ch == -1 || ch == 27 ) { 
+		      releasedir(filelist);		      
 		      return;
 		   }
-		 ch = getchar();
-		   if ( ch == 'B' && current[depth] != fl_maxpos ) {
+		   
+		   if ( ch2 == 'B' && current[depth] != fl_maxpos ) {
 		      if ( screenmark[depth] != config.skin.flistlines-1 )
 			screenmark[depth]++;
 		      current[depth]++;
 		      fl_showents(current[depth]-screenmark[depth], filelist);
 		   }
-		   if ( ch == 'A' && current[depth] != 0 ) {
+		   if ( ch2 == 'A' && current[depth] != 0 ) {
 		      if ( screenmark[depth] != 0 ) 
 			screenmark[depth]--;
 		      current[depth]--;
 		      fl_showents(current[depth]-screenmark[depth], filelist);
 		   }
-		   if ( ch == 'D' && fl_buttonpos != FL_MINBUTTON ) { 
+		   if ( ch2 == 'D' && fl_buttonpos != FL_MINBUTTON ) { 
 		      fl_updatebuttons(-1);
 		   }
-		   if ( ch == 'C' && fl_buttonpos != FL_MAXBUTTON ) { 
+		   if ( ch2 == 'C' && fl_buttonpos != FL_MAXBUTTON ) { 
 		      fl_updatebuttons(1);
 		   }
-		   if ( ch == '5' ) {
-		      if ( current[depth] < config.skin.flistlines ) { current[depth] = 0; screenmark[depth] = 0; } else
+		   if ( ch2 == '5' ) { /* page up */
+		      if ( current[depth] < config.skin.flistlines ) { 
+			 current[depth] = 0; 
+			 screenmark[depth] = 0; 
+		      } else
 			current[depth] -= (config.skin.flistlines-1);
 		      if ( current[depth] < screenmark[depth] )
 			current[depth] = screenmark[depth];
 		      fl_showents(current[depth]-screenmark[depth], filelist);
 		   }
-		   if ( ch == '6' ) {
-		      if ( current[depth]+(config.skin.flistlines-1) > fl_maxpos ) { 
+		   if ( ch2 == '6' ) { /* page down */
+		      if ( current[depth]+(config.skin.flistlines-1) > fl_maxpos ) {
 			 screenmark[depth] = 0;
 			 current[depth] = fl_maxpos; 
 		      } else
 			current[depth] += (config.skin.flistlines-1);
 		      fl_showents(current[depth]-screenmark[depth], filelist);
 		   }
-		   if ( ch == '1' ) {
+		   if ( ch2 == '1' ) { /* home */
 		      current[depth] = 0;
 		      screenmark[depth] = 0;
 		      fl_showents(0, filelist);
 		   }
-		   if ( ch == '4' ) { /* end */
+		   if ( ch2 == '4' ) { /* end */
 		      current[depth] = fl_maxpos;
 		      screenmark[depth] = 0;
 		      fl_showents(current[depth]-screenmark[depth], filelist);
@@ -159,12 +184,12 @@ fd_set fds;
 			fl_dofunction(filelist, playlist);
 		     }
 	      } else
-		fl_search(ch, filelist);	      
-          }
-     }
-    }
+	      fl_search(ch, filelist);	      
+	 }
+      }
+   }
 }
-   
+
 struct filelistent *camp_chdir(struct filelistent *filelist) {
 struct filelistent *newlist = NULL;
 char   origpath[256];
@@ -448,16 +473,23 @@ unsigned int samplerate;
 unsigned int bitrate;
 unsigned char mode;
 struct oneplaylistent getpl;
-   
-   fd = fopen(filename, "r");
-   if ( fd == NULL ) return;
-      
+
+#ifdef HAVE_LIBZ
+gzFile gzfd;
+   gzfd = gzopen(filename, "rb");
+   if ( !gzfd ) return;
    buf = malloc(257);
+   gzread(gzfd, buf, 12);
+#else
+   fd = fopen(filename, "rb");
+   if ( !fd ) return;   
+   buf = malloc(257);
+   fgets((char*)buf, 255, fd);
+#endif
    
    if ( filemanager ) l_status(config.skin.flistmsg[0]);
-   fgets((char*)buf, 255, fd);
    
-   if (!strncmp(buf, "CPL+ID3 1.3", 11)) {
+   if (!strncmp(buf, "CPL+ID3 1.3\n", 12)) {
       if ( *playlist == NULL ) {
 	 *playlist = (struct playlistent*)malloc(sizeof(struct playlistent));
 	 (*playlist)->prev = NULL;
@@ -466,7 +498,8 @@ struct oneplaylistent getpl;
       } else
 	while ( (*playlist)->next != NULL ) *playlist = (*playlist)->next;
       
-      while ( fread((void*)&getpl, sizeof(struct oneplaylistent), 1, fd) != 0 ) {
+#ifdef HAVE_LIBZ
+      while ( gzread(gzfd, (void*)&getpl, sizeof(struct oneplaylistent)) > 0 ) {
 	 memcpy((void*)*playlist, (void*)&getpl, sizeof(struct oneplaylistent));
 	 (*playlist)->next = (struct playlistent*)malloc(sizeof(struct playlistent));
 	 (*playlist)->next->prev = *playlist;
@@ -474,7 +507,17 @@ struct oneplaylistent getpl;
 	 (*playlist)->next->number = (*playlist)->number +1;
 	 *playlist = (*playlist)->next;
       }
-   } else 
+#else
+      while ( fread((void*)&getpl, sizeof(struct oneplaylistent), 1, fd) != 0 ) {
+	 memcpy((void*)*playlist, (void*)&getpl, sizeof(struct oneplaylistent));
+	 (*playlist)->next = (struct playlistent*)malloc(sizeof(struct playlistent));
+	 (*playlist)->next->prev = *playlist;
+	 (*playlist)->next->next = NULL;
+	 (*playlist)->next->number = (*playlist)->number +1;
+	 *playlist = (*playlist)->next;
+      }      
+#endif
+   } else /* not a CPL+ID3 1.3 playlist */
      if (!strncmp(buf, "CPL+ID3", 7)) { /* wrong version playlist ;( */
 	if ( filemanager ) {
 	   l_status(config.skin.flistmsg[2]);
@@ -484,15 +527,30 @@ struct oneplaylistent getpl;
 	   printf("%s\n", config.skin.flistmsg[2]);
 	   exit(-1);
 	}
-     } else
-     do { /* while readln != EOF */
-	addfiletolist(playlist, buf, NULL, 0, 0, 0, config.useid3);
-     } while ( fgets((char*)buf, 255, fd) );
+     } else /* text list w/ filenames? */
+#ifdef HAVE_LIBZ
+     {
+	gzclose(gzfd);
+	gzfd = 0;
+	fd = fopen(filename, "rb");
+#endif
+	do { /* while readln != EOF */
+	   buf = strtrim(buf, '\n'); 
+	   addfiletolist(playlist, buf, NULL, 0, 0, 0, config.useid3);
+	} while ( fgets((char*)buf, 255, fd) );	
+#ifdef HAVE_LIBZ
+	fclose(fd);
+     }
+   if ( gzfd ) gzclose(gzfd);
+#else
    fclose(fd);
+#endif
+   
    if ( filemanager ) { 
       l_status(NULL);
       fl_updatebuttons(0);
-   }
+   } else
+     printf("done!\n");
    free(buf);
    return;
 }
@@ -504,6 +562,9 @@ fd_set stdinfds;
 char   cplid3 = TRUE, ch, *buf, *buf2;
 int    exitchar = 0;
 struct oneplaylistent getpl;
+#ifdef HAVE_LIBZ
+gzFile gzfd;
+#endif
    
    memset((void*)&getpl, 0, sizeof(struct oneplaylistent));
    if ( playlist == NULL ) return;
@@ -527,13 +588,26 @@ struct oneplaylistent getpl;
      sprintf(buf, "%s/%s", cdir, buf2); else
      strcpy(buf, buf2);
         
-   l_status(config.skin.flistmsg[4]);
+   l_status(config.skin.flistmsg[4]); /* Save w/ ID3 tags and shiit ? y/n */
    FD_ZERO(&stdinfds);
    FD_SET(0, &stdinfds);
    select(1, &stdinfds, NULL, NULL, NULL);
+   if ( toupper(getchar()) == 'N' ) { 
+      fd = fopen(buf, "w");
+      cplid3 = FALSE; 
+   } else     
+#ifdef HAVE_LIBZ
+     if ( config.compresspl ) {
+	gzfd = gzopen(buf, "wb");
+	gzwrite(gzfd, "CPL+ID3 1.3\n", 12); 
+     } else {
+	fd = fopen(buf, "wb");	   
+	fputs("CPL+ID3 1.3\n", fd); 
+     }
+#else
    fd = fopen(buf, "w");
-   if ( toupper(getchar()) == 'N' ) cplid3 = FALSE; else
-     fputs("CPL+ID3 1.3\n", fd);
+   fputs("CPL+ID3 1.3\n", fd);
+#endif
    
    sprintf(buf, "\e[?25l%s", config.skin.flistmsg[5]);
    l_status(buf);
@@ -541,7 +615,13 @@ struct oneplaylistent getpl;
    if ( cplid3 ) 
      do {
 	memcpy((void*)&getpl, (void*)playlist, sizeof(struct oneplaylistent));
+#ifdef HAVE_LIBZ
+	if ( config.compresspl )
+	  gzwrite(gzfd, (void*)&getpl, sizeof(struct oneplaylistent)); else
+	  fwrite((void*)&getpl, sizeof(struct oneplaylistent), 1, fd);
+#else
 	fwrite((void*)&getpl, sizeof(struct oneplaylistent), 1, fd);
+#endif
 	if ( playlist->next != NULL ) playlist = playlist->next;
      } while (playlist->next != NULL);
    else 
@@ -550,7 +630,12 @@ struct oneplaylistent getpl;
 	fputc('\n', fd);
 	if ( playlist->next != NULL ) playlist = playlist->next;
      } while ( playlist->next != NULL );
+#ifdef HAVE_LIBZ
+   if ( config.compresspl && cplid3 ) gzclose(gzfd); else
+     fclose(fd);
+#else
    fclose(fd);
+#endif
    l_status(NULL);
    fl_updatebuttons(0);
    free(buf);

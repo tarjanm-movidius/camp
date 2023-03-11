@@ -3,6 +3,8 @@
 #include <sys/soundcard.h>
 #include "camp.h"
 
+extern struct configstruct config;
+
 void set_volume(int dev, int change) {
 int fd, volume, left, right;
    
@@ -21,6 +23,15 @@ int fd, volume, left, right;
    close(fd);
 }
 
+void set_new_volume(int dev, int left, int right) {
+int fd, volume;
+   
+   fd = open("/dev/mixer", O_RDWR);
+   volume = left + (right << 8);
+   ioctl(fd, MIXER_WRITE(dev), &volume);
+   close(fd);
+}
+
 void get_volume(int dev, int *left, int *right) {
 int fd, volume;
    
@@ -29,5 +40,16 @@ int fd, volume;
    close(fd);   
    *left  = volume & 0x7f;
    *right = (volume >> 8) & 0x7f;
+}
+
+void mute(unsigned char mute) {
+static oldl, oldr = 0;  
+   
+   if ( mute ) {
+      get_volume(SOUND_MIXER_VOLUME, &oldl, &oldr);
+      set_new_volume(SOUND_MIXER_VOLUME, config.mutevol, config.mutevol);
+   } else {
+      set_new_volume(SOUND_MIXER_VOLUME, oldl, oldr);
+   }   
 }
 

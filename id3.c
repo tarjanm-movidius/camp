@@ -2,9 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
 #include <sys/time.h>
 #include "camp.h"
+
 
 unsigned int bitrate_table[3][3][15] =
 {
@@ -159,7 +159,7 @@ fd_set stdinfds;
 	cspos++;
      }
    
-   if ( cspos > 39 ) buf[39] = 0; else
+   if ( cspos > config.skin.id3fnw ) buf[config.skin.id3fnw] = 0; else
      buf[cspos] = 0;
    
    if ( !getmp3info(filename, NULL, NULL, NULL, name, artist, misc, album, year, genre) ) {
@@ -180,6 +180,7 @@ fd_set stdinfds;
    printf("\e[%d;%dH%s", config.skin.iy[4], config.skin.ix[4], year);
    fflush(stdout);
 
+   
    do { /* welcome to switcher's paradise */
 
       switch(pos) {
@@ -199,6 +200,8 @@ fd_set stdinfds;
 	}
       
    } while ( exitchar != 27 );
+   
+     
    
    if ( modified ) {
       printf("\e[%d;%dH\e[%sm%s", config.skin.iy[6], config.skin.ix[6], config.skin.id3sc, config.skin.id3st); fflush(stdout);

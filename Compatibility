@@ -1,5 +1,7 @@
 CAMP 1.3.1939-beta1 compiled fine on the following boxes:
 
+Linux
+
 Dist.		Libc version
 ----------------------------
 Slackware 3.4+	Glibc 2.1 (libc-2.1.so)
@@ -12,3 +14,18 @@ Debian          Glibc 2   (libc-2.0.7.so)
 Debian users:
 To get gpm (mouse) support, be sure to install the gpm-devel package, 
 and execute ln -sf /usr/lib/libgpm.so.1 /usr/lib/libgpm.so
+
+
+
+Others
+
+OS/arch		Version
+-----------------------
+SunOS-sun4m	5.6
+SunOS-i386	5.7
+
+
+
+
+SunOS Abdul-Ali 5.7 Generic_106542-02 i86pc i386 i86pc
+

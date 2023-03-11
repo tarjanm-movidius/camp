@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <signal.h>
 #include <errno.h>
@@ -5,7 +6,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -13,6 +13,7 @@
 #include "chromansi.c"
 
 #ifdef HAVE_TERMIOS_H
+# include <fcntl.h>
 # include <termios.h>
 struct termios oldtermios, newtermios;
 #else
@@ -21,6 +22,10 @@ struct termios oldtermios, newtermios;
 
 #ifdef USE_GPM_MOUSE
 # include <gpm.h>
+#endif
+
+#ifdef LIRCD
+#include "lirc_client.h"
 #endif
 
 /*                                                      
@@ -42,14 +47,21 @@ struct termios oldtermios, newtermios;
  const char keys[] = { '1', '4', '5', '6' };
 /* const char keys[] = { 'H', 'F', 'I', 'G' }; */
 
-char playsong=TRUE, quiet=FALSE, pausesong=FALSE, force=FALSE, checkkill=FALSE, quitmode=0, buttonpos;
+char playsong=TRUE, quiet=FALSE, pausesong=FALSE, force=FALSE, checkkill=FALSE, quitmode=0, buttonpos, muted=FALSE, use_lircd=TRUE;
 struct playlistent *playlist = NULL;
 struct oneplaylistent currentfile;
 unsigned int slavepid=0, playlistents=0, filenumber=0;
+int selval;
 struct configstruct config;
 #ifdef USE_GPM_MOUSE
 Gpm_Connect mouse;
 #endif   
+
+#ifdef LIRCD
+char *progname = "camp";
+extern int lirc_lircd;
+struct lirc_config *lircd_config = NULL;
+#endif
 
 int main(int argc, char *argv[]) {
 unsigned int j;
@@ -64,11 +76,16 @@ int left, right;
    sprintf(buf, "%s/.camp/camprc", getenv("HOME"));
    printf("Loading config from %s...\n", buf);
    config = getconfig(buf);
+
+#ifdef USE_GPM_MOUSE   
+   my_Gpm_Init(&mouse);
+   atexit(close_gpm);
+#endif
    
    if ( argc != 1 ) {   
       printf("Scanning arguments, please wait.. "); 
       for(i=1;i<argc;i++) {
-	 printf("\e[s[%d/%d]\e[K\e[u", i-1, argc-1); fflush(stdout);
+	 printf("\e[s[%d/%d]\e[K\e[u", i-1, argc-1); // fflush(stdout);
 	 if ( !strcasecmp(argv[i], "-d") || !strcasecmp(argv[i], "--dumpid3") )
 	   dump = TRUE; else
 	   if ( !strcasecmp(argv[i], "-f") || !strcasecmp(argv[i], "--force") )
@@ -115,7 +132,7 @@ int left, right;
 	   } else
 	   addfiletolist(&playlist, argv[i], NULL, 0, 0, 0, config.useid3);
       }
-      printf("\e[s[%d/%d]\e[K\e[u", i-1, argc-1); fflush(stdout);
+      printf("\e[s[%d/%d]\e[K\e[u", i-1, argc-1); // fflush(stdout);
       printf("done!      \n");
    }
    
@@ -129,7 +146,7 @@ int left, right;
       }
       pl_seek(0, &playlist);
       while ( playlist->next ) {
-	 fprintf(stderr, "%-5d %s - %s\n", playlist->number, playlist->showname);
+	 fprintf(stderr, "%-5d %s\n", playlist->number, playlist->showname);
 	 playlist = playlist->next;
       }
       printf("Done!\n");
@@ -154,9 +171,9 @@ int left, right;
    if ( !playlist )
      playsong = FALSE;
    
-   printf("Initializing Remote-Control... ");
 #ifdef RC_ENABLED
    if ( config.userc ) {
+      printf("Initializing LPT remote control... ");
       if ( ioperm(config.rc.port+1,1,1) == -1 ) {
 	 printf("error, needs root! disabled.\n");
 	 config.userc = FALSE;
@@ -165,7 +182,20 @@ int left, right;
 	 checkrc();
       }
    }
-#endif   
+#endif
+   
+#ifdef LIRCD
+   printf("Initializing LIRCD remote control ...\n");
+   if ( lirc_init("camp") == -1 ) { 
+      printf("LIRCD Failed!\n"); 
+      use_lircd = FALSE;
+   } else
+     if ( lirc_readconfig(NULL, &lircd_config, NULL) != 0 ) {
+	printf("Error reading LIRCD config file %s!\n", LIRCCFGFILE); 
+	use_lircd = FALSE;
+     } else 
+     printf("LIRCD Initialized succesfully!\n");
+#endif
    
    sleep(1);
    myinit();
@@ -185,14 +215,19 @@ int left, right;
    
    if ( quitmode == 1 ) disappear();
    
-#ifdef USE_GPM_MOUSE   
-   my_Gpm_Init(&mouse);
+   selval = stdinno + 1;
+   
+#ifdef USE_GPM_MOUSE
+   if ( gpm_flag > 0 ) selval = gpm_fd + 1;
 #endif
-      
+   
+#ifdef LIRCD
+   if ( use_lircd ) selval = lirc_lircd + 1;
+#endif
+   
    while ( TRUE ) { /* main loop */
          
-      if ( playsong && !pausesong )
-	updatesongtime('u');
+      updatesongtime('u');
       
       if ( checkkill && kill(slavepid, 0) == -1 ) {
 	 checkkill = FALSE;
@@ -202,48 +237,59 @@ int left, right;
 #ifdef RC_ENABLED
       if ( config.userc ) checkrc();
 #endif
-      get_volume(config.voldev, &left, &right);
+
+//      get_volume(config.voldev, &left, &right);
 //      printf("\e[1;1H%d - %d   \n", left, right);
       
       currenttime.tv_usec = config.rctime;
       currenttime.tv_sec  = 0;
       FD_ZERO(&fds);
       FD_SET(stdinno, &fds);
+            
 #ifdef USE_GPM_MOUSE
       if ( gpm_flag > 0 ) FD_SET(gpm_fd, &fds);
-      if ( select(gpm_flag > 0 ? gpm_fd+1 : stdinno+1, &fds, NULL, NULL, &currenttime) > 0 ) {
-	 if ( gpm_flag > 0 && FD_ISSET(gpm_fd, &fds)  ) main_domouse();
-#else
-      if ( select(stdinno+1, &fds, NULL, NULL, &currenttime) > 0 ) {
 #endif
+#ifdef LIRCD
+      if ( use_lircd ) FD_SET(lirc_lircd, &fds);
+#endif
+	
+      if ( select(selval, &fds, NULL, NULL, &currenttime) > 0 ) {
+#ifdef USE_GPM_MOUSE
+	 if ( gpm_flag > 0 && FD_ISSET(gpm_fd, &fds) ) main_domouse();
+#endif
+#ifdef LIRCD	 	 
+	 if ( use_lircd && FD_ISSET(lirc_lircd, &fds) ) dolircd(1);
+#endif
+	 
 	 ch=0;
-	 if ( FD_ISSET(stdinno, &fds) ) 
-	   while ( ch != -1 ) {
-	      ch = getchar();
-	      if (ch == 27)   escfix(); else
-		if (ch == 3)  exit(0);  else    /* ^C */
-		if (ch == 26) disappear(); else /* ^Z */
+	 if ( FD_ISSET(stdinno, &fds) ) {
+	    ch = getchar();
+	    if (ch == 27)   escfix(); else
+	      if (ch == 3)  exit(0);  else    /* ^C */
+	      if (ch == 26) disappear(); else /* ^Z */
 #ifdef HAVE_SYS_SOUNDCARD_H
-		if (ch == '+') set_volume(config.voldev, config.volstep); else
-		if (ch == '-') set_volume(config.voldev, -config.volstep); else
+	      if (ch == '+') set_volume(config.voldev, config.volstep); else
+	      if (ch == '-') set_volume(config.voldev, -config.volstep); else
 #endif
-		if (ch == 12) {                 /* ^L */
-		   printf("\e[0m\e[2J\e[1;1H%s", config.skin.main);
-		   updatedata();
-		   updatebuttons(0);
-		   updatesongtime('f');
-		} else
-		if (ch == 13 && dofunction(-1)) call_player(pl_seek(filenumber, &playlist)); else
-		for(i=0;i<14;i++)
-		  if ( ch == config.skin.mh[i] ) {
-		     buttonpos = i;
-		     updatebuttons(0);
-		     if ( dofunction(-1) ) call_player(pl_seek(filenumber, &playlist));
+	      if (ch == 12) {                 /* ^L */
+		 printf("\e[0m\e[2J\e[1;1H%s", config.skin.main);
+		 updatedata();
+		 updatesongtime('f');
+		 updatebuttons(0);
+	      } else
+	      if (ch == 13 && dofunction(-1)) call_player(pl_seek(filenumber, &playlist)); else
+	      for(i=0;i<15;i++)
+		if ( ch == config.skin.mh[i] ) {
+		     if ( config.skin.ma[i] != NULL && config.skin.mi[i] != NULL ) {
+			buttonpos = i;
+			updatebuttons(0);
+		     }
+		     if ( dofunction(i) ) call_player(pl_seek(filenumber, &playlist));
 		  }
-	   } /* while ch != .. */
+	 } /* FD_ISSET */
       } /* select */
    } /* while(endless) */   
-   return 0;
+   return 0; /* Uhm, just wasting bytes, this is not possible */
 } /* main() */
 
    
@@ -266,11 +312,13 @@ int i;
 	printf("%s", config.skin.mi[i]);
    }
    
-   fflush(stdout);
+   // fflush(stdout);
 }
 
 void myinit(void) {
 FILE *fd;
+long flags;
+   
    if ( !force ) {
       fd = fopen(PID_FILE, "w");
       fprintf(fd, "%d\n", getpid());
@@ -278,15 +326,17 @@ FILE *fd;
    }
    signal(SIGUSR1, sigusr1);
 #ifdef HAVE_TERMIOS_H
+   setvbuf(stdout, (char *)NULL, _IONBF, 0);
    tcgetattr(fileno(stdin), &oldtermios);
    memcpy(&newtermios, &oldtermios, sizeof(struct termios));
    termios_raw(&newtermios);
    tcsetattr(fileno(stdin), TCSANOW, &newtermios);
-   fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
 #else
+   initscr();
+   intrflush(stdscr, FALSE);
    savetty();
    noecho(); 
-   nonl(); 
+   nl(); 
    cbreak();
 #endif
    if ( !quiet ) {
@@ -295,8 +345,20 @@ FILE *fd;
    }
 }
 
+#ifdef USE_GPM_MOUSE   
+void close_gpm(void) {
+   while ( Gpm_Close() );   
+}
+#endif
+   
 void myexit(void) {
 int i;
+   
+/*#ifdef LIRCD
+   if ( lircd_config ) lirc_freeconfig(lircd_config);
+   if ( use_lircd ) lirc_deinit();
+#endif
+*/   
    if ( quitmode == 0 ) /* 0 = normal, 1 = forking, 2 = "forked-steal" quit  3 = "steal" quit*/
       if ( playsong ) killslave();  
 
@@ -306,16 +368,11 @@ int i;
    if ( playlist != NULL ) clearplaylist(&playlist);
 
 #ifdef HAVE_TERMIOS_H
-   fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
    tcsetattr(fileno(stdin), TCSANOW, &oldtermios);
 #else
    resetty();
 #endif
    
-#ifdef USE_GPM_MOUSE   
-   while ( Gpm_Close() );
-#endif
-
    if ( quitmode != 2 ) {
       printf("\e[0m\e[2J\e[1;1H%s", chromansi);
       printf("\e[0mConsole Ansi Mpeg3 Player interface %s.%d by inm (inm@m1crosoft.com)\n", CAMP_VERSION, BUILD);
@@ -371,17 +428,25 @@ int i;
 }
 
 void escfix(void) {
+int ch1, ch2, flags;
+         
+#ifdef HAVE_TERMIOS_H
+   fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
+#endif
    
-   int ch1, ch2;
-
    ch1 = getchar();
    if ( ch1 == -1 ) {
       mykbhit(0, 250000);
       ch1 = getchar();
    }
-   ch2 = getchar();
+   ch2 = getchar();   
+
+#ifdef HAVE_TERMIOS_H
+   fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
+#endif
    
    if ( ch1 == -1 || ch1 == 27 ) exit(0); else
+     
      if ( ch1 == '[' )
        if ( ch2 == 'C' ) updatebuttons(KM_RIGHT);  else
      if ( ch2 == 'D' ) updatebuttons(KM_LEFT); else
@@ -433,13 +498,9 @@ FILE *fd;
     case 3: /* stop */
       if ( playsong && slavepid ) {
 	 playsong = FALSE;
-	 killslave();
-	 if ( !quiet )
-	   if ( !config.timemode )
-	     printf("\e[%sm\e[%d;%dH00\e[%d;%d00", config.skin.timec, config.skin.timey, config.skin.timex, config.skin.timey, config.skin.timex+3); else
-	   printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, currentfile.length/60, config.skin.timey, config.skin.timex+3, currentfile.length%60 );
-	 fflush(stdout);
+	 killslave();	 
       }
+      updatedata();
       break;
       
     case 4: /*playmode */
@@ -451,23 +512,23 @@ FILE *fd;
     case 5: /* playlist */
       quiet = TRUE;
       rplaylist(&playlist, &filenumber);
+#ifdef LIRCD
+      clear_lirc();
+#endif
       playlistents = pl_count(playlist);
       printf("\e[0m\e[2J\e[1;1H%s", config.skin.main);
-      fflush(stdout);
+      // fflush(stdout);
+      quiet = FALSE;
+      scrollsongname(0);
       updatedata();
       updatebuttons(0);
-      if ( !playsong && config.timemode && playlist )
-	printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, currentfile.length/60, config.skin.timey, config.skin.timex+3, currentfile.length%60);
-
-      quiet = FALSE;
       break;
       
     case 6: /* custom button */
       printf("\e[0m\e[2J\e[1;1H"); 
-      fflush(stdout);
+      // fflush(stdout);
 #ifdef HAVE_TERMIOS_H
       tcsetattr(fileno(stdin), TCSANOW, &oldtermios);
-      fcntl(fileno(stdin), F_SETFL, 0);
 #else
       resetty();
 #endif
@@ -485,21 +546,20 @@ FILE *fd;
       
 #ifdef HAVE_TERMIOS_H
       tcsetattr(fileno(stdin), TCSANOW, &newtermios);
-      fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
+      fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
 #else
       savetty();
       noecho(); 
       nonl(); 
       cbreak();
 #endif
+      scrollsongname(0);
       if ( !quiet ) {
-	 printf("\e[?25l\e[0m\e[2J\e[1;1H%s", config.skin.main);
-	 
+	 printf("\e[?25l\e[0m\e[2J\e[1;1H%s", config.skin.main);	 
 	 updatebuttons(0);
       }
       updatedata();
-      updatesongtime('u');
-      fflush(stdout);
+      // fflush(stdout);
       break;
    
     case 8: /* pause */
@@ -514,7 +574,7 @@ FILE *fd;
 	    updatesongtime('e');
 	 }
       }
-      break;
+      return 0;
 
     case 10: /* jump */
       oldfilenumber = filenumber;
@@ -551,7 +611,7 @@ FILE *fd;
       readpass(pass, 15);
       printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s", config.skin.mtextc, config.skin.mtexty, config.skin.mtextx, xys(config.skin.mtextw, ' '), config.skin.mtexty, config.skin.mtextx, config.skin.mainmsg[1]);
       readpass(checkpass, 15);
-      fflush(stdout);
+      // fflush(stdout);
       if ( !strcmp(pass, checkpass) ) {	
 	 printf("\e[%sm\e[%d;%dH%s", config.skin.mtextc, config.skin.mtexty, config.skin.mtextx, xys(config.skin.mtextw, ' '));
 	 updatedata();
@@ -562,7 +622,7 @@ FILE *fd;
 	    checkpass[0] = getchar();
 	    printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s", config.skin.mtextc, config.skin.mtexty, config.skin.mtextx, xys(config.skin.mtextw, ' '), config.skin.mtexty, config.skin.mtextx, config.skin.mainmsg[2]);
 	    printf("\e[?25h"); /* cursor on */
-	    fflush(stdout);
+	    // fflush(stdout);
 	    memset(checkpass, 0, 15);
 	    readpass(checkpass, 15);
 	    printf("\e[%sm\e[%d;%dH%s", config.skin.mtextc, config.skin.mtexty, config.skin.mtextx, xys(config.skin.mtextw, ' '));
@@ -573,24 +633,30 @@ FILE *fd;
       updatebuttons(0);
       updatedata();
       printf("\e[?25l"); /* cursor off */
-      if ( !playsong && config.timemode && playlist )
-	printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, currentfile.length/60, config.skin.timey, config.skin.timex+3, currentfile.length%60);
       break;
       
     case 12: /* desc edit */
       if ( !playlist ) return;
       quiet = TRUE;
       id3edit(pl_seek(filenumber, &playlist)->name, pl_seek(filenumber, &playlist));
+#ifdef LIRCD
+      clear_lirc();
+#endif
+      quiet = FALSE;
       printf("\e[0m\e[2J\e[1;1H%s", config.skin.main);
+      scrollsongname(0);
       updatedata();
       updatebuttons(0);
-      if ( !playsong && config.timemode && playlist )
-	printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, currentfile.length/60, config.skin.timey, config.skin.timex+3, currentfile.length%60);
-      quiet = FALSE;
       break;
 
-    case 13:
+    case 13: /* fork() */
       disappear();
+      break;
+
+    case 14: /* mute, new in 101 */
+      if ( !muted ) muted=TRUE; else
+	muted=FALSE;
+      mute(muted);
       break;
       
    }   
@@ -608,8 +674,8 @@ char i,y = FALSE;
    if ( event.buttons & 2 && event.type & GPM_DOWN ) {
       printf("\e[0m\e[2J\e[1;1H%s", config.skin.main);
       updatedata(); 
-      updatebuttons(0);
       updatesongtime('f');
+      updatebuttons(0);
       event.buttons = 255;
    } else 
 
@@ -637,21 +703,83 @@ char i,y = FALSE;
    
 }
 #endif   
+
+#ifdef LIRCD
+void dolircd(char atmain) {
+char *ir, *c;
    
+   ir = lirc_nextir();
+   
+   while ( ir && (c=lirc_ir2char(lircd_config,ir)) != NULL ) {
+      if ( !strcasecmp(c, "skip-") )    if ( dofunction(0) ) call_player(pl_seek(filenumber, &playlist)); 
+      if ( !strcasecmp(c, "play") )     if ( dofunction(1) ) call_player(pl_seek(filenumber, &playlist));
+      if ( !strcasecmp(c, "skip+") )    if ( dofunction(2) ) call_player(pl_seek(filenumber, &playlist));
+      if ( !strcasecmp(c, "stop") )     (void*)dofunction(3); 
+      
+      if ( atmain ) {
+	 if ( !strcasecmp(c, "playmode") ) (void*)dofunction(4); 
+	 if ( !strcasecmp(c, "playlist") ) { 
+	    (void*)dofunction(5);
+	    return; 
+	 }
+	 if ( !strcasecmp(c, "custom") ) {
+	    (void*)dofunction(6);
+	    clear_lirc();
+	    return;
+	 }
+	 if ( !strcasecmp(c, "pause") )    (void*)dofunction(8);
+	 if ( !strcasecmp(c, "jump") ) {
+	    (void*)dofunction(10);
+	    return;
+	 }
+	 if ( !strcasecmp(c, "fork") )     (void*)dofunction(13);
+      }
+      
+      if ( !strcasecmp(c, "mute") )     (void*)dofunction(14);
+# ifdef HAVE_SYS_SOUNDCARD_H
+      if ( !strcasecmp(c, "vol+") ) set_volume(config.voldev, config.volstep);
+      if ( !strcasecmp(c, "vol-") ) set_volume(config.voldev, -config.volstep);
+# endif
+   }  
+   if ( ir ) free(ir);
+}
+
+void clear_lirc(void) {
+fd_set fds;
+struct timeval currenttime;
+char *ir;
+   
+   if ( !use_lircd ) return;
+   
+   printf("\e[1;1HbLIP\n");
+   
+   currenttime.tv_usec = currenttime.tv_sec  = 0;
+   FD_ZERO(&fds);
+   FD_SET(lirc_lircd, &fds);
+   
+   while ( select(lirc_lircd+1, &fds, NULL, NULL, &currenttime) > 0 ) {
+      ir = lirc_nextir();
+      if ( ir ) free(ir);
+   }
+     
+      
+}
+#endif
+
 void updatedata() {
 struct timeval currenttime;
    
+   if ( quiet ) return;
+   
    if ( currentfile.showname[0] != 0 ) {
-      if ( config.showtime == 3 || config.showtime == 1 ) printf("\e[%sm\e[%d;%dH%s\e[%d;%dH[%02u:%02u] %s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, currentfile.length / 60, currentfile.length % 60, currentfile.showname); else
-	printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, currentfile.showname);
       printf("\e[%sm\e[%d;%dH%5d", config.skin.sampleratec, config.skin.sampleratey, config.skin.sampleratex, currentfile.samplerate);
       printf("\e[%sm\e[%d;%dH%3d", config.skin.bitratec, config.skin.bitratey, config.skin.bitratex, currentfile.bitrate);
       printf("\e[%sm\e[%d;%dH%s", config.skin.stereoc, config.skin.stereoy, config.skin.stereox, config.skin.stereotext[currentfile.mode]);
       printf("\e[%sm\e[%d;%dH%4d\e[%d;%dH%-4d", config.skin.songnumberc, config.skin.songnumbery, config.skin.songnumberx, filenumber+1, config.skin.songnumbery, config.skin.songnumberx+5, playlistents);
    }
-   if ( playsong ) updatesongtime('u');
+   updatesongtime('u');
    printf("\e[%sm\e[%d;%dH%s", config.skin.modetextc, config.skin.modetexty, config.skin.modetextx, config.skin.modetext[config.playmode]);
-   fflush(stdout);
+   // fflush(stdout);
    
 }
 
@@ -674,15 +802,30 @@ char buf[256];
     case 'f':
       gettimeofday(&currenttime, NULL);
       if ( ch == 'u' && oldcurrenttime.tv_sec == currenttime.tv_sec ) return;
+      oldcurrenttime.tv_sec = currenttime.tv_sec;
+      
+      if ( !playsong ) {
+	 if ( !config.timemode )
+	   printf("\e[%sm\e[%d;%dH00\e[%d;%d00", config.skin.timec, config.skin.timey, config.skin.timex, config.skin.timey, config.skin.timex+3); else
+	   printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, currentfile.length/60, config.skin.timey, config.skin.timex+3, currentfile.length%60);
+	 if ( ( config.showtime == 3 || config.showtime == 1 ) && strncasecmp(playlist->showname, "http://", 7) )
+	   printf("\e[%sm\e[%d;%dH%s\e[%d;%dH[%02u:%02u] %s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, currentfile.length / 60, currentfile.length % 60, scrollsongname(1)); else
+	   printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, scrollsongname(1));
+	 // fflush(stdout);
+	 return;
+      }
+      
+      if ( ( config.showtime == 3 || config.showtime == 1 ) && strncasecmp(playlist->showname, "http://", 7) ) printf("\e[%sm\e[%d;%dH%s\e[%d;%dH[%02u:%02u] %s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, currentfile.length / 60, currentfile.length % 60, scrollsongname(1)); else
+	printf("\e[%sm\e[%d;%dH%s\e[%d;%dH%s\n", config.skin.songnamec, config.skin.songnamey, config.skin.songnamex, xys(config.skin.songnamew, ' '), config.skin.songnamey, config.skin.songnamex, scrollsongname(1));
       /* guess this is the best way of doing this, since we don't want the player to type this,. */
+      if ( pausesong ) return;
       if ( config.timemode ) {
 	 reverse_time = currentfile.length-(currenttime.tv_sec-starttime.tv_sec);
 	 if ( reverse_time < 0 ) reverse_time = 0;
 	 printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, reverse_time/60, config.skin.timey, config.skin.timex+3, reverse_time%60);
       } else
-      printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, (currenttime.tv_sec-starttime.tv_sec)/60, config.skin.timey, config.skin.timex+3, (currenttime.tv_sec-starttime.tv_sec)%60);
-      fflush(stdout);
-      oldcurrenttime.tv_sec = currenttime.tv_sec;
+	printf("\e[%sm\e[%d;%dH%02d\e[%d;%dH%02d", config.skin.timec, config.skin.timey, config.skin.timex, (currenttime.tv_sec-starttime.tv_sec)/60, config.skin.timey, config.skin.timex+3, (currenttime.tv_sec-starttime.tv_sec)%60);
+      // fflush(stdout);
       break;
    
     case 'e':
@@ -712,3 +855,35 @@ char buf[256];
    }
 
 }
+
+
+char *scrollsongname(char action) {   
+static char scrolledname[100];
+static int i, wichway;
+      
+   if ( action == 0 ) {
+      i = -1;
+      wichway = 1; /* -> */
+      return NULL;
+   }
+      
+   if ( action == 2 ) { /* scroll back to beginning, then return NULL (unused) */
+      if ( i == 0 ) return NULL;
+      i--;
+      strncpy(scrolledname, currentfile.showname+i, config.skin.songnamew);
+      return scrolledname;
+   }
+   
+   if ( config.scrollsn && strlen(currentfile.showname) > (config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8) && action == 1 ) {
+      if ( i+ (config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8) == strlen(currentfile.showname) && wichway == 1 )
+	wichway = -1; else /* <- */
+	if ( i == 0 && wichway == -1 ) wichway = 1; /* -> */
+      i += wichway;
+   } else
+     i = 0;
+   
+   strncpy(scrolledname, currentfile.showname+i, config.showtime == 2 ? config.skin.songnamew : config.skin.songnamew-8 );
+
+   return scrolledname;
+}
+   

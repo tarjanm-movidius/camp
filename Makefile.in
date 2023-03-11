@@ -16,9 +16,10 @@ main:	$(OBJS)
 	@echo ""
 	@echo "-- IMPORTANT! READ THIS ( yeah, you too :) ) --"
 	@echo "If NOT doing \"make install\", please create $(HOME)/.camp, and"
-	@echo "copy camp.ini to $(HOME)/.camp/camprc."
-	@echo "------ developers-only beta, no skins included ------"
-	@echo "If you are planning to use a LPT-Remote control, run \"make rctools\"."
+	@echo "copy camp.ini to $(HOME)/.camp/camprc, and lirc.ini to $(HOME)/.camp/lircrc."
+	@echo "EVEN IF you are doing a \"make install\" you need to copy skins.tar to"
+	@echo "$(HOME)/.camp and execute \"cd $(HOME)/.camp ; tar xvf skins.tar\""
+	@echo "If you are planning to use a LPT remote control, run \"make rctools\"."
 	@echo ""
 rctools:
 	$(CC) $(CFLAGS) -o testrc testrc.c
