@@ -1,9 +1,13 @@
 #ifndef __camp_h
 # define __camp_h
 
+#pragma GCC diagnostic ignored "-Wstringop-truncation"
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+
 #ifdef HAVE_TERMIOS_H
 # include <termios.h>
 #endif
+#include <stdint.h>
 #include "build.h"
 
 #ifdef USE_GPM_MOUSE
@@ -211,14 +215,15 @@ void updatedata(void);
 void updatesongtime(char ch);
 void unloadskin(struct skinconfig *skin);
 void sighandler(int sig);
-int  dofunction(int forcedbutton);
+uintptr_t dofunction(int forcedbutton);
 int  showtip(void);
+int canexit(void);
 
 /* playlist.o */
 unsigned int pl_count( struct playlistent *playlist );
 struct playlistent *pl_seek( unsigned int pos, struct playlistent **playlist );
-void pl_search(char ch, struct playlistent *playlist,int *);
-void pl_showents( int startpos, struct playlistent *playlist,int *);
+void pl_search(char ch, struct playlistent *playlist, unsigned int *);
+void pl_showents( int startpos, struct playlistent *playlist, unsigned int *);
 void pl_updatebuttons(int add);
 void l_status(char *text);
 void clearplaylist(struct playlistent **playlist);
@@ -226,7 +231,6 @@ void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, int 
 void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
 void rplaylist(struct playlistent **playlist, unsigned int *filenumber);
 void sortplaylist(struct playlistent **playlist);
-static int findit (struct playlistent *, char);
 
 
 /* filelist.o */
@@ -258,6 +262,7 @@ char writemp3info(char *filename, char *name, char *artist, char *misc, char *al
 void disappear(void);
 void sigusr1(int signr);
 void stealback(void);
+void killcamp(void);
 
 /* player.o */
 void call_player(struct playlistent *pl);
@@ -271,6 +276,7 @@ char *mpg123_control(char *command); /* 1t'z the n3w sh1t */
 struct configstruct getconfig(char *configfile);
 void loadskin(char *name, struct configstruct *config);
 int parseconfig(char *str, char *arg, char *value);
+int probe_dir(char *dir);
 
 /* misc.o */
 int exist(char *fname);
@@ -284,6 +290,8 @@ void lowcases( char *strng );
 void readpass(char *text, int len);
 unsigned int  myrand(double maxval);
 unsigned char mykbhit(unsigned int sec, unsigned long usec);
+int strchrpos(const char *text, int ch, int what);
+int my_system (char *command);
 #ifdef HAVE_TERMIOS_H
 void termios_raw(struct termios *termios_p);
 #endif
@@ -291,10 +299,11 @@ void termios_raw(struct termios *termios_p);
 /* rc.o */
 unsigned char rcpressed(void);
 void checkrc(void);
-int inb (short port);
+//int inb (short port);
 
 /* mixer.o */
 void set_volume(int dev, int change);
 void get_volume(int dev, int *left, int *right);
+void mute(unsigned char mute);
 
 #endif

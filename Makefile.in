@@ -42,7 +42,7 @@ install-skins:
 	$(CC) $(DEFS) $(CFLAGS) -c $<
 
 clean: 
-	rm -f camp *.o
+	rm -f camp testrc *.o
 
 distclean: clean
 	rm -f config.* Makefile *~

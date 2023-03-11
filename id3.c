@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <ctype.h>
 #include "camp.h"
 
 
@@ -39,9 +40,11 @@ char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, 
     FILE *fd;
     struct ID3 filetag;
     unsigned char buf[31];
-    int lay, error_protection, padding, extension, mode_ext, copyright, original, emphasis;
+    int lay;
+// int error_protection, padding, extension, mode_ext, copyright, original, emphasis;
     unsigned int bitrate=0, sampling_frequency=0;
-    char version, stereo=0;
+    int version;
+    char stereo=0;
 
     fd = fopen(filename, "r");
     if ( fd == NULL ) return FALSE;
@@ -154,8 +157,9 @@ char *fuckspaces(char *lame, int maxpos)
 
 void id3edit(char *filename, struct playlistent *playlist)
 {
-    char name[31], artist[31], album[31], misc[31], year[5], i=0, cspos=0, buf[256], pos=0;
-    unsigned char genre;
+    char name[31], artist[31], album[31], misc[31], year[5], buf[256], pos=0;
+    int i=0, cspos=0;
+    unsigned char genre=0;
     int modified=FALSE, exitchar=0;
     fd_set stdinfds;
 
@@ -169,7 +173,8 @@ void id3edit(char *filename, struct playlistent *playlist)
             cspos++;
         }
 
-    if ( cspos > config.skin.id3fnw ) buf[config.skin.id3fnw] = 0;
+    if ( cspos > config.skin.id3fnw )
+        buf[(int)config.skin.id3fnw] = 0;
     else
         buf[cspos] = 0;
 
@@ -238,11 +243,12 @@ void id3edit(char *filename, struct playlistent *playlist)
         select(fileno(stdin)+1, &stdinfds, NULL, NULL, NULL);
         if ( toupper(getchar()) != 'N' ) {
             writemp3info(filename, name, artist, misc, album, year, genre);
-            if ( playlist != NULL )
+            if ( playlist != NULL ) {
                 if ( artist[0] != 0 )
                     sprintf(playlist->showname, "%s - %s", artist, name);
                 else
                     strcpy(playlist->showname, name);
+            }
         }
     } /* if modified */
     printf("\e[?25l");
@@ -251,4 +257,3 @@ void id3edit(char *filename, struct playlistent *playlist)
 #endif
     return;
 }
-

@@ -16,8 +16,8 @@ char *randomskin(char *rbuf);
 struct configstruct getconfig(char *configfile)
 {
     struct configstruct cconfig;
-    char buf[500], arg[500], value[500];
-    int  i,j ;
+    char buf[513], arg[513], value[513];
+    int  i, j, k;
     FILE *fd;
 
     memset((void*)&cconfig, 0, sizeof(cconfig));
@@ -69,7 +69,7 @@ distribution package, and modify it to fit your needs!\n", configfile);
                 exit(-1);
             }
             strcpy ( cconfig.playername, (char*)rindex(value, '/')+1 );
-            strncpy( cconfig.playerpath, value, (int)rindex(value, '/')-(int)value );
+            strncpy( cconfig.playerpath, value, (uintptr_t)rindex(value, '/')-(uintptr_t)value );
 
             if ( !exist(value) ) {
                 printf("Player %s does not exist, edit %s!\n", value, configfile);
@@ -224,21 +224,18 @@ distribution package, and modify it to fit your needs!\n", configfile);
                 else if ( !strcasecmp(arg, "port") )
                     cconfig.rc.port = atoi(value);
                 else if ( !strcasecmp(arg, "switches") || !strcasecmp(arg, "params") ) {
-                    memset(buf, 0, 499);
-                    i = 0;
-                    value[strlen(value)+1] = 0;
-                    value[strlen(value)] = 32;
-                    for(j=1; j<15; j++)
-                        if ( cconfig.playerargv[j] == NULL ) break;
-                    while ( value[i] != 0 ) {
-                        if ( value[i] == 32 && strlen(buf) != 0 ) {
-                            cconfig.playerargv[j] = (char*)malloc(strlen(buf)+1);
-                            strcpy(cconfig.playerargv[j], buf);
-                            j++;
-                            memset(buf, 0, 499);
-                        } else
-                            strncat(buf, (char*)&value[i], 1);
-                        i++;
+                    for(k = 1; k < 15; k++)
+                        if ( cconfig.playerargv[k] == NULL ) break;
+                    for (i = 0; k < 15 && value[i]; ) {
+                        while (value[i] == ' ') i++;
+                        j = i;
+                        while (value[i] != ' ' && value[i]) i++;
+                        if (i != j) {
+                            cconfig.playerargv[k] = (char*)malloc(i-j+1);
+                            memcpy(cconfig.playerargv[k], &value[j], i-j);
+                            cconfig.playerargv[k][i-j] = 0;
+                            k++;
+                        }
                     }
                 }
     }
@@ -365,7 +362,7 @@ void loadskin(char *name, struct configstruct *config)
     int    fd,i,version=0;
     FILE  *filefd;
     struct stat statbuf;
-    char buf[500], arg[500], value[500], skin_home[500];
+    char buf[513], arg[513], value[513], skin_home[490];
 
     memset((void*)&config->skin, 0, sizeof(struct skinconfig));
 
@@ -404,7 +401,7 @@ void loadskin(char *name, struct configstruct *config)
         }
     }
 
-    sprintf(buf, "%s/main.ans", skin_home, name);
+    sprintf(buf, "%s/main.ans", skin_home);
     fd = open(buf, O_RDONLY);
     if ( fd == -1 ) {
         printf("error! %s not found!\n", buf);
@@ -416,7 +413,7 @@ void loadskin(char *name, struct configstruct *config)
     close(fd);
     config->skin.main[statbuf.st_size] = 0;
 
-    sprintf(buf, "%s/playlist.ans", skin_home, name);
+    sprintf(buf, "%s/playlist.ans", skin_home);
     fd = open(buf, O_RDONLY);
     if ( fd == -1 ) {
         printf("error! %s not found!\n", buf);
@@ -428,7 +425,7 @@ void loadskin(char *name, struct configstruct *config)
     close(fd);
     config->skin.playlist[statbuf.st_size] = 0;
 
-    sprintf(buf, "%s/filelist.ans", skin_home, name);
+    sprintf(buf, "%s/filelist.ans", skin_home);
     fd = open(buf, O_RDONLY);
     if ( fd == -1 ) {
         printf("error! %s not found!\n", buf);
@@ -440,7 +437,7 @@ void loadskin(char *name, struct configstruct *config)
     close(fd);
     config->skin.filelist[statbuf.st_size] = 0;
 
-    sprintf(buf, "%s/id3.ans", skin_home, name);
+    sprintf(buf, "%s/id3.ans", skin_home);
     fd = open(buf, O_RDONLY);
     if ( fd == -1 ) {
         printf("error! %s not found!\n", buf);
@@ -452,7 +449,7 @@ void loadskin(char *name, struct configstruct *config)
     close(fd);
     config->skin.id3[statbuf.st_size] = 0;
 
-    sprintf(buf, "%s/main.conf", skin_home, name);
+    sprintf(buf, "%s/main.conf", skin_home);
     filefd = fopen(buf, "r");
     if ( !filefd ) {
         printf("error! %s not found!\n", buf);
@@ -998,7 +995,7 @@ void loadskin(char *name, struct configstruct *config)
 
     /* playlist skin configuration */
 
-    sprintf(buf, "%s/playlist.conf", skin_home, name);
+    sprintf(buf, "%s/playlist.conf", skin_home);
     filefd = fopen(buf, "r");
     if ( !filefd ) {
         printf("error! %s not found!\n", buf);
@@ -1155,7 +1152,7 @@ void loadskin(char *name, struct configstruct *config)
 
     /* filebrowser skin configuration */
 
-    sprintf(buf, "%s/filelist.conf", skin_home, name);
+    sprintf(buf, "%s/filelist.conf", skin_home);
     filefd = fopen(buf, "r");
     if ( !filefd ) {
         printf("error! %s not found!\n", buf);
@@ -1340,7 +1337,7 @@ void loadskin(char *name, struct configstruct *config)
 
     /* id3-tag editor skin configuration */
 
-    sprintf(buf, "%s/id3.conf", skin_home, name);
+    sprintf(buf, "%s/id3.conf", skin_home);
     filefd = fopen(buf, "r");
     if ( !filefd ) {
         printf("error! %s not found!\n", buf);

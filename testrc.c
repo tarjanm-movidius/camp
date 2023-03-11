@@ -1,3 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/io.h>
+
+/*
+// In original source:
 static inline int inb (short port)
 {
     unsigned char val;
@@ -7,9 +13,19 @@ static inline int inb (short port)
     return val;
 }
 
+// inb() now
+inb (unsigned short int __port)
+{
+  unsigned char _v;
+
+  __asm__ __volatile__ ("inb %w1,%0":"=a" (_v):"Nd" (__port));
+  return _v;
+}
+*/
+
 unsigned char rcpressed(int port)
 {
-    unsigned char in;
+//    unsigned char in;
 
     /* 1 = play
      * 2 = skipR

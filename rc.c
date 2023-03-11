@@ -75,7 +75,7 @@ void checkrc(void)
         if ( dofunction(0) ) call_player(pl_seek(filenumber, &playlist));
         break;
     case 4:
-        (void*)dofunction(3);
+        dofunction(3);
         break;
 #ifdef HAVE_SYS_SOUNDCARD_H
     case 5:

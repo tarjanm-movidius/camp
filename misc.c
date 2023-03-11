@@ -5,6 +5,9 @@
 #include <errno.h>
 #include <sys/time.h>
 #include "camp.h"
+#include <ctype.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #ifdef HAVE_TERMIOS_H
 # include <fcntl.h>
@@ -42,10 +45,10 @@ char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitch
 {
     fd_set fds;
     int ch;
-    unsigned char maxpos=0, pos;
+    unsigned char maxpos=0, pos=0;
     static char buf[256];
     char buf2[256];
-    char *ir, *c;
+//char *ir, *c;
     struct timeval counter;
 
     if ( preval != NULL ) {
@@ -73,22 +76,22 @@ char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitch
 #ifdef LIRCD
         if ( use_lircd ) {
             FD_SET(lirc_lircd, &fds);
-            if ( select(lirc_lircd+1, &fds, NULL, NULL, &counter) != -1 )
+            if ( select(lirc_lircd+1, &fds, NULL, NULL, &counter) != -1 ) {
                 if ( FD_ISSET(lirc_lircd, &fds) ) dolircd(0);
-                else
 
-                    /*{ // Hmm, this was the old code to wander around in the fields with the remote-control, ripped it out :)
-                         ir = lirc_nextir();
-                         while ( ir && (c=lirc_ir2char(lircd_config,ir)) != NULL )
+                /*{ // Hmm, this was the old code to wander around in the fields with the remote-control, ripped it out :)
+                     ir = lirc_nextir();
+                     while ( ir && (c=lirc_ir2char(lircd_config,ir)) != NULL )
 
-                    if ( strlen(c) == 1 ) ch = c[0]; else
-                    if ( !strcasecmp(c, "play") || !strcasecmp(c, "jump") ) ch = 13; else
-                    if ( !strcasecmp(c, "skip-") ) ch = 127; else
-                    if ( !strcasecmp(c, "stop") ) ch = 27;
-                         if ( ir ) free(ir);
-                      } */
+                if ( strlen(c) == 1 ) ch = c[0]; else
+                if ( !strcasecmp(c, "play") || !strcasecmp(c, "jump") ) ch = 13; else
+                if ( !strcasecmp(c, "skip-") ) ch = 127; else
+                if ( !strcasecmp(c, "stop") ) ch = 27;
+                     if ( ir ) free(ir);
+                  } */
 
-                    if FD_ISSET(fileno(stdin), &fds) ch = getchar();
+                else if FD_ISSET(fileno(stdin), &fds) ch = getchar();
+            }
         } else if ( select(fileno(stdin)+1, &fds, NULL, NULL, &counter) != -1 )
             if FD_ISSET(fileno(stdin), &fds) ch = getchar();
 #else

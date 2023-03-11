@@ -1,3 +1,6 @@
+
+#define _GNU_SOURCE
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -7,8 +10,8 @@
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
-#include <string.h>
 #include <malloc.h>
+#include <ctype.h>
 #include "camp.h"
 
 #ifdef HAVE_TERMIOS_H
@@ -31,6 +34,8 @@ extern const char keys[];
 extern unsigned int slavepid;
 extern int selval, lirc_lircd;
 extern struct lirc_config *lircd_config;
+
+static int findit (struct playlistent *, char);
 
 int pl_maxpos=0, pl_current=0;
 int pl_buttonpos, pl_screenmark=0;
@@ -208,7 +213,7 @@ void rplaylist(struct playlistent **playlist, unsigned int *filenumber)
 static int findit (struct playlistent *pl, char ch)
 {
     static char c[100];
-    static cont=0;
+    static int cont=0;
     char tmp[100];
     int i;
 
@@ -254,9 +259,10 @@ static int findit (struct playlistent *pl, char ch)
         free(buftmp);
         return 1;
     }
+    return 0;
 }
 
-void pl_search(char ch, struct playlistent *playlist,int *filenumber)
+void pl_search(char ch, struct playlistent *playlist, unsigned int *filenumber)
 {
     int finish_playlist;
 
@@ -294,11 +300,11 @@ void pl_search(char ch, struct playlistent *playlist,int *filenumber)
 }
 
 
-void pl_showents( int startpos, struct playlistent *playlist, int *filenumber )
+void pl_showents( int startpos, struct playlistent *playlist, unsigned int *filenumber )
 {
     int i=0, k=0;
     char shortname[100];
-    int count=0;
+// int count=0;
 
     if ( startpos < 0 ) startpos = 0;
 
@@ -315,13 +321,11 @@ void pl_showents( int startpos, struct playlistent *playlist, int *filenumber )
 
         memset(shortname, 0, 100);
 
-        if ( config.showtime > 1 )
-            if ( playlist->length ) sprintf(shortname, "[%02u:%02u] ", playlist->length / 60, playlist->length % 60 );
-            else if ( !strncasecmp(playlist->showname, "http://", 7) )
-                strcpy(shortname, "[strem] ");
-            else
-                strcpy(shortname, "[ n/a ] ");
-
+        if ( config.showtime > 1 ) {
+            if ( playlist->length ) sprintf(shortname, "[%02lu:%02lu] ", playlist->length / 60, playlist->length % 60 );
+            else if ( !strncasecmp(playlist->showname, "http://", 7) ) strcpy(shortname, "[strem] ");
+            else strcpy(shortname, "[ n/a ] ");
+        }
         strncat(shortname, playlist->showname, config.skin.plistw-(5+strlen(shortname)));
         for (k=strlen(shortname); k<config.skin.plistw-5; k++) shortname[k] = ' ';
 
@@ -519,7 +523,7 @@ void pl_domouse(struct playlistent **playlist, unsigned int *filenumber, Gpm_Eve
     }
 
     /* middle button, any kind of click */
-    if ( event->buttons & 2 && event->type & GPM_DOWN ) {
+    if ( (event->buttons & 2) && (event->type & GPM_DOWN) ) {
         printf("\e[0m\e[2J\e[1;1H%s", config.skin.playlist);
         pl_showents(pl_current-pl_screenmark, *playlist,filenumber);
         pl_updatebuttons(0);
@@ -527,14 +531,14 @@ void pl_domouse(struct playlistent **playlist, unsigned int *filenumber, Gpm_Eve
 
     /* right button, any kind of click */
     /*
-       if ( event.buttons & 1 && event.type & GPM_DOWN ) {
+       if ( (event.buttons & 1) && (event.type & GPM_DOWN) ) {
           currloc = CAMP_RET;
           return;
        }
      */
 
     /* left button - any kind of click */
-    if ( event->buttons & 4 && event->type & GPM_DOWN && !(event->type & GPM_DRAG) )
+    if ( (event->buttons & 4) && (event->type & GPM_DOWN) && !(event->type & GPM_DRAG) ) {
         if ( event->y == config.skin.plisty-1 && event->x >= config.skin.plistx && event->x < (config.skin.plistx+config.skin.plistw) ) {
             /* page up */
             if ( pl_current < config.skin.plistlines ) {
@@ -563,9 +567,10 @@ void pl_domouse(struct playlistent **playlist, unsigned int *filenumber, Gpm_Eve
                     pl_dofunction(playlist, filenumber, -1);
                     break;
                 }
+    }
 
     /* left button - single click */
-    if ( event->buttons & 4 && event->type & GPM_SINGLE )
+    if ( (event->buttons & 4) && (event->type & GPM_SINGLE) )
         if ( event->y >= config.skin.plisty && event->y < (config.skin.plisty+config.skin.plistlines) && \
                 event->x >= config.skin.plistx  && event->x < (config.skin.plistx+config.skin.plistw) && \
                 (pl_current-pl_screenmark+event->y-config.skin.plisty) <= pl_maxpos ) {
@@ -576,7 +581,7 @@ void pl_domouse(struct playlistent **playlist, unsigned int *filenumber, Gpm_Eve
         }
 
     /* left button - double click */
-    if ( event->buttons & 4 && event->type & GPM_DOUBLE )
+    if ( (event->buttons & 4) && (event->type & GPM_DOUBLE) )
         if ( event->y >= config.skin.plisty && event->y < (config.skin.plisty+config.skin.plistlines) && \
                 event->x >= config.skin.plistx && event->x < (config.skin.plistx+config.skin.plistw) && \
                 (pl_current-pl_screenmark+event->y-config.skin.plisty) <= pl_maxpos ) {
@@ -594,7 +599,7 @@ void pl_domouse(struct playlistent **playlist, unsigned int *filenumber, Gpm_Eve
         }
 
     /* right button, any kind of click */
-    if ( event->buttons & 1 && event->type & GPM_DOWN && !(event->type & GPM_DRAG) )
+    if ( (event->buttons & 1) && (event->type & GPM_DOWN) && !(event->type & GPM_DRAG) ) {
         if ( event->y == (config.skin.plisty-1) && event->x >= config.skin.plistx && event->x < (config.skin.plistx+config.skin.plistw) ) {
             /* home */
             pl_current = 0;
@@ -606,6 +611,7 @@ void pl_domouse(struct playlistent **playlist, unsigned int *filenumber, Gpm_Eve
             pl_screenmark = 0;
             pl_showents(pl_current-pl_screenmark, *playlist, filenumber);
         }
+    }
 
     if ( config.skin.mainatpl && currloc == CAMP_PL )
         main_domouse(event);
@@ -627,10 +633,10 @@ char *lowercases(char *str)
 
 void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 )
 {
-    char   name[31], artist[31], cwd[256], *buf;
+    char   name[31], artist[31], cwd[254], *buf;
     int    cspos, j, lastdot;
     struct stat statf;
-    size_t filesize;
+//    size_t filesize;
 
     if ( config.mpg123 )
         mpg123_control(NULL);
@@ -649,20 +655,20 @@ void addfiletolist(struct playlistent **playlist, char *filename, char *showname
     (*playlist)->next->prev = *playlist;
     (*playlist)->next->number = (*playlist)->number +1;
     if ( filename[0] != '/' && strncasecmp(filename, "http://", 7) ) {
-        getcwd(cwd, 256);
+        getcwd(cwd, 253);
         sprintf((*playlist)->name, "%s/%s", cwd, filename);
     } else
         strcpy((*playlist)->name, filename);
 
-    if ( !showname )
+    if ( !showname ) {
         if ( scanid3 && getmp3info(filename, &mode, &samplerate, &bitrate, name, artist, NULL, NULL, NULL, 0) && artist[0]+name[0] ) {
             if ( artist[0] && name[0] ) sprintf(buf, "%s - %s", artist, name );
             else if ( artist[0] ) sprintf(buf, "%s - (unknown)", artist);
             else
                 sprintf(buf, "(unknown) - %s", name);
-            strncpy((*playlist)->showname, buf, 100);
+            strncpy((*playlist)->showname, buf, 99);
         } else if ( !strncasecmp(filename, "http://", 7) ) {
-            strncpy( (*playlist)->showname, filename, 100 );
+            strncpy( (*playlist)->showname, filename, 99 );
             (*playlist)->showname[99] = 0;
         } else {
             /* no id3/empty id3 */
@@ -688,6 +694,7 @@ void addfiletolist(struct playlistent **playlist, char *filename, char *showname
             }
             if ( lastdot && cspos != 99) (*playlist)->showname[lastdot] = 0; /* rip off extension */
         }
+    }
 
     if ( bitrate ) {
         stat(filename, (struct stat*)&statf);
@@ -797,10 +804,10 @@ unsigned char pl_dolircd(struct playlistent **playlist, unsigned int *filenumber
             }
 
             if ( !strcasecmp(c, "play") )     pl_dofunction(playlist, filenumber, 1);
-            if ( !strcasecmp(c, "stop") )     (void*)dofunction(3);
+            if ( !strcasecmp(c, "stop") )     dofunction(3);
             if ( !strcasecmp(c, "playlist") ) return 1;
-            if ( !strcasecmp(c, "pause") )    (void*)dofunction(8);
-            if ( !strcasecmp(c, "mute") )     (void*)dofunction(14);
+            if ( !strcasecmp(c, "pause") )    dofunction(8);
+            if ( !strcasecmp(c, "mute") )     dofunction(14);
 # ifdef HAVE_SYS_SOUNDCARD_H
             if ( !strcasecmp(c, "vol+") ) set_volume(config.voldev, config.volstep);
             if ( !strcasecmp(c, "vol-") ) set_volume(config.voldev, -config.volstep);

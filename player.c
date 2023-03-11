@@ -28,7 +28,7 @@ extern int pl_current, pl_screenmark;
 
 void playnext(int sig)
 {
-    int status = 0;
+// int status = 0;
 
     if ( !playlist ) return;
     if ( sig == SIGALRM ) {
@@ -74,8 +74,9 @@ void killslave()
 
 void slave(char *filename)
 {
-    char i=0, buf[256];
-    FILE *fd;
+    char buf[256];
+    int i=0;
+// FILE *fd;
 
 #ifdef USE_GPM_MOUSE
     while ( Gpm_Close() != 0 ) ;
@@ -100,7 +101,7 @@ void slave(char *filename)
 
 void call_player(struct playlistent *pl)
 {
-    int  j, cspos=0;
+// int  j, cspos=0;
     char name[31], artist[31], buf[500];
     struct stat statf;
     FILE *fd;
@@ -195,10 +196,7 @@ char *mpg123_control(char *command)
     fd_set rfds;
     struct timeval tv;
     static char buf[500];
-    char ch[2];
-    int i;
-
-    ch[1] = 0;
+    int i, j;
 
     if ( command && !strcmp(command+1, "RESTART") ) {
         /* Oh my god!! They've killed kenny! */
@@ -289,11 +287,16 @@ char *mpg123_control(char *command)
             if ( select(mpgrfd+1, &rfds, NULL, NULL, &tv) && FD_ISSET(mpgrfd, &rfds) ) {
                 /* Data availible in pipe */
 
-                memset(buf, 0, 500);
-                while ( (read(mpgrfd, ch, 1) != 0) && ch[0] != '\n'  )
-                    if ( ch[0] != '\r' && ch[0] != '\n' ) strncat(buf, ch, 1);
+//                memset(buf, 0, 500);
+//                while ( (read(mpgrfd, ch, 1) != 0) && ch[0] != '\n'  )
+//                    if ( ch[0] != '\r' && ch[0] != '\n' ) strncat(buf, ch, 1);
+
                 /* There must be a better way to read single lines from files/piles eh?
-                 * something like fgets .. please inform me if there is such a command :) */
+                 * something like fgets .. please inform me if there is such a command :)
+                 * MT:  ssize_t getline(char **restrict lineptr, size_t *restrict n, FILE *restrict stream); */
+
+                for (j = 0; read(mpgrfd, &buf[j], 1) != 0 && buf[j] != '\n' && buf[j] != '\r'; j++);
+                buf[j] = 0;
 
                 if ( !strncmp(buf, "@R ", 3) ) {
                     /* Get mpg123 version

@@ -69,7 +69,7 @@ void get_volume(int dev, int *left, int *right)
 
 void mute(unsigned char mute)
 {
-    static oldl, oldr = 0;
+    static int oldl, oldr = 0;
 
     if ( mute ) {
         get_volume(SOUND_MIXER_VOLUME, &oldl, &oldr);

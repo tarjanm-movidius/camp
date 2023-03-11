@@ -1,6 +1,7 @@
 *~
 *.o
 camp
+testrc
 config.cache
 config.log
 config.status

@@ -9,6 +9,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include "camp.h"
+#include <ctype.h>
 
 #ifdef HAVE_TERMIOS_H
 # include <fcntl.h>
@@ -22,6 +23,8 @@
 # include <zlib.h>
 #endif
 
+#define BUF_SZ  256
+
 extern char playsong, checkkill, use_lircd, currloc;
 extern struct configstruct config;
 extern unsigned int slavepid;
@@ -29,7 +32,8 @@ extern int lirc_lircd, selval;
 
 int fl_buttonpos;
 unsigned int fl_maxpos=0, current[50];
-char depth=0, screenmark[50], cdir[256];
+int depth=0;
+char screenmark[50], cdir[BUF_SZ];
 
 
 void getfiles(struct playlistent **playlist)
@@ -49,7 +53,7 @@ void getfiles(struct playlistent **playlist)
     memset(current, 0, sizeof(current));
     memset(screenmark, 0, sizeof(screenmark));
 
-    if ( cdir[0] == 0 && config.startincwd && getcwd(cdir, 256) ) {
+    if ( cdir[0] == 0 && config.startincwd && getcwd(cdir, BUF_SZ) ) {
         for(i=0; i<strlen(cdir); i++) if ( cdir[i] == '/' ) depth++;
         cdir[i]   = '/';
         cdir[i+1] = 0;
@@ -222,7 +226,7 @@ void getfiles(struct playlistent **playlist)
 struct filelistent *camp_chdir(struct filelistent *filelist)
 {
     struct filelistent *newlist = NULL;
-    char   origpath[256];
+    char   origpath[BUF_SZ];
     int    origdepth = depth;
 
     strcpy(origpath, cdir);
@@ -232,7 +236,9 @@ struct filelistent *camp_chdir(struct filelistent *filelist)
         cdir[strrchr(cdir, '/')-cdir+1] = '\0';
         depth--;
     } else {
-        sprintf(cdir, "%s%s/", cdir, file_seek(current[depth], filelist)->name);
+//        snprintf(cdir, BUF_SZ, "%s%s/", cdir, file_seek(current[depth], filelist)->name);
+        strncat(cdir, file_seek(current[depth], filelist)->name, BUF_SZ - strlen(cdir) - 2);
+        strcat(cdir, "/");
         depth++;
         current[depth] = 0;
         screenmark[depth] = 0;
@@ -275,7 +281,7 @@ void fl_showents( int startpos, struct filelistent *filelist )
 
         strncpy(shortname, filelist->name, config.skin.flistw);
         for (k=strlen(shortname); k<config.skin.flistw; k++) shortname[k] = ' ';
-        shortname[config.skin.flistw] = '\0';
+        shortname[(int)config.skin.flistw] = '\0';
 
         printf("\e[%d;%dH%s",i+config.skin.flisty, config.skin.flistx, shortname);
         i++;
@@ -339,9 +345,9 @@ void fl_updatebuttons(int add)
 
 void fl_dofunction( struct filelistent *filelist, struct playlistent **playlist )
 {
-    struct playlistent *temp;
-    char name[31], artist[31], buf[256];
-    char j, cspos;
+// struct playlistent *temp;
+    char /* name[31], artist[31], */ buf[BUF_SZ];
+    char j; //, cspos;
 
     switch( config.skin.flistbo[fl_buttonpos] ) {
 
@@ -349,7 +355,7 @@ void fl_dofunction( struct filelistent *filelist, struct playlistent **playlist 
 
         filelist = file_seek(0, filelist);
         while ( filelist->next != NULL ) {
-            sprintf(buf, "%s%s", cdir, filelist->name);
+            snprintf(buf, BUF_SZ, "%s%s", cdir, filelist->name);
             if ( filelist->tagged ) {
                 addfiletolist(playlist, buf, NULL, 0, 0, 0, config.useid3);
                 filelist->tagged = FALSE;
@@ -378,7 +384,7 @@ void fl_dofunction( struct filelistent *filelist, struct playlistent **playlist 
         break;
 
     case 3: /* load playlist */
-        sprintf(buf, "%s%s", cdir, file_seek(current[depth], filelist)->name);
+        snprintf(buf, BUF_SZ, "%s%s", cdir, file_seek(current[depth], filelist)->name);
         loadplaylist(playlist, buf, TRUE);
         break;
 
@@ -524,11 +530,11 @@ struct filelistent *sortfilelist(struct filelistent *filelist)
 void loadplaylist(struct playlistent **playlist, char *filename, char filemanager)
 {
     FILE *fd;
-    int  ch=0, cspos, j, cplid3 = FALSE;
+// int  ch=0, cspos, j, cplid3 = FALSE;
     char *buf;
-    unsigned int samplerate;
-    unsigned int bitrate;
-    unsigned char mode;
+// unsigned int samplerate;
+// unsigned int bitrate;
+// unsigned char mode;
     struct oneplaylistent getpl;
 
 #ifdef HAVE_LIBZ
@@ -615,13 +621,13 @@ void loadplaylist(struct playlistent **playlist, char *filename, char filemanage
 
 void saveplaylist(struct playlistent *playlist, char *filename, char directsave)
 {
-    FILE   *fd;
+    FILE   *fd = NULL;
     fd_set stdinfds;
     char   cplid3 = TRUE, ch, *buf, *buf2;
     int    exitchar = 0;
     struct oneplaylistent getpl;
 #ifdef HAVE_LIBZ
-    gzFile gzfd;
+    gzFile gzfd = NULL;
 #endif
 
     memset((void*)&getpl, 0, sizeof(struct oneplaylistent));
@@ -760,9 +766,9 @@ void recurseplaylist (struct filelistent *filelist, struct playlistent **playlis
                 filelist->tagged = TRUE;
             if (filelist->type == 2) {
                 struct filelistent *newlist;
-                char olddir[256];
-                char newdir[256];
-                sprintf(newdir, "%s%s/",dir,filelist->name);
+                char olddir[BUF_SZ];
+                char newdir[BUF_SZ];
+                snprintf(newdir, BUF_SZ, "%s%s/",dir,filelist->name);
                 strcpy (olddir,cdir);
                 strcpy (cdir,newdir);
                 newlist=loaddir(newdir);
@@ -790,7 +796,7 @@ int fl_domouse(struct filelistent **filelist, struct playlistent **playlist)
     Gpm_GetEvent(&event);
 
     /* middle button, any kind of click */
-    if ( event.buttons & 2 && event.type & GPM_DOWN ) {
+    if ( (event.buttons & 2) && (event.type & GPM_DOWN) ) {
         printf("\e[0m\e[2J\e[1;1H%s", config.skin.filelist);
         fl_showents(current[depth]-screenmark[depth], *filelist);
         fl_updatebuttons(0);
@@ -798,7 +804,7 @@ int fl_domouse(struct filelistent **filelist, struct playlistent **playlist)
 
 
     /* left button - any kind of click */
-    if ( event.buttons & 4 && event.type & GPM_DOWN && !(event.type & GPM_DRAG) )
+    if ( (event.buttons & 4) && (event.type & GPM_DOWN) && !(event.type & GPM_DRAG) ) {
         if ( event.y == config.skin.flisty-1 && event.x >= config.skin.flistx && event.x < (config.skin.flistx+config.skin.flistw) ) {
             /* page up */
             if ( current[depth] < config.skin.flistlines ) {
@@ -830,11 +836,11 @@ int fl_domouse(struct filelistent **filelist, struct playlistent **playlist)
                     fl_dofunction(*filelist, playlist);
                     break;
                 }
+    }
 
 
     /* left button - any click/move */
-    if ( event.buttons & 4 && \
-            ( event.type & GPM_DRAG || event.type & GPM_DOWN ) )
+    if ( (event.buttons & 4) && ( (event.type & GPM_DRAG) || (event.type & GPM_DOWN) ) ) {
         if ( event.y >= config.skin.flisty && event.y < (config.skin.flisty+config.skin.flistlines) && \
                 event.x > config.skin.flistx && event.x < (config.skin.flistx+config.skin.flistw) && \
                 current[depth]-screenmark[depth]+event.y-(config.skin.flisty) <= fl_maxpos ) {
@@ -844,10 +850,10 @@ int fl_domouse(struct filelistent **filelist, struct playlistent **playlist)
             if (!file_seek(current[depth]-screenmark[depth]+event.y-config.skin.flisty, *filelist)->tagged) togglemark(*filelist, FALSE);
             fl_showents(current[depth]-screenmark[depth], *filelist);
         }
+    }
 
     /* right button - any click/move */
-    if ( event.buttons & 1 && \
-            ( event.type & GPM_DRAG || event.type & GPM_DOWN ) )
+    if ( (event.buttons & 1) && ( (event.type & GPM_DRAG) || (event.type & GPM_DOWN) )) {
         if ( event.y >= config.skin.flisty && event.y < (config.skin.flisty+config.skin.flistlines) && \
                 event.x >= config.skin.flistx && event.x < (config.skin.flistx+config.skin.flistw) && \
                 current[depth]-screenmark[depth]+event.y-(config.skin.flisty) <= fl_maxpos ) {
@@ -857,8 +863,9 @@ int fl_domouse(struct filelistent **filelist, struct playlistent **playlist)
             if (file_seek(current[depth]-screenmark[depth]+event.y-config.skin.flisty, *filelist)->tagged) togglemark(*filelist, FALSE);
             fl_showents(current[depth]-screenmark[depth], *filelist);
         }
+    }
 
-    if ( !(event.type & GPM_DRAG) && event.buttons & 4 && event.type & GPM_DOUBLE )
+    if ( !(event.type & GPM_DRAG) && (event.buttons & 4) && (event.type & GPM_DOUBLE) ) {
         if ( event.y >= config.skin.flisty && event.y < (config.skin.flisty+config.skin.flistlines) && \
                 event.x >= config.skin.flistx && event.x < (config.skin.flistx+config.skin.flistw) && \
                 current[depth]-screenmark[depth]+event.y-config.skin.flisty <= fl_maxpos ) {
@@ -871,9 +878,10 @@ int fl_domouse(struct filelistent **filelist, struct playlistent **playlist)
                 *filelist = camp_chdir(*filelist);
             fl_showents(current[depth]-screenmark[depth], *filelist);
         }
+    }
 
     /* right button, single click */
-    if ( event.buttons & 1 && event.type & GPM_DOWN && !(event.type & GPM_DRAG) )
+    if ( (event.buttons & 1) && (event.type & GPM_DOWN) && !(event.type & GPM_DRAG) ) {
         if ( event.y == config.skin.flisty-1 && event.x >= config.skin.flistx && event.x < (config.skin.flistx+config.skin.flistw) ) {
             /* home */
             current[depth] = 0;
@@ -885,6 +893,7 @@ int fl_domouse(struct filelistent **filelist, struct playlistent **playlist)
             screenmark[depth] = 0;
             fl_showents(current[depth]-screenmark[depth], *filelist);
         }
+    }
     return 0;
 }
 #endif

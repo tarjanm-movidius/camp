@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/io.h>
 #include "camp.h"
 
 #ifdef HAVE_UTMP_H
@@ -96,7 +97,7 @@ void sigusr1(int signr)
 {
     FILE *fd=NULL;
     char buf[256];
-    struct oneplaylistent getpl;
+//struct oneplaylistent getpl;
 
     if ( playlist ) {
         pl_seek(0, &playlist);
@@ -106,7 +107,7 @@ void sigusr1(int signr)
 
     sprintf(buf, "%s/data.camp", TMP_DIR);
     fd = fopen(buf, "w");
-    fprintf(fd, "%d\n%d\n%d\n", slavepid, filenumber, currentfile.frame);
+    fprintf(fd, "%d\n%d\n%lu\n", slavepid, filenumber, currentfile.frame);
     fclose(fd);
 
     updatesongtime('w');
@@ -194,7 +195,7 @@ void stealback(void)
         printf("No data found, can't steal!\n");
         exit(0);
     }
-    fscanf(fd, "%d\n%d\n%d\n", &slavepid, &filenumber, &currentfile.frame);
+    fscanf(fd, "%d\n%d\n%lu\n", &slavepid, &filenumber, &currentfile.frame);
     fclose(fd);
     sprintf(buf, "%s/data.camp", TMP_DIR);
     unlink(buf);
@@ -209,11 +210,11 @@ void stealback(void)
         if ( config.mpg123 ) {
             signal(SIGCHLD, playnext);
             playsong = TRUE;
-            sprintf(buf, "LOAD %s\n", currentfile.name);
+            snprintf(buf, 255, "LOAD %s\n", currentfile.name);
             (void*)mpg123_control(buf);
             if ( !config.mpg123fastjump ) (void*)mpg123_control("#@S");
             /* -- for versions of mpg123 earlier than 0.59s to resume song currectly */
-            sprintf(buf, "JUMP +%d\n", currentfile.frame);
+            sprintf(buf, "JUMP +%lu\n", currentfile.frame);
             (void*)mpg123_control(buf);
         }
     } else printf("done!\n");
