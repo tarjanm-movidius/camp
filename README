@@ -1,4 +1,7 @@
-CAMP - Console Ansi Mpeg3 Player interface version 1.1.956 released 1998-06-03
+This is growing old, and I hate writing doc's... 
+I have just re-written some nessecary stuff, the rest still suck.
+
+CAMP - Console Ansi Mpeg3 Player interface version 1.3.x.
 
 
 
@@ -15,7 +18,7 @@ CAMP - Console Ansi Mpeg3 Player interface version 1.1.956 released 1998-06-03
 	2.1 Install
 	2.2 Syntax ( switches that can be passed to camp )
 	2.3 Converting playlists
-	2.4 Configuration (~/.camp) format
+	2.4 Configuration (~/.camp/camprc) format
 	2.5 Interface buttons, functions
 
 
@@ -36,8 +39,8 @@ at your own risk! ( I doubt it's risky to use it anyway :) )
 If you find any bugs, try to remeber HOW you made the 
 bug appear, or even better, if you can make up some kind of fix, mail the
 fix/bug to me at inm@m1crosoft.com. This documentation has a really
-low quality, and that's just because i hate to write doc's, and that
-english isn't my native language ;)
+low quality, and that's just because i hate to write doc's, and english 
+isn't my native language ;)
 Feel very free to mail me with any comments/ideas you have.
 
 
@@ -45,14 +48,20 @@ Feel very free to mail me with any comments/ideas you have.
 
 * Cleanup the code, remove some global variables.
 * Fix all the small bugs i don't know of yet.
-* Write a nicer documentation
+* Write a nicer documentation (did you really belive that?)
 ( No really important stuff )
 
 
 1.3.2 - Requests:
 
-None that aren't already fixed, pleas mail me (inm@m1crosoft.com) with
-heaps of suggestions! I'm running out of ideas ;(
+* Mute button or key
+* Shuffle, some people hate my random =)
+* Cd/radio support on the interface.
+* Daemon mode for controlling camp with one pc, and actually doing the
+  shit on another pc. (* Actually, ESD solves this *)
+
+Pleas mail me (inm@m1crosoft.com) with heaps of suggestions/ideas! I'm
+running out of 'em ;(
 
 
 2.1 - Install:
@@ -60,15 +69,19 @@ heaps of suggestions! I'm running out of ideas ;(
 To compile and install the camp-source, type the following commands:
 
 ./configure
-./make
-./make install
+make
+make install
+cp skins.tar ~/.camp
+cd ~/.camp
+tar xvf skins.tar
 
-If you don't know what to answer when running configure, it's probably
-safe for everyone to answer use Linux defaults or Termios.
-
-Make sure to edit ".camp" in your homedirectory to point the player
+Make sure to edit "/.camp/camprc" in your homedirectory to point the player
 variable to mpg123 or any other command-line mp3 player. 
-CAMP is known to compile and run under Linux, and SunOS.
+CAMP is known to compile and run under any linux distribution. older
+versions did also compile under SunOS, but I haven't cared to test newer
+version. It does also compile under *BSD, but i think the keys are
+fucked-up, and I will use ncurses for reading keys, as soon as I feel like
+rewriting that.
 
 
 2.2 - Syntax:
@@ -82,7 +95,7 @@ with "camp -p /path/to/playlist/allfiles.lst", OR simply start it with the
 command "camp /songs/mp3/*mp3". Notice that if you load your files
 normal once, then save them as a "ID3" playlist, will make camp load
 them at least ten times faster, since it doesn't have to scan them for
-samplingrates/ID3 tags.
+samplerates/ID3 tags.
 
 -s, --steal
 "Steal" control of a running camp session. Useful when you have used the
@@ -94,6 +107,16 @@ Steal & kill a running camp session.
 -b, --background
 Never load the interface, put camp in the background directly.
 
+-d, --dumpid3
+Dumps all id3-tags, or in case there is no id3 tag, dump the filename to
+stdout.
+
+-f, --force
+Load even if another camp is running, do not write pid-file. (non-stealabe)
+
+--norc
+Do not try to use the remote-control
+
 
 2.3 - Converting playlists:
 
@@ -103,37 +126,70 @@ playlists. When you have installed the new CAMP, load the playlist, and
 save it with id3 tags again.
 
 
-2.4 - Config ".camp" format:
+2.4 - Config "camprc" format:
 
 player     = mp3 player with complete path.
 switches   = switches to pass to player.
 playmode   = random, repeat or normal.
 hidedot    = hide files/dirs beginning with a dot?
-dontreopen = don't close stdout & stderr, and reopen them to /dev/null.
+dontreopen = don't close stdout & stderr and reopen them to /dev/null.
 showlength = can be playlist, main or both. ( Show song total time )
 timemode   = Count time from start ( normal ), or countdown ( reverse )
 startincwd = Open playlist browser in current dir ( instead of root dir )
-ttymode    = 8bit or 7bit ( 7bit will not print chars > ascii 127 )
-
+skin       = Name of skin, skins are found in ~/.camp/skins/<name>
+playerprio = Acts like a renice, highest prio is -20, lowest 20, only root can
+             set higher priority than 0
+volumestep = incr/decr volume this many steps each time key is pressed (0-100)
+volumedev  = device to change volume on, can be pcm, synth, main, or a
+             numeric value, check SOUND_MIXER_??? values in sys/soundcard.h
+             The volume can be changed anywhere, simply press the + and -
+             keys
+userc      = use remote control? can be overriden by --norc
+rctime     = time in microseconds between reads, keep at 900000 if no rc
 yes, true or 1 will activate a setting, anything else will inactivate it.
+
+port,play,stop,skipb,skipf,vol+ & vol- are remote-control values.
+
+port = the decimal address of the printer-port the remote-control is
+       attached to.
+play,stop,skipb,skipf,vol+ & vol- are the values of the port when pressing
+the button. Values can be obtained using the "testrc" program that is
+built by typing "make rctools" 
 
 If you don't use mpg123, xaudio or amp, it might be a good idea to enter
 switches = (whatever switch to make the player stop output text to stdout/err)
 
 My default config is as follows:
 
-player     = /usr/local/bin/xaudio
+skin       = rawlock
+player     = /usr/local/bin/mpg123
+switches   = 
+playerprio = -20
 playmode   = random
 hidedot    = yes
 dontreopen = false
 showlength = playlist
 timemode   = reverse
 startincwd = yes
-ttymode    = 8bit
-switches   =
+readid3    = true
+volumestep = 5
+volumedev  = pcm
+userc      = true
+rctime     = 75000
+# Remote-Control Configuration
+port  = 888
+play  = 79
+stop  = 255
+skipb = 111
+skipf = 95
+vol+  = 119
+vol-  = 63
 
 
 2.5 - Interface buttons, functions:
+
+*** If using any other skins than camp-8bit, this isn't really correct ***
+
 
 Row 1, at the mainscreen:
 
@@ -240,12 +296,12 @@ Space:
 
 
 -------------------------------------------------------
-Homepage: http://linux.mccom.net/~inm
-Ftp-Site: ftp://artpacks.sweart.nu/pub/sector7 (down)
-Email:    inm@m1crosoft.com
-IRC:      inm, on efnet
+Homepage: http://camp.goes.berzerk.nu
+Ftp-Site: -
+Email:    inm@m1crosoft.com & inm@camp.goes.berzerk.nu
+IRC:      inm, on efnet and ircnet
 ICQ:      6970303
 
-Please send me any kind of comments/bugs/ideas.
+Please send me any kind of comments/bugs/ideas/skins.
 
 End Of File

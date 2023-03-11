@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 #include <sys/time.h>
 #include "camp.h"
 
@@ -8,24 +10,7 @@
 #include <gpm.h>
 #endif
 
-int readln(FILE *fd, char *text) {
-char buf[256];
-int ch, i=0;
-
-   do {
-      ch = getc(fd);
-      if ( ch != EOF && ch != '\n' ) {
-	 buf[i] = ch;
-	 i++;
-      }
-   } while( ch != EOF && ch != '\n' );
-   buf[i] = 0;
-   strcpy(text, buf);
-   
-   if ( ch == EOF && i == 0) return EOF; else
-     return i;
-}
-
+extern char **environ;
 
 char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitchar, int *modified) {
 fd_set stdinfds;
@@ -97,11 +82,18 @@ return buf;
 void readpass(char *text, int len) {
 char tmp[100];
 int ch=-1;
+struct timeval starttime, currenttime;
+   
+   gettimeofday(&starttime, NULL);
    
    tmp[0] = 0;
-   while ( ch != 13 ) {
+   while ( ch != 13 ) {      
+      gettimeofday(&currenttime, NULL);
+      if ( currenttime.tv_sec  == starttime.tv_sec+10 ) return;
+      usleep(10000);
       ch = getchar();
       if ( ch != -1 ) {
+	 gettimeofday(&starttime, NULL);
 	 switch(ch) { 	    
 	  case 127: if ( tmp[0] != 0 ) {
 	     tmp[strlen(tmp)-1] = 0;
@@ -168,12 +160,21 @@ int i=0, wht=0;
    return -1;
 }
 
-char *strtrim(char *text) {
+char *strtrim(char *text, char trimchar) {
    
-   while (text[0] == 32 || text[strlen(text)-1] == 32) {
-      if ( text[0] == 32 ) strcpy(text, (char*)text+1);
-      if ( text[strlen(text)-1] == 32 ) text[strlen(text)-1] = '\000';
+   while (text[0] == trimchar || text[strlen(text)-1] == trimchar) {
+      if ( text[0] == trimchar ) strcpy(text, (char*)text+1);
+      if ( text[strlen(text)-1] == trimchar ) text[strlen(text)-1] = '\000';
    }
+   return text;
+}
+
+char *replace(char *text, char oldc, char newc) {
+int i;
+   
+   for(i=0;i<strlen(text);i++)
+     if ( text[i] == oldc ) text[i] = newc;
+   
    return text;
 }
 
@@ -185,6 +186,31 @@ void termios_raw(struct termios *termios_p) {
    termios_p->c_cflag |= CS8;
 }
 
+int my_system (char *command) { /* ripped out of system's manpage */
+int pid, status;
+   
+   if ( !command ) return 1;
+   pid = fork();
+   if ( pid == -1 ) return -1;
+   if ( !pid ) {
+      char *argv[4];
+      argv[0] = "sh";
+      argv[1] = "-c";
+      argv[2] = command;
+      argv[3] = 0;
+      execve("/bin/sh", argv, environ);
+      exit(127);
+   }
+   do {
+      if (waitpid(pid, &status, 0) == -1) {
+	 if (errno != EINTR)
+	   return -1;
+      } else
+	return status;
+   } while(1);
+}
+
+
 #ifdef USE_GPM_MOUSE
 void my_Gpm_Init(Gpm_Connect *mouse) {
    mouse->eventMask = GPM_DOWN|GPM_SINGLE|GPM_DOUBLE|GPM_DRAG; 
@@ -192,9 +218,14 @@ void my_Gpm_Init(Gpm_Connect *mouse) {
    mouse->maxMod = 0;
    mouse->minMod = 0;
 
-   gpm_zerobased = 0;
+   gpm_zerobased      = 0;
+   gpm_visiblepointer = 1;
    Gpm_Open(mouse, 0);     /* Open mouse on current VT */
    gpm_handler = NULL;     /* We don't use a default handler */
+   if ( !gpm_flag ) {
+      while ( Gpm_Close() != 0 ) ;
+      gpm_fd = -1;	
+   }
 }
 
 void my_Gpm_Purge(void) {
@@ -211,3 +242,4 @@ struct timeval tv;
      Gpm_GetEvent(&event);
 }
 #endif
+

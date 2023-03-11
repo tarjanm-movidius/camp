@@ -1,17 +1,32 @@
 Console Ansi Mpeg3 Player interface - Credits list
 
 Coding:
- inm (inm@m1crosoft.com)
+ inm (inm@m1crosoft.com, inm@camp.goes.berzerk.nu)
  
-Ansi-logo:
- chrom (mikael.almstedt@mainline.se)
+Ansi:
+ exit logo      - chrom   (mikael.almstedt@mainline.se)
+ skin "rawlock" - rawlock (rawlock@linux.nu)
+ skin "vader"   - vader   (vader@camp.goes.berzerk.nu)
+ skin "warder"  - warder  (*)
+
+Vader & warder's skins are not 100% complete yet, but as soon as they are, they
+will be available for download at http://camp.goes.berzerk.nu, for now you can
+only view the screenshots on the homepage.
+
+Also a HUGE thanks to warder for helping me out to find all the million small
+bugs when dealing with skins, and for all the skin-improvement ideas!
 
 Betatesters:
  bjorne (bjjo@algonet.se)
- wizard (unknown)
- vader- (sp97jwa@ksk.sala.se)
+ acr    (unknown)
+ vader  (vader@camp.goes.berzerk.nu)
  nemo   (nemo@flashback.se)
- kers   (kers@kracked.com)
 
 People that sent me patches (bugfixes or small pieces of new code):
  Arturo Espinosa Aldama (arturo@estadistica.unam.mx)
+
+Others:
+ Michael Hipp (Michael.Hipp@student.uni-tuebingen.de)
+  For 'mpg123', it simply rocks! (128KBit/44KHz/Stereo on my 486 DX2/66!!)
+ Armin Biere (armin@ira.uka.de + armin+@cs.cmu.edu)
+  For 'ccmalloc', that tracked down all my memory leaks :>

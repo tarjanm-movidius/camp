@@ -2,7 +2,8 @@ CC=@CC@
 CFLAGS=@CFLAGS@
 BINDIR=@bindir@
 LIBS=@LIBS@
-OBJS=misc.o id3.o fork.o player.o cconfig.o filelist.o playlist.o main.o
+DEFS=@DEFINES@ @DEFS@
+OBJS=@OBJS@
 
 all: main
 
@@ -10,16 +11,31 @@ build:
 	builder
 
 main:	$(OBJS) 
-	$(CC) $(FLAGS) $(LIBS) -o camp $(OBJS)
+	$(CC) $(CFLAGS) $(LIBS) -o camp $(OBJS)
 	@echo "Now, type \"make install\" to install the binary and default configfile." 
+	@echo ""
+	@echo "-- IMPORTANT! READ THIS ( yeah, you too :) ) --"
+	@echo "If NOT doing \"make install\", please create $(HOME)/.camp, and"
+	@echo "copy camp.ini to $(HOME)/.camp/camprc."
+	@echo "EVEN IF you are doing a \"make install\" you need to copy skins.tar to"
+	@echo "$(HOME)/.camp and execute \"cd $(HOME)/.camp ; tar xvf skins.tar\""
+	@echo "If you are planning to use a LPT-Remote control, run \"make rctools\"."
+	@echo ""
+
+rctools:
+	$(CC) $(CFLAGS) -o testrc testrc.c
 
 install:
-	@echo "CAMP doesn't need to be suid/sgid since it doesn't play anything itself."
-	install --strip --mode=0755 ./camp     $(BINDIR)
-	install         --mode=0600 ./camp.ini $(HOME)/.camp
+	if test -f $(HOME)/.camp; then rm -f $(HOME)/.camp; fi
+	./mkinstalldirs $(BINDIR) $(HOME)/.camp
+	install -s -m 0755 ./camp     $(BINDIR)
+	install    -m 0600 ./camp.ini $(HOME)/.camp/camprc
 	
 .c.o:	
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(DEFS) $(CFLAGS) -c $<
 
 clean: 
 	rm -f camp *.o *~
+
+distclean: clean
+	rm -f config.* Makefile

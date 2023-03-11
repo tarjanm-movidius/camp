@@ -1,0 +1,33 @@
+
+            PINOUT ON THE LPT-PORT
+
+   13                    12     22(gnd)  15
+   |                     |      |        |
+   |---|>|----.----|<|---|--.   |        |
+   |          |             |   |        |
+   |--| 1 |.  | 2 |.--.| 3 |'   |        |
+   |       |       |  |         |        |
+   |       `--|>|--'  `--------|'        |
+   -                           v         |
+   v        .-| 4 |------------|         |
+   -        |                  ^         |
+   |        `--------.-| 5 |---|---------'
+   |                 |          
+   |                 `-| 6 |--.
+   |                          |
+   `--------------------------'   
+
+
+'>', '<', '^' and 'v' are diodes.
+
+| X | are buttons, wich temporarily short-circiuts when pressed.
+
+
+1 = skip back
+2 = play
+3 = skip fwd
+4 = stop
+5 = volume increase
+6 = volume decrease
+
+This can also be calibrated with camp's 'testrc' or the rcu-tools for winamp.

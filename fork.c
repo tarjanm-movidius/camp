@@ -7,55 +7,79 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <signal.h>
+#ifdef HAVE_SYS_IOCTL_H
+# include <sys/ioctl.h>
+#endif
 #include "camp.h"
 
 #ifdef USE_GPM_MOUSE
 # include <gpm.h>
 #endif
 
-extern char quiet, quitmode;
+extern char quiet, quitmode, checkkill;
 extern unsigned int slavepid, filenumber;
 extern struct playlistent *playlist;
 extern struct oneplaylistent currentfile;
+extern struct configstruct config;
 
 void disappear(void) {
 FILE *fd;
+int  i;
+
+#ifdef USE_GPM_MOUSE     
+   while ( Gpm_Close() != 0 ); /* No need for the mouse anymore */
+#endif
+
    
-   switch (fork()) {
+   switch ( fork() ) {
     case -1:
       perror("\e[1;1Hfork(): \a\a");
       return;
       
     case 0:
-      sleep(1);
+      signal(SIGCHLD, playnext);
       fd = fopen(PID_FILE, "w");
       fprintf(fd, "%d\n", getpid());
       fclose(fd);
+#ifdef HAVE_SYS_IOCTL_H      
+      i = open ("/dev/tty", O_RDWR); 
+      ioctl (i, TIOCNOTTY, (char *)0); /* detach from tty */
+      close(i);
+#endif
+#ifdef RC_ENABLED
+      if ( config.userc ) ioperm(config.rc.port+1,1,1);
+#endif
       quiet = TRUE;
       quitmode = 2;
-      while ( !kill(slavepid, 0) )
-	sleep(1);
-      playnext(0);
-#ifdef USE_GPM_MOUSE      
-      while ( Gpm_Close() ); /* No need for the mouse anymore */
-#endif
-      while ( TRUE ) sleep(9999);
-      break;
+      while ( !kill(slavepid, 0) ) {
+	 usleep( config.rctime );
+#ifdef RC_ENABLED
+	 if ( config.userc ) checkrc();
+#endif 
+      }
+      playnext(-1);
       
+      while ( TRUE ) {
+	 usleep( config.rctime );
+#ifdef RC_ENABLED
+	 if ( config.userc ) checkrc();
+#endif 
+      }
+      break;
+
     default:
       quitmode = 1;
-      exit();      
-   }
-   
+      exit();     
+      
+  }
 }
-
 void sigusr1(int signr) {
 FILE *fd;
 char buf[256];
 struct oneplaylistent getpl;
    
    if ( playlist ) {
-      playlist = pl_seek(0, playlist);
+      pl_seek(0, &playlist);
       sprintf(buf, "%s/playlist.camp", TMP_DIR);
       fd = fopen(buf, "w");
       fprintf(fd, "CPL+ID3 1.3\n");
@@ -113,12 +137,12 @@ unsigned int oldpid;
    
    sprintf(buf, "%s/playlist.camp", TMP_DIR);
    if ( exist(buf) ) {
-      playlist = loadplaylist(playlist, buf, FALSE);
-      playlist = pl_seek(filenumber, playlist);
+      loadplaylist(&playlist, buf, FALSE);
+      pl_seek(filenumber, &playlist);
       unlink(buf);
       printf("done!\nplayer pid: %d, playing \"%s\" (%d)\n", slavepid, playlist->showname, filenumber+1);
       memcpy((void*)&currentfile, playlist, sizeof(struct oneplaylistent));
-      if ( strlen(currentfile.showname) >= 51 ) currentfile.showname[50] = '\0';
+      if ( strlen(currentfile.showname) > config.skin.songnamew ) currentfile.showname[config.skin.songnamew+1] = '\0';
    } else printf("done!\n");
       
    updatesongtime('r');

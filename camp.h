@@ -1,7 +1,7 @@
 #ifndef __camp_h
 # define __camp_h
 
-#ifdef USE_TERMIOS
+#ifdef HAVE_TERMIOS_H
 # include <termios.h>
 #endif
 #include "build.h"
@@ -17,7 +17,7 @@
 # define FALSE 0
 #endif
 
-#define CAMP_VERSION "1.2"
+#define CAMP_VERSION "1.3"
 
 #define    MINBUTTON 1
 #define    MAXBUTTON 14
@@ -31,8 +31,7 @@
 
 #define NICE_NAMES
 
-#ifndef CUSTOM_BUTTON
-# define CUSTOM_BUTTON "mixr"                 /* must be 4 chars exactly */
+#ifndef CUSTOM_RUN
 # define CUSTOM_RUN    "/usr/local/bin/aumix" /* program to run when CUSTOM is pressed */
 #endif                       
 
@@ -90,6 +89,39 @@ struct usableID3 {
    char misc[31];
 };
 
+struct skinconfig {
+   char pclr, fclr, iclr;
+   char mx[14], my[14], mw[14], *ma[14], *mi[14], mh[14];
+   char mju[14], mjd[14], mjl[14], mjr[14];
+   char px[7], py[7], pw[7], *pa[7], *pi[7];
+   char fx[7], fy[7], fw[7], *fa[7], *fi[7];
+   char ix[7], iy[7], *modetext[3], *stereotext[2];
+   char flistbo[10], plistbo[10], msb, psb, fsb;
+   char mtextx, mtexty, mtextw, *mtextc, textx, texty, textw, *textc;
+   char *flistmsg[6], *mainmsg[4];
+   char id3fnw, *id3fnc, *id3tc, *id3sc, *id3st;
+   char plistx, plisty, plistw, plistlines;
+   char *plistci, *plistca;
+   char flistx, flisty, flistw, flistlines;
+   char *flistcdi, *flistcda, *flistcfi, *flistcfa, *flistcta, *flistcti;
+   char mouseexpand, pmouseexpand, fmouseexpand;
+   char standardrows;
+   char songnamey, songnamex, modetexty, modetextx, modetextw, bitratex, bitratey;
+   char timey, timex, stereox, stereoy, songnamew, sampleratex, sampleratey;
+   char songnumberx, songnumbery;
+   char *songnamec, *sampleratec, *bitratec, *timec, *stereoc;
+   char *modetextc, *songnumberc;
+   char *main;
+   char *playlist;
+   char *filelist;
+   char *id3;
+};
+
+struct rcconfig {
+   unsigned char play, stop, skipb, skipf, volinc, voldec;
+   unsigned int port;
+};
+
 struct configstruct {
    char playerpath[100];
    char playername[100];
@@ -106,46 +138,57 @@ struct configstruct {
    char dontreopen;
    char startincwd;
    char ttymode;
+   char volstep;
+   char voldev;
+   char userc;
+   int playerprio;
+   unsigned int rctime;
+   unsigned int bufferdelay;
+   struct skinconfig skin;
+   struct rcconfig rc;
 };
 
 #ifdef USE_GPM_MOUSE /* if we're using the mouse, declare additional proc/func's */
 void main_domouse(void);
-struct playlistent *pl_domouse(struct playlistent *playlist, unsigned int *filenumber);
-struct filelistent *fl_domouse(struct filelistent *filelist, struct playlistent *playlist);
+void pl_domouse(struct playlistent **playlist, unsigned int *filenumber);
 void my_Gpm_Init(struct Gpm_Connect *mouse);
 void my_Gpm_Purge(void);
+int fl_domouse(struct filelistent **filelist, struct playlistent **playlist);
 #endif
 
 /* main.o */
 void myexit(void);
 void myinit(void);
 void escfix(void);
-void updatebuttons(int add);
+void updatebuttons(char motion);
 void updatedata(void);
 void updatesongtime(char ch);
+void unloadskin(struct skinconfig *skin);
 int  dofunction(unsigned char forcedbutton);
 
 /* playlist.o */
+unsigned int pl_count( struct playlistent *playlist );
+struct playlistent *pl_seek( unsigned int pos, struct playlistent **playlist );
+void pl_search(char ch, struct playlistent *playlist);
 void pl_showents( int startpos, struct playlistent *playlist );
 void pl_updatebuttons(int add);
 void l_status(char *text);
-unsigned int pl_count( struct playlistent *playlist );
-struct playlistent *clearplaylist(struct playlistent *playlist);
-struct playlistent *pl_seek( unsigned int pos, struct playlistent *playlist );
-struct playlistent *pl_dofunction(struct playlistent *playlist, unsigned int *filenumber);
-struct playlistent *rplaylist(struct playlistent *playlist, unsigned int *filenumber);
-struct playlistent *addfiletolist(struct playlistent *playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
-struct playlistent *sortplaylist(struct playlistent *playlist);
+void clearplaylist(struct playlistent **playlist);
+void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber);
+void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
+void rplaylist(struct playlistent **playlist, unsigned int *filenumber);
+void sortplaylist(struct playlistent **playlist);
 
 /* filelist.o */
+void fl_search(char ch, struct filelistent *filelist);
 void fl_showents( int startpos, struct filelistent *filelist );
 void fl_updatebuttons( int add );
 void releasedir( struct filelistent *filelist );
 void togglemark( struct filelistent *filelist, char movedown );
 void saveplaylist(struct playlistent *playlist, char *filename);
-struct playlistent *loadplaylist(struct playlistent *playlist, char *filename, char filemanager );
-struct playlistent *fl_dofunction( struct filelistent *filelist, struct playlistent *playlist );
-struct playlistent *getfiles( struct playlistent *playlist );
+void loadplaylist(struct playlistent **playlist, char *filename, char filemanager );
+void fl_dofunction( struct filelistent *filelist, struct playlistent **playlist );
+void getfiles( struct playlistent **playlist );
 struct filelistent *camp_chdir( struct filelistent *filelist );
 struct filelistent *loaddir( );
 struct filelistent *file_seek( int pos, struct filelistent *filelist );
@@ -172,21 +215,29 @@ void playnext(int);
 
 /* cconfig.o */
 struct configstruct getconfig(char *configfile);
+void loadskin(char *name, struct configstruct *config);
+int parseconfig(char *str, char *arg, char *value);
 
 /* misc.o */
-int  readln(FILE *fd, char *text);
+
 int  exist(char *fname);
 char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitchar, int *modified);
-char *strtrim(char *text);
+char *strtrim(char *text, char trimchar);
+char *replace(char *text, char oldc, char newc);
 char *xys(unsigned char number, char ch);
-
-/* oops =) */
 char *lowercases(char *str);
 void lowcases( char *strng );
-
 void readpass(char *text, int len);
 void termios_raw(struct termios *termios_p);
 unsigned int  myrand(double maxval);
 unsigned char mykbhit(unsigned int sec, unsigned long usec);
+
+/* rc.o */
+unsigned char rcpressed(void);
+void checkrc(void);
+int inb (short port);
+
+/* mixer.o */
+void set_volume(int dev, int change);
 
 #endif

@@ -6,7 +6,54 @@ CAMP Changelog
 ! Known bug
 
 
-1998-09-xx: v1.2.13xx
+1999-04-13: v1.3-beta3/final.2xxx
+
+* Fixed the trouble from 1373 (and all earlier), wich didn't load new songs
+  when stealing, and being elsewhere than the mainscreen.
+* Fixed several playlist-editor segfaults.
+* Fixed a few segfaults with really long filenames
+* Niced up the read-id3-tag, f.ex if a empty tag is set, use filename.
+* Oops, forgot the "status" messages in play-/filelist windows, added to skin.
+* When forking it didn't seem to load a new song after the current one, fixed.
+* Fixed some rc-stuff, the default is now to use a remote control.
+* New skin stuff, configureable order of keys in mainscreen.
+* More new skin stuff, hot-keys at mainscreen.
+* Fixed some small bugs, some resulted in design flaws.
+- Removed config option for 7bit-tty support, ttymode=7bit is replaced with
+  skin = camp-7bit.
+
+1999-03-29: v1.3-beta2.2160
+
+* Fixed a stupid bug, wich made camp segfault as fast as a key was pressed, if
+  compiled with gpm support, but gpm wasn't loaded.
+* Fixed some small mouse location flaws.
+* Remote control now works everywhere (except id3 editor).
+* I got myself a leak-tracker, and got rid of (almost?) all memory leaks!
+  The risk of getting random segfaults decreased by 90% =)
+* Fixed a BIG FAT pile of small bugs resulting in segfaults.
+* Skin support is now 100% done, also added the original ansi as skins.
++ Added support to set player priority ( playerprio in configuration file )
++ Added a program called "testrc" to calibrate remote control.
+
+1999-03-27: v1.3-beta1.1939
+
+* Now camp will load new songs even if executing the cutsom button (mixer)
+* Fixed a stupid bug wich made some gpm functions hang the console :/
+* Fixed another bug, wich made cut/paste non-working in the old camp
+  console when fork()'ing.
+* Fixed a bug wich added some crap-chars to the custom player arguments.
+* Fixed another bug wich made camp segfault if you made major changes to the
+  playlist without returning to mainscreen beforeautomatic songchange.
+* Fixed some small segfault's.
+* Fixed a few memory leaks.
+* Speeded up the playsong routine.
++ Added support for ansi-skins! A bit hard-configured but what tha heck..
++ Added custom ability to change volume without a external mixer (+/- keys)
++ Added support for "smart id3 loading", set readid3 = false in ~/.camp to try.
++ Support for REMOTE CONTROL (on lp-port) is in beta state.
++ Press a key in file-/playlist editor, to jump to song beginning with that char
+
+1998-10-07: v1.2.1373
 
 * Fixed a small (but important) bug, that made camp start two songs sometimes.. 
 * Fixed the "redhat" config-read error. (glibc2 did probably not act as libc5)

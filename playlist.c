@@ -6,9 +6,10 @@
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
+#include <malloc.h>
 #include "camp.h"
 
-#ifndef USE_TERMIOS
+#ifndef HAVE_TERMIOS_H
 # include <curses.h>
 #endif
 
@@ -16,163 +17,220 @@
 # include <gpm.h>
 #endif
 
-extern char playsong;
+extern char playsong, checkkill;
 extern struct configstruct config;
-extern char fsscreen[], fsscreen7bit[];
 extern const char keys[];
 extern unsigned int slavepid;
 
-unsigned int maxpos=0, pl_maxpos=0, pl_current=0;
-int  pl_buttonpos=1, pl_screenmark=0;
+int maxpos=0, pl_maxpos=0, pl_current=0;
+int pl_buttonpos, pl_screenmark=0;
 
-struct playlistent *rplaylist(struct playlistent *playlist, unsigned int *filenumber) {
+void rplaylist(struct playlistent **playlist, unsigned int *filenumber) {
 int    ch;
 fd_set fds;
+struct timeval counter;
 
-   if ( config.ttymode == 8 ) 
-     printf("%s", fsscreen); else
-     printf("%s", fsscreen7bit);
-   if ( playlist != NULL ) {
-      pl_maxpos = pl_count(playlist)-1;
+   pl_buttonpos = config.skin.psb+1;
+   if ( config.skin.pclr ) printf("\e[0m\e[2J");
+   printf("\e[1;1H%s", config.skin.playlist);
+   
+   if ( *playlist != NULL ) {
+      pl_maxpos = pl_count(*playlist)-1;
       pl_current = *filenumber;
    } else 
      pl_current = 0;
    pl_screenmark = 0;
-   pl_showents(pl_current-pl_screenmark, playlist); 
+   pl_showents(pl_current-pl_screenmark, *playlist); 
    pl_updatebuttons(0);
    
    while ( TRUE ) {
+
+      if ( checkkill && kill(slavepid, 0) == -1 ) {      
+	 checkkill = FALSE;
+	 playnext(-1);
+      }
       
+      
+#ifdef RC_ENABLED
+      if ( config.userc ) checkrc();
+#endif
+      counter.tv_usec = config.rctime;
+      counter.tv_sec  = 0;      
       FD_ZERO(&fds);
       FD_SET(0, &fds);
 #ifdef USE_GPM_MOUSE
-      if ( gpm_flag ) FD_SET(gpm_fd, &fds);
-      if ( select(gpm_flag ? gpm_fd+1 : 1, &fds, NULL, NULL, NULL) > 0 ) {
-	 if ( FD_ISSET(gpm_fd, &fds) ) playlist = pl_domouse(playlist, filenumber);
-	 if ( pl_screenmark == -1 ) return(playlist);
+      if ( gpm_flag > 0 ) FD_SET(gpm_fd, &fds);
+      if ( select(gpm_flag > 0 ? gpm_fd+1 : 1, &fds, NULL, NULL, &counter) > 0 ) {
+	 if ( gpm_flag > 0 && FD_ISSET(gpm_fd, &fds) ) {
+	    pl_domouse(playlist, filenumber);
+	    if ( pl_screenmark == -1 ) return;
+	 }
 #else
-      if ( select(1, &fds, NULL, NULL, NULL) > 0 ) {
+	 if ( select(1, &fds, NULL, NULL, NULL) > 0 ) { 
 #endif	 
 	 ch = 0;
+
 	 if ( FD_ISSET(0, &fds) )
 	   while ( ch != -1 ) {
 	      ch = getchar();
-	      if ( ch == 3 ) exit(0); /* ^C */ else
-		if ( ch == 13 )	if ( pl_buttonpos == PL_MAXBUTTON ) return(playlist); else
-		playlist = pl_dofunction(playlist, filenumber); else
+	      if ( ch != -1 ) 
+	      if ( ch == 3 ) { clearplaylist(playlist); exit(0); } /* ^C */ else
+		if ( ch == 13 )	{ 
+		   pl_dofunction(playlist, filenumber);
+		   if ( pl_screenmark == -1 ) return;		   
+		} else
+#ifdef HAVE_SYS_SOUNDCARD_H
+		if (ch == '+') set_volume(config.voldev, config.volstep);  else
+		if (ch == '-') set_volume(config.voldev, -config.volstep); else
+#endif
 		if ( ch == 27 ) {
 		   ch = getchar();
 		   if ( ch == -1 ) {
 		      mykbhit(0, 250000);
 		      ch = getchar();
-		   }		   
-		   if ( ch != '[' ) return playlist;
+		   } 		   
+		   if ( ch != '[' ) return;
 		   ch = getchar();
 		   if ( ch == 'D' && pl_buttonpos != PL_MINBUTTON ) {
 		      pl_updatebuttons(-1); /* left arrow */
-		   }
+		   } else
 		   if ( ch == 'C' && pl_buttonpos != PL_MAXBUTTON ) { 
 		      pl_updatebuttons(1); /* right arrow */
-		   }
+		   } else
 		   if ( ch == 'B' && pl_current != pl_maxpos ) {
-		      if ( pl_screenmark != 12 ) /* down arrow */
+		      if ( pl_screenmark != (config.skin.plistlines-1) ) /* down arrow */
 			pl_screenmark++;
 		      pl_current++;
-		      pl_showents(pl_current-pl_screenmark, playlist);
-		   }
+		      pl_showents(pl_current-pl_screenmark, *playlist);
+		   } else
 		   if ( ch == 'A' && pl_current != 0 ) {
 		      if ( pl_screenmark != 0 ) /* up arrow */
 			pl_screenmark--;
 		      pl_current--;
-		      pl_showents(pl_current-pl_screenmark, playlist);
-		   }
-		   if ( ch == keys[KEY_PGUP] ) { /* page up */
-		      if ( pl_current < 13 ) { pl_current = 0; pl_screenmark = 0; } else
-			pl_current -= 11;
+		      pl_showents(pl_current-pl_screenmark, *playlist);
+		   } else
+		   if ( ch == keys[KEY_PGUP] && pl_current != 0  && *playlist ) { /* page up */
+		      if ( pl_current < (config.skin.plistlines-1) ) { pl_current = 0; pl_screenmark = 0; } else
+			pl_current -= (config.skin.plistlines-1);
 		      if ( pl_current < pl_screenmark )
 			pl_current = pl_screenmark;
-		      pl_showents(pl_current-pl_screenmark, playlist);
-		   }
-		   if ( ch == keys[KEY_PGDN] ) { /* page down */
-		      if ( pl_current > pl_maxpos-11 ) { pl_screenmark = pl_maxpos - pl_current; pl_current = pl_maxpos; } else
-			pl_current += 11;
-		      pl_showents(pl_current-pl_screenmark, playlist);
-		   }
-		   if ( ch == keys[KEY_HOME] ) { /* home */
-		      pl_current = 0;
-		      pl_screenmark = 0;
-		      pl_showents(0, playlist);
-		   }
-		   if ( ch == keys[KEY_END] ) { /* end */
-		      pl_current = pl_maxpos;
-		      pl_screenmark = 12;
-		      pl_showents(pl_current-pl_screenmark, playlist);
-		   }
-		}
+		      pl_showents(pl_current-pl_screenmark, *playlist);
+		   } else
+		   if ( ch == keys[KEY_PGDN] && pl_current != pl_maxpos && *playlist ) { /* page down */
+		      if ( pl_current+(config.skin.plistlines-1) > pl_maxpos ) {
+			 pl_current = pl_maxpos;
+			 pl_screenmark = 0;
+		      } else
+			pl_current += (config.skin.plistlines-1);
+		      pl_showents(pl_current-pl_screenmark, *playlist);
+		   } else
+		     if ( ch == keys[KEY_HOME] && pl_current != 0 && *playlist ) { /* home */
+			pl_current = 0;
+			pl_screenmark = 0;
+			pl_showents(0, *playlist);
+		     } else
+		     if ( ch == keys[KEY_END] && pl_current != pl_maxpos && *playlist ) { /* end */
+			pl_current = pl_maxpos;
+			pl_screenmark = 0;		     
+			pl_showents(pl_current-pl_screenmark, *playlist);
+		     }
+		} else 
+		pl_search(ch, *playlist);
 	   }
-      }
-   }
+       }
+    }
 }
-
+   
+void pl_search(char ch, struct playlistent *playlist)	{ /* skippa ner till en filfaun med <ch> i namnet */
+   if ( !playlist ) return;
+   ch = tolower(ch);
+   if ( pl_current != pl_maxpos ) pl_seek(pl_current+1, &playlist); else pl_seek(0, &playlist);
+   while ( playlist->next != NULL ) {
+      if ( tolower(playlist->showname[0]) == ch ) {
+	 pl_current = playlist->number;
+	 pl_screenmark = 0;			 
+	 pl_showents(pl_current-pl_screenmark, playlist);
+	 return;
+      }
+      playlist = playlist->next;
+   }
+      pl_seek(0, &playlist);
+      while ( playlist->number != pl_current ) {
+	 if ( tolower(playlist->showname[0]) == ch ) {
+	    pl_current = playlist->number;
+	    pl_screenmark = 0;			 
+	    pl_showents(pl_current-pl_screenmark, playlist);
+	    return;
+	 }
+	 playlist = playlist->next;
+   }
+return;
+}
+   
    
 void pl_showents( int startpos, struct playlistent *playlist ) {
 int i=0, k=0;
-char shortname[61];
-char buf[70];
-   
-   playlist = pl_seek(startpos, playlist);
-   printf("\e[0;46m");
+char *shortname = (char*)malloc(config.skin.plistw+1);
+char *buf       = (char*)malloc(config.skin.plistw+1);
+int count=0;
+   pl_seek(startpos, &playlist);
+   printf("\e[%sm", config.skin.plistci);
    
    while ( playlist != NULL && playlist->next != NULL ) {
-      if ( playlist->number == pl_current ) printf("\e[31m"); else
-	printf("\e[34m");
-      memset(buf, 0, 70);
-      memset(shortname, 0, 60);
-      strncpy(buf, playlist->showname, 52);
+      if ( playlist->number == pl_current ) printf("\e[%sm", config.skin.plistca); else
+	printf("\e[%sm", config.skin.plistci);
+      strncpy(buf, playlist->showname, config.skin.plistw-14);
       
       if ( config.showtime > 1 ) 
-	if ( playlist->length != 0 ) sprintf(shortname, "[%02u:%02u] %s", playlist->length / 60, playlist->length % 60, buf ); else
-	sprintf(shortname, "[error] %s", playlist->showname, 59); else
-	strncpy(shortname, playlist->showname, 59);      
-      for(k=strlen(shortname);k<60;k++) shortname[k] = ' ';
-      shortname[60] = 0;
-      printf("\e[%d;8H%-4.d %s",5+i,playlist->number+1, shortname);
+	if ( playlist->length ) sprintf(shortname, "[%02u:%02u] %s", playlist->length / 60, playlist->length % 60, buf ); else {
+	   sprintf(shortname, "[ n/a ] %s", buf);
+	} else
+	strncpy(shortname, playlist->showname, config.skin.plistw-6);      
+      for (k=strlen(shortname);k<config.skin.plistw-5;k++) shortname[k] = ' ';
+      shortname[config.skin.plistw-5] = 0;
+      
+      printf("\e[%d;%dH%-4.d %s", config.skin.plisty+i, config.skin.plistx, playlist->number+1, shortname);
       i++;
-      if (i>12) break;
+      if (i>=config.skin.plistlines) break;
       playlist = playlist->next;
    }
-   if ( i != 13 ) 
-     for(;i<13;i++) 
-       printf("\e[%d;8H                                                                 ",5+i);
+   printf("\e[%sm", config.skin.plistci);
+
+   if ( i != config.skin.plistlines ) 
+     for(;i<config.skin.plistlines;i++)
+       printf("\e[%d;%dH%s", config.skin.plisty+i, config.skin.plistx, xys(config.skin.plistw, ' '));
    fflush(stdout);
+
+   free(buf);
+   free(shortname);
 }
 
 
 char *xys(unsigned char number, char ch) {
 static char buf[256];
-   memset(buf, ch, number);
-   buf[number+1] = '\000';
+   memset(buf, ch, 256);
+   buf[number] = '\000';
    return buf;
 }
 
 
-struct playlistent *pl_seek( unsigned int pos, struct playlistent *playlist ) {
+struct playlistent *pl_seek( unsigned int pos, struct playlistent **playlist ) {
 
-   if ( playlist == NULL ) return NULL;
+   if ( *playlist == NULL ) return NULL;
    
-   if ( playlist->number < pos )
-     while ( (playlist->number != pos) && (playlist->next != NULL) ) playlist = playlist->next;
+   if ( (*playlist)->number < pos )
+     while ( ((*playlist)->number != pos) && ((*playlist)->next != NULL) ) *playlist = (*playlist)->next;
    
-   if ( playlist->number > pos ) 
-     while ( (playlist->number != pos) && (playlist->prev != NULL) ) playlist = playlist->prev;
-
-return playlist;
+   if ( (*playlist)->number > pos ) 
+     while ( ((*playlist)->number != pos) && ((*playlist)->prev != NULL) ) *playlist = (*playlist)->prev;
+   
+return *playlist;
 }
 
 unsigned int pl_count( struct playlistent *playlist ) {
 unsigned int count=0;
-   if ( playlist==NULL ) return 0;
-   playlist = pl_seek(0, playlist);
+   if ( !playlist ) return 0;
+   pl_seek(0, &playlist);
    while( playlist->next != NULL ) {
       count++;
       playlist=playlist->next;
@@ -182,120 +240,116 @@ unsigned int count=0;
 
 
 void pl_updatebuttons(int add) {
-
+int i;
    pl_buttonpos = pl_buttonpos + add;
-   printf("\e[19;9H");
-   if (pl_buttonpos == 1) printf("\e[44;36;1m"); else
-     printf("\e[34;44;1m");
-   printf(" browse ");
-   printf("\e[19;18H");
-   if (pl_buttonpos == 2) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf("  play  ");
-   printf("\e[19;27H");
-   if (pl_buttonpos == 3) printf("\e[44;36m"); else
-     printf("\e[34;44m");
-   printf(" remove ");
-   printf("\e[19;36H");
-   if (pl_buttonpos == 4) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf(" newlst ");
-   printf("\e[19;45H");
-   if (pl_buttonpos == 5) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf("  desc  ");
-   printf("\e[19;54H");
-   if (pl_buttonpos == 6) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf("  sort  ");
-   printf("\e[19;63H");
-   if (pl_buttonpos == 7) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf("  back  ");
+
+   for (i=0;i<7;i++) {
+      if ( !config.skin.py[i] && !config.skin.px[i] ) continue;
+      printf("\e[%d;%dH",config.skin.py[i], config.skin.px[i]);
+      if (config.skin.plistbo[pl_buttonpos-1] == i) printf("%s", config.skin.pa[i]); else
+	printf("%s", config.skin.pi[i]);
+   }
    fflush(stdout);
 }
 
 
-struct playlistent *pl_dofunction(struct playlistent *playlist, unsigned int *filenumber) {
-struct playlistent *temp;
-int pid;   
+void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber) {
+struct playlistent *temp = NULL;
+int pid, length;   
    
-   switch( pl_buttonpos ) {
+   switch( config.skin.plistbo[pl_buttonpos-1] ) {
       
-    case 1: /* browse */
-      playlist = getfiles(playlist);
-      if ( config.ttymode == 8 ) 
-	printf("%s", fsscreen); else
-	printf("%s", fsscreen7bit);
-      if ( playlist == NULL ) pl_maxpos = 0; else
-	pl_maxpos = pl_count(playlist)-1;
+    case 0: /* browse */
+      getfiles(playlist);
+      if ( config.skin.pclr ) printf("\e[0m\e[2J");
+      printf("\e[1;1H%s", config.skin.playlist);
+      if ( *playlist == NULL ) pl_maxpos = 0; else
+	pl_maxpos = pl_count(*playlist)-1;
       if (pl_current - pl_screenmark > pl_maxpos)
 	pl_current = pl_screenmark = 0;
-      pl_showents(pl_current, playlist); 
+      pl_showents(pl_current-pl_screenmark, *playlist);
       pl_updatebuttons(0);
-      return( playlist );
+      return;
       
-    case 2: /* play */ 
-      if ( playlist == NULL ) return NULL;
+    case 1: /* play */ 
+      if ( *playlist == NULL ) return;
       if ( playsong && !slavepid ) killslave();
       *filenumber = pl_current;
       playsong = TRUE;
-      call_player(pl_seek(pl_current, playlist));
-      return(playlist);
+      pl_seek(pl_current, playlist);
+      length = (*playlist)->length;
+      call_player(*playlist);
+      if ( length != (*playlist)->length ) pl_showents(pl_current-pl_screenmark, *playlist);
+      return;
       
-    case 3: /* remove current entry */  
-      if ( playlist == NULL ) return NULL;
-      playlist = pl_seek(pl_current, playlist);
-      temp = playlist;
-      if ( pl_current != 0 )
-	playlist->prev->next = playlist->next;
-      playlist->next->prev = playlist->prev;
-      while ( playlist->next != NULL ) {
-	 playlist = playlist->next;
-	 playlist->number--;
+    case 2: /* remove current entry */  
+      if ( *playlist == NULL ) return;
+      
+      pl_seek(pl_current, playlist);
+      if ( (*playlist)->next ) temp = (*playlist)->next; else
+	if ( (*playlist)->prev ) temp = (*playlist)->prev; else
+	temp = NULL;
+      
+      if ( (*playlist)->prev ) (*playlist)->prev->next = (*playlist)->next;
+      if ( (*playlist)->next ) (*playlist)->next->prev = (*playlist)->prev;
+      
+      free(*playlist);
+      
+      *playlist = temp;
+      if ( *playlist ) (*playlist)->number--;
+      while ( *playlist && (*playlist)->next ) {
+	 *playlist = (*playlist)->next;
+	 (*playlist)->number--;
+      } 
+      if ( pl_current == pl_maxpos ) {
+	 pl_current--;
+	 if ( (config.skin.plistlines-1) > pl_maxpos && pl_screenmark )
+	   pl_screenmark--;
       }
-      if ( pl_current == pl_maxpos ) pl_current--;
       pl_maxpos--;
-      free(temp);
-      pl_showents(pl_current-pl_screenmark, playlist); 
-      return(playlist);
       
-    case 4: /* new list (clear) */
-      playlist = clearplaylist(playlist);
-      pl_showents(0, playlist);
+      pl_showents(pl_current-pl_screenmark, *playlist);
+      return;
+      
+    case 3: /* new list (clear) */
+      clearplaylist(playlist);
+      pl_showents(0, *playlist);
       pl_current = 0;
       pl_screenmark = 0;
-      return(playlist);
+      return;
 
-    case 5: /* id3 editor */
-      if ( playlist == NULL ) return playlist;
+    case 4: /* id3 editor */
+      if ( *playlist == NULL ) return;
       id3edit(pl_seek(pl_current, playlist)->name, pl_seek(pl_current, playlist));
-      if ( config.ttymode == 8 ) 
-	printf("%s", fsscreen); else
-	printf("%s", fsscreen7bit);
-      pl_showents(pl_current-pl_screenmark, playlist); 
+      if ( config.skin.pclr ) printf("\e[0m\e[2J");
+      printf("\e[1;1H%s", config.skin.playlist);
+      pl_showents(pl_current-pl_screenmark, *playlist);
       pl_updatebuttons(0);
-      return playlist;
+      return;
       
-    case 6: /* sort playlist */
-      playlist = sortplaylist(playlist);
-      pl_showents(pl_current-pl_screenmark, playlist);       
-      return playlist;
+    case 5: /* sort playlist */
+      sortplaylist(playlist);
+      pl_showents(pl_current-pl_screenmark, *playlist);       
+      return;
+
+    case 6:
+      pl_screenmark = -1;
+      return;
+      
    }
+   
 }
 
 #ifdef USE_GPM_MOUSE
-struct playlistent *pl_domouse(struct playlistent *playlist, unsigned int *filenumber) {
+void pl_domouse(struct playlistent **playlist, unsigned int *filenumber) {
 Gpm_Event event;
-int i;
+int i,y=FALSE;
    
    Gpm_GetEvent(&event);
    /* middle button, any kind of click */
    if ( event.buttons & 2 && event.type & GPM_DOWN ) {
-      if ( config.ttymode == 8 ) 
-	printf("%s", fsscreen); else
-	printf("%s", fsscreen7bit);
-      pl_showents(pl_current-pl_screenmark, playlist); 
+      printf("\e[0m\e[2J\e[1;1H%s", config.skin.playlist);
+      pl_showents(pl_current-pl_screenmark, *playlist); 
       pl_updatebuttons(0);
    }
    
@@ -303,89 +357,78 @@ int i;
 /*
    if ( event.buttons & 1 && event.type & GPM_DOWN ) {
       pl_screenmark = -1;
-      return playlist;
+      return;
    }
  */
    
    /* left button - any kind of click */
-   if ( event.buttons & 4 && event.type & GPM_DOWN ) 
-     if ( event.y == 4 && event.x > 4 && event.x < 74 ) {
+   if ( event.buttons & 4 && event.type & GPM_DOWN && !(event.type & GPM_DRAG) ) 
+     if ( event.y == config.skin.plisty-1 && event.x >= config.skin.plistx && event.x < (config.skin.plistx+config.skin.plistw) ) {
 	/* page up */
-	if ( pl_current < 13 ) { pl_current = 0; pl_screenmark = 0; } else
-	  pl_current -= 11;
+	if ( pl_current < config.skin.plistlines ) { pl_current = 0; pl_screenmark = 0; } else
+	  pl_current -= (config.skin.plistlines-1);
 	if ( pl_current < pl_screenmark )
 	  pl_current = pl_screenmark;
-	pl_showents(pl_current-pl_screenmark, playlist);
+	pl_showents(pl_current-pl_screenmark, *playlist);
      } else	
-     if ( event.y == 18 && event.x > 4 && event.x < 74 ) {
+     if ( event.y == config.skin.plisty+config.skin.plistlines && event.x >= config.skin.plistx && event.x < (config.skin.plistx+config.skin.plistw) ) {
 	/* page down */
-	if ( pl_current > pl_maxpos-11 ) { pl_screenmark = pl_maxpos - pl_current; pl_current = pl_maxpos; } else
-	  pl_current += 11;
-	pl_showents(pl_current-pl_screenmark, playlist);
-     } else
-     if ( event.y == 19 ) {
-	i = 255;
-	if ( event.x > 8 && event.x < 17 ) pl_buttonpos = 1; else
-	  if ( event.x > 17 && event.x < 26 ) pl_buttonpos = 2; else
-	  if ( event.x > 26 && event.x < 35 ) pl_buttonpos = 3; else
-	  if ( event.x > 35 && event.x < 44 ) pl_buttonpos = 4; else
-	  if ( event.x > 44 && event.x < 53 ) pl_buttonpos = 5; else
-	  if ( event.x > 53 && event.x < 62 ) pl_buttonpos = 6; else
-	  if ( event.x > 62 && event.x < 71 ) {
-	     pl_buttonpos  = PL_MAXBUTTON;
-	     pl_screenmark = -1;
-	     return playlist;
-	  } else
-	  i = 0;
-	if ( i == 255 ) { 
-	   pl_updatebuttons(0);
-	   playlist = pl_dofunction(playlist, filenumber);
-	}
-     }
+	if ( pl_current+(config.skin.plistlines-1) > pl_maxpos ) {	   
+	   pl_current = pl_maxpos;
+	   pl_screenmark = 0;
+	} else
+	  pl_current += (config.skin.plistlines-1);
+	pl_showents(pl_current-pl_screenmark, *playlist);
+     } else          
+     for (i=0;i<PL_MAXBUTTON;i++)
+       if ( event.y == config.skin.py[i] && event.x >= (config.skin.px[i]-config.skin.pmouseexpand) && event.x < (config.skin.px[i]+config.skin.pw[i]+config.skin.pmouseexpand) ) { 
+	  pl_buttonpos = i+1; 
+	  pl_updatebuttons(0);
+	  pl_dofunction(playlist, filenumber);
+	  break; 
+       }
    
    /* left button - single click */
    if ( event.buttons & 4 && event.type & GPM_SINGLE )
-     if ( event.y > 4 && event.y < 18 && event.x > 4 && event.x < 74 && \
-        (pl_current-pl_screenmark+event.y-5) <= pl_maxpos ) {
+     if ( event.y >= config.skin.plisty && event.y < (config.skin.plisty+config.skin.plistlines) && \
+        event.x >= config.skin.plistx  && event.x < (config.skin.plistx+config.skin.plistw) && \
+        (pl_current-pl_screenmark+event.y-config.skin.plisty) <= pl_maxpos ) {
 	/* Select the selected file :) */
-	pl_current = pl_current-pl_screenmark + event.y - 5;
-	pl_screenmark = event.y - 5;
-	pl_showents(pl_current-pl_screenmark, playlist);
+	pl_current = pl_current-pl_screenmark + event.y - config.skin.plisty;
+	pl_screenmark = event.y - config.skin.plisty;
+	pl_showents(pl_current-pl_screenmark, *playlist);
      } 
 
    /* left button - double click */	  
    if ( event.buttons & 4 && event.type & GPM_DOUBLE )
-     if ( event.y > 4 && event.y < 18 && event.x > 4 && event.x < 74 && \
-        (pl_current-pl_screenmark+event.y-5) <= pl_maxpos ) {
+     if ( event.y >= config.skin.plisty && event.y < (config.skin.plisty+config.skin.plistlines) && \
+        event.x >= config.skin.plistx && event.x < (config.skin.plistx+config.skin.plistw) && \
+        (pl_current-pl_screenmark+event.y-config.skin.plisty) <= pl_maxpos ) {
 	/* Play the selected file */
-	pl_current = pl_current-pl_screenmark + event.y - 5;
-	pl_screenmark = event.y - 5;
-	pl_showents(pl_current-pl_screenmark, playlist);
+	pl_current = pl_current-pl_screenmark + event.y - config.skin.plisty;
+	pl_screenmark = event.y - config.skin.plisty;
+	pl_showents(pl_current-pl_screenmark, *playlist);
 	i = pl_buttonpos;
 	pl_buttonpos = 2;
-	playlist = pl_dofunction(playlist, filenumber);
+	pl_dofunction(playlist, filenumber);	
 	pl_buttonpos = i;
      }
    
    /* right button, any kind of click */
-   if ( event.buttons & 1 && event.type & GPM_DOWN ) 
-     if ( event.y == 4 && event.x > 4 && event.x < 74 ) {
+   if ( event.buttons & 1 && event.type & GPM_DOWN && !(event.type & GPM_DRAG) )
+     if ( event.y == (config.skin.plisty-1) && event.x >= config.skin.plistx && event.x < (config.skin.plistx+config.skin.plistw) ) {
 	/* home */
 	pl_current = 0;
 	pl_screenmark = 0;
-	pl_showents(0, playlist);
+	pl_showents(0, *playlist);
      } else
-     if ( event.y == 18 && event.x > 4 && event.x < 74 ) {
+     if ( event.y == (config.skin.plisty+config.skin.plistlines) && event.x >= config.skin.plistx && event.x < (config.skin.plistx+config.skin.plistw) ) {
 	/* end */
 	pl_current = pl_maxpos;
-	pl_screenmark = 12;
-	pl_showents(pl_current-pl_screenmark, playlist);
+	pl_screenmark = 0;
+	pl_showents(pl_current-pl_screenmark, *playlist);
      }
-   Gpm_GetSnapshot(&event);
-   if ( !event.y ) event.y++;
-   if ( !event.x ) event.y++;
-   GPM_DRAWPOINTER(&event);
-   return playlist;
+   return;
 }
 #endif
       
@@ -398,110 +441,108 @@ int i=0;
 }
 
 
-struct playlistent *addfiletolist(struct playlistent *playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 ) {
-char   name[31], artist[31], cwd[256];
+void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 ) {
+char   name[31], artist[31], cwd[256], *buf;
 int    cspos=0, j;
 struct stat statf;
 size_t filesize;
    
-   if ( !exist(filename) ) return playlist;
+   if ( !exist(filename) ) return;
+   buf = (char*)malloc(300);
    
-   if ( playlist == NULL ) {
-      playlist = (struct playlistent*)malloc(sizeof(struct playlistent));
-      playlist->prev = NULL;
-      playlist->next = NULL;
-      playlist->number = 0;
+   if ( *playlist == NULL ) {
+      *playlist = (struct playlistent*)malloc(sizeof(struct playlistent));
+      memset(*playlist, 0, sizeof(struct playlistent));
    } else
-     while ( playlist->next != NULL ) playlist = playlist->next;
+     while ( (*playlist)->next != NULL ) *playlist = (*playlist)->next;
    
-   playlist->next = (struct playlistent*)malloc(sizeof(struct playlistent));
-   playlist->next->prev = playlist;
-   playlist->next->next = NULL;
-   playlist->next->number = playlist->number +1;
-   playlist->samplerate = samplerate;
-   playlist->bitrate = bitrate;
+   (*playlist)->next = (struct playlistent*)malloc(sizeof(struct playlistent));
+   memset((*playlist)->next, 0, sizeof(struct playlistent));
+   (*playlist)->next->prev = *playlist;
+   (*playlist)->next->number = (*playlist)->number +1;
    if ( filename[0] != '/' ) {
       getcwd(cwd, 256);
-      sprintf(playlist->name, "%s/%s", cwd, filename);
+      sprintf((*playlist)->name, "%s/%s", cwd, filename);
    } else  
-     strcpy(playlist->name, filename);
-
-   if ( showname == NULL ) {
-      if ( scanid3 && getmp3info(filename, &mode, &samplerate, &bitrate, name, artist, NULL, NULL, NULL, 0) ) {
-	 if ( artist[0] != 0 ) sprintf(playlist->showname, "%s - %s", artist, name ); else
-	   strcpy(playlist->showname, name);
-      } else
-	for(j=0;j<strlen(filename);j++) {
-	   playlist->showname[cspos] = tolower(filename[j]);
+     strcpy((*playlist)->name, filename);
+   
+   if ( !showname ) 
+     if ( scanid3 && getmp3info(filename, &mode, &samplerate, &bitrate, name, artist, NULL, NULL, NULL, 0) && artist[0]+name[0] ) {
+	if ( artist[0] && name[0] ) sprintf(buf, "%s - %s", artist, name ); else
+	  if ( artist[0] ) sprintf(buf, "%s - (unknown)", artist); else
+	  sprintf(buf, "(unknown) - %s", name);
+	strncpy((*playlist)->showname, buf, 100);
+     } else { /* no id3/empty id3 */
+	strncpy(buf, filename, 100);
+	for(j=0;j<strlen(buf);j++) {
+	   (*playlist)->showname[cspos] = tolower(buf[j]);
 #ifdef NICE_NAMES
-	      if ( filename[j] == '.' || filename[j] == '_' ) playlist->showname[cspos] = 32; else
-	     if ( filename[j] == '-' ) {
-		playlist->showname[cspos]    = ' ';
-		playlist->showname[cspos+1]  = '-';
-		playlist->showname[cspos+2]  = ' ';
+	   if ( buf[j] == '.' || buf[j] == '_' ) (*playlist)->showname[cspos] = 32; else
+	     if ( buf[j] == '-' ) {
+		(*playlist)->showname[cspos]    = ' ';
+		(*playlist)->showname[cspos+1]  = '-';
+		(*playlist)->showname[cspos+2]  = ' ';
 		cspos += 2;
-	     } 
+	     }
 #endif
-	   if ( filename[j] == '/' ) cspos = 0; else
+	   if ( buf[j] == '/' ) cspos = 0; else
 	     cspos++;
 	}
-      playlist->showname[cspos - 4] = 0;
-   } else
-     strcpy(playlist->showname, showname);
+	(*playlist)->showname[cspos - 4] = 0;
+     }
    
-   stat(filename, (struct stat*)&statf);
-
-   if ( bitrate+samplerate != 0 ) {
-      playlist->bitrate    = bitrate;
-      playlist->samplerate = samplerate;
-      playlist->mode       = mode;
-      playlist->length     = statf.st_size / (bitrate * 125);
+   if ( bitrate ) {
+      stat(filename, (struct stat*)&statf);	 
+      (*playlist)->bitrate    = bitrate;
+      (*playlist)->samplerate = samplerate;
+      (*playlist)->mode       = mode;
+      (*playlist)->length     = statf.st_size / (bitrate * 125);
    }
    
-return playlist;
+   free(buf);
+   return;
 }
 
-
-struct playlistent *clearplaylist(struct playlistent *playlist) {
+void clearplaylist(struct playlistent **playlist) {
 struct playlistent *temp;
    
-   if ( playlist != NULL ) {
-      while ( playlist->prev != NULL ) playlist = playlist->prev;
-      while ( playlist != NULL ) {
-	 temp     = playlist;
-	 playlist = playlist->next;
+   if ( *playlist != NULL ) {
+      while ( (*playlist)->prev != NULL ) *playlist = (*playlist)->prev;
+      while ( *playlist != NULL ) {
+	 temp     = *playlist;
+	 *playlist = (*playlist)->next;
 	 free(temp);
       }
    } 
-   return playlist;
+   return;
 }
 
 
-struct playlistent *sortplaylist(struct playlistent *playlist) {
+void sortplaylist(struct playlistent **playlist) {
 struct playlistent *sortedlist, *temp;
 int i,j;
-unsigned int playlistents = pl_count(playlist);
+unsigned int playlistents = pl_count(*playlist);
    
-   if ( playlist == NULL ) return playlist;
+   if ( *playlist == NULL ) return;
    sortedlist = (struct playlistent*)malloc(sizeof(struct playlistent));
    sortedlist->prev = NULL;
    sortedlist->next = NULL;
    sortedlist->number = 0;
    
    for(i=0;i<playlistents;i++) {
-      playlist = pl_seek(0, playlist);
-      temp = playlist;
-      while ( playlist->next != NULL && playlist != NULL ) {
+      pl_seek(0, playlist);
+      temp = *playlist;
+      while ( (*playlist)->next != NULL && *playlist != NULL ) {
 	 
-	 for(j=0;j<strlen(playlist->showname);j++)
+	 for(j=0;j<strlen((*playlist)->showname);j++)
 	   
-	   if( tolower(playlist->showname[j]) < tolower(temp->showname[j]) ) {
-	      temp = playlist;
+	   if( tolower((*playlist)->showname[j]) < tolower(temp->showname[j]) ) {
+	      temp = *playlist;
 	      break;
 	   } else
-	   if ( tolower(playlist->showname[j]) != tolower(temp->showname[j]) )
+	   if ( tolower((*playlist)->showname[j]) != tolower(temp->showname[j]) )
 	     break;	 
-	 playlist = playlist->next;
+	 *playlist = (*playlist)->next;
       }
       sortedlist->next = (struct playlistent*)malloc(sizeof(struct playlistent));
       sortedlist->next->prev = sortedlist;
@@ -516,13 +557,15 @@ unsigned int playlistents = pl_count(playlist);
 	temp->prev->next = NULL;
       free(temp);
    }
-   return(sortedlist);
+   if ( *playlist ) free(*playlist);
+   *playlist = sortedlist;
+   return; 
 }
 
    
 void l_status(char *text) {
    if ( text != NULL )
-   printf("\e[19;8H\e[1;36;46m                                                              \e[19;8H%s", text); else
-   printf("\e[19;8H\e[1;36;46m                                                              ");
+     printf("\e[%d;%dH\e[%sm%s\e[%d;%dH%s", config.skin.texty, config.skin.textx, config.skin.textc, xys(config.skin.textw, ' '), config.skin.texty, config.skin.textx, text); else
+     printf("\e[%d;%dH\e[%sm%s", config.skin.texty, config.skin.textx, config.skin.textc, xys(config.skin.textw, ' '));
    fflush(stdout);
 }

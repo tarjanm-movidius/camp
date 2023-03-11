@@ -5,9 +5,13 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
 #include <fcntl.h>
-#ifndef USE_TERMIOS
+#ifndef HAVE_TERMIOS_H
 # include <curses.h>
+#endif
+#ifdef USE_GPM_MOUSE
+# include <gpm.h>
 #endif
 #include <stdlib.h>
 #include <ctype.h>
@@ -21,8 +25,11 @@ extern char quiet, pausesong, playsong, checkkill;
 extern struct configstruct config;
 
 void playnext(int sig) {
-   if ( playlist == NULL ) return;
-   if ( playsong && !pausesong && slavepid && ( waitpid(slavepid, NULL, 0) > 0 || kill(slavepid,0) != 0 ) ) {
+int status = 0;
+
+   if ( !playlist ) return;
+   if ( ( sig == -1 ) || ( playsong && !pausesong && slavepid && ( waitpid(slavepid, NULL, WNOHANG) == slavepid ) ) ) {
+      if ( sig != -1 ) waitpid(slavepid, NULL, 0);
       if ( config.playmode != 2 ) {
 	 if ( filenumber+1 == playlistents && config.playmode == 1 ) filenumber = playlistents+2; else
 	   if ( filenumber+1 == playlistents && config.playmode == 0 ) exit(0); 
@@ -31,28 +38,32 @@ void playnext(int sig) {
 	filenumber = myrand(playlistents); 
       if ( filenumber+1 > playlistents ) filenumber = 0;
       slavepid = 0;
-      call_player(pl_seek(filenumber, playlist));
+      call_player(pl_seek(filenumber, &playlist));
    } else
      signal(SIGCHLD, playnext);
 }
 
 
 void killslave() {
-   if ( slavepid == 0 ) return;
+   if ( !slavepid ) return;
    signal(SIGCHLD, SIG_IGN);
    if ( pausesong ) kill(slavepid, SIGCONT);
    pausesong = FALSE;
    kill(slavepid, SIGKILL);
    if ( checkkill )
-     while ( kill(slavepid, 0) != -1 ) usleep(10000); else
+     while ( kill(slavepid, 0) != -1 ) usleep(1000); else
      waitpid(slavepid, NULL, 0);
    slavepid = 0;
+   checkkill = FALSE;
 }
 
 void slave(char *filename) {
 char i=0, buf[256];
 FILE *fd;
 
+#ifdef USE_GPM_MOUSE
+   while ( Gpm_Close() != 0 ) ;
+#endif
    if ( !config.dontreopen ) {
       freopen("/dev/null", "w", stdout);
       freopen("/dev/null", "w", stderr);
@@ -68,12 +79,26 @@ FILE *fd;
 
 void call_player(struct playlistent *pl) {
 int  j, cspos=0;
+char name[31], artist[31];
+struct stat statf;
 FILE *fd;
       
    if ( pl == NULL || pausesong ) return;
+   if ( config.bufferdelay ) usleep(config.bufferdelay);
    
+   if ( !config.useid3 && !pl->length ) {
+      if ( getmp3info(pl->name, &pl->mode, &pl->samplerate, &pl->bitrate, name, artist, NULL, NULL, NULL, 0 ) ) {
+	 if ( artist[0] ) sprintf(pl->showname, "%s - %s", artist, name ); else
+	   strcpy(pl->showname, name);
+      }
+      if ( pl->bitrate ) {
+	 stat(pl->name, (struct stat*)&statf);
+	 pl->length     = statf.st_size / (pl->bitrate * 125);
+      }	 	 
+   }
+     
    memcpy((void*)&currentfile, (void*)pl, sizeof(struct oneplaylistent));
-   if ( strlen(currentfile.showname) >= 51 ) currentfile.showname[50] = '\0';
+   if ( strlen(currentfile.showname) > config.skin.songnamew ) currentfile.showname[config.skin.songnamew] = '\0';
    
    updatesongtime('i');
    updatesongtime('f');
@@ -81,6 +106,10 @@ FILE *fd;
    
    if ( playsong ) {
       if ( slavepid != 0 ) killslave();
+      if ( !exist(pl->name) ) {
+	 playnext(-1);
+	 return;
+      }
       slavepid = fork();
       switch( slavepid ) {
        case -1: 
@@ -89,11 +118,12 @@ FILE *fd;
        case 0:
 	 slave(pl->name);
 	 break;
-       default: 
+       default:
 	 signal(SIGCHLD, playnext);
+	 setpriority(PRIO_PROCESS, slavepid, config.playerprio);
 	 break;
       } /* switch( fork() ); */
       //signal(SIGCHLD, playnext);
    }
-/*   if (!quiet) printf("\e[0;34;46m\e[9;36H%-.5d\e[9;45H%-.3d\e[9;62H%s", fs, bitrate, mode); */
 }
+

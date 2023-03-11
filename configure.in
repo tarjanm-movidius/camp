@@ -2,27 +2,65 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(camp.h)
 #AC_CONFIG_HEADER(config.h)
 
-LIBS=
-CFLAGS=-O2
-bindir=
+LIBS=""
+CFLAGS="-O2"
+DEFINES=""
+bindir=""
+OBJS="misc.o id3.o fork.o player.o cconfig.o filelist.o playlist.o main.o"
 
 dnl Checks for programs.
 AC_PROG_CC
 #AC_PROG_INSTALL
 
-dnl Checks for libraries.
-AC_CHECK_LIB(gpm,main,[
- LIBS="$LIBS -lgpm"
- CFLAGS="$CFLAGS -DUSE_GPM_MOUSE"
-])
+AC_MSG_CHECKING(whether to compile remote-control code)
+AC_ARG_WITH(rc,[  --without-rc            Don't compile code for using LPT remote control])
 
-AC_CHECK_HEADERS(termios.h,[
- CFLAGS="$CFLAGS -DUSE_TERMIOS"
-],[
+if test "$with_rc" != no; then
+ AC_MSG_RESULT(yes)
+ DEFINES="$DEFINES -DRC_ENABLED"
+ OBJS="$OBJS rc.o"
+else
+ AC_MSG_RESULT(no)
+fi
+
+
+dnl Checks for libraries.
+
+
+AC_MSG_CHECKING(whether to compile with gpm if available)
+AC_ARG_WITH(gpm,[  --without-gpm           Don't compile with gpm even if found])
+
+if test "$with_gpm" != no; then
+ AC_MSG_RESULT(yes)
+
+  AC_CHECK_LIB(gpm,main,[
+   LIBS="$LIBS -lgpm"
+   DEFINES="$DEFINES -DUSE_GPM_MOUSE" 
+  ],[
+  oldLIBS=$LIBS
+  LIBS="$LIBS -lncurses" 
+  AC_CHECK_LIB(gpm,Gpm_Open,[
+   LIBS="$LIBS -lgpm"   
+   DEFINES="$DEFINES -DUSE_GPM_MOUSE" 
+  ],[
+   LIBS=$oldLIBS
+  ])
+  ])
+
+else
+ AC_MSG_RESULT(no)
+fi
+
+AC_CHECK_HEADERS(termios.h,,[
  AC_CHECK_LIB(ncurses,main,[
-  CFLAGS="$CFLAGS -DUSE_NCURSES"
   LIBS="$LIBS -lncurses"
 ]) ])
+
+AC_CHECK_HEADERS(sys/soundcard.h,[
+ OBJS="$OBJS mixer.o"
+])
+
+AC_CHECK_HEADERS(sys/ioctl.h,)
 
 dnl Checks for header files.
 #AC_HEADER_STDC
@@ -38,7 +76,7 @@ dnl Checks for library functions.
 
 dnl Check for mixer..
 
-AC_MSG_CHECKING(for mixer)
+AC_MSG_CHECKING(for external mixer)
 
 for dir in /usr/bin /usr/local/bin /bin /sbin \
            /usr/sbin /usr/local/sbin; do
@@ -50,7 +88,7 @@ done
 if test x$mixer != x
  then 
   AC_MSG_RESULT($mixer)
-  CFLAGS="$CFLAGS -DCUSTOM_RUN=\\\"$mixer\\\" -DCUSTOM_BUTTON=\\\"mixr\\\"" 
+  DEFINES="$DEFINES -DCUSTOM_RUN=\\\"$mixer\\\"" 
  else AC_MSG_RESULT(not found)
 fi
 
@@ -72,4 +110,6 @@ if test x$bindir != x
  bindir=/usr/local/bin
 fi
 
+AC_SUBST(OBJS)
+AC_SUBST(DEFINES)
 AC_OUTPUT(Makefile)
