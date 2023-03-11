@@ -29,9 +29,9 @@ unsigned char in;
       
    if ( in == config.rc.play )
      return 1; else
-     if ( in == config.rc.skipb )
-       return 2; else
      if ( in == config.rc.skipf )
+       return 2; else
+     if ( in == config.rc.skipb )
        return 3; else
      if ( in == config.rc.stop )
        return 4; else
@@ -56,8 +56,8 @@ unsigned char currentvalue = rcpressed();
     case 0:
       break;
       /* 1 = play
-       * 2 = skipR
-       * 3 = skipL
+       * 2 = skipF
+       * 3 = skipB
        * 4 = stop
        * 5 = vol -
        * 6 = vol +

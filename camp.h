@@ -17,7 +17,7 @@
 # define FALSE 0
 #endif
 
-#define CAMP_VERSION "1.3"
+#define CAMP_VERSION "1.5"
 
 #define    MINBUTTON 1
 #define    MAXBUTTON 14
@@ -123,9 +123,6 @@ struct rcconfig {
 };
 
 struct configstruct {
-   char modplayerpath[100];
-   char modplayername[100];
-   char *modplayerargv[15];
    char playerpath[100];
    char playername[100];
    char *playerargv[15];
@@ -136,6 +133,7 @@ struct configstruct {
    char showtime; /* 0 = none, 1 = main, 2 = playlist, 3 = both */
    char timemode; /* 0 = Show elapsed time, 1 = Show remaining time */
    char useid3;
+   char rescanid3;
    char hidedot;
    char playmode; /* 0 = normal, 1 = loop, 2 = randOm */
    char dontreopen;
@@ -148,6 +146,8 @@ struct configstruct {
    char compresspl;
    char scrollsn;
    char kill2pids;
+   char nicekill;
+   char lockvt;
    int playerprio;
    unsigned int rctime;
    unsigned int bufferdelay;
@@ -227,8 +227,6 @@ void call_player(struct playlistent *pl);
 void slave(char *filename);
 void killslave(void);
 void playnext(int);
-int modcheck(char *name);
-void mod_slave( char *filename );
 
 /* cconfig.o */
 struct configstruct getconfig(char *configfile);

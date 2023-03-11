@@ -163,7 +163,7 @@ struct timeval starttime, currenttime;
    tmp[0] = 0;
    while ( ch != 13 ) {      
       gettimeofday(&currenttime, NULL);
-      if ( currenttime.tv_sec  == starttime.tv_sec+10 ) return;
+      if ( currenttime.tv_sec == starttime.tv_sec+10 ) return;
       usleep(10000);
       ch = getchar();
       if ( ch != -1 ) {

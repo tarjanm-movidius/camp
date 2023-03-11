@@ -1,3 +1,4 @@
+
 #include <string.h>
 #include <stdio.h>
 #ifdef HAVE_SYS_SOUNDCARD_H
@@ -22,16 +23,17 @@ FILE *fd;
    value = (char*)malloc(500);
    
    if ( !exist(configfile) ) {
-      fd = fopen(configfile, "w");
-      fprintf(fd, "player     = /usr/local/bin/xaudio\nplaymode   = random\nhidedot    = yes\ndontreopen = false\nshowlength = playlist\ntimemode   = reverse\nstartincwd = yes\nskin = rawlock\nswitches   =\nreadid3     = true\n");
-      fclose(fd);
+      printf("The configfile %s does not exist! Copy camp.ini from the \
+distribution package, and modify it to fit your needs!\n", configfile);
+      exit(-1);
    }
+
    /* defaults */
    cconfig.volstep     = 3;
    cconfig.playmode    = 2;
    cconfig.useid3      = TRUE;
+   cconfig.rescanid3   = FALSE;
    cconfig.startincwd  = TRUE;
-
 
 #ifdef HAVE_LIBZ
    cconfig.compresspl  = TRUE;
@@ -76,21 +78,6 @@ FILE *fd;
 	 cconfig.playerargv[0] = (char*)malloc(strlen(cconfig.playername)+1);
 	 strcpy(cconfig.playerargv[0], cconfig.playername); 
       } else
-	
-	if ( !strcasecmp(arg, "player.mod") ) {
-	   strcpy ( cconfig.modplayername, rindex(value, '/')+1 );
-	   strncpy( cconfig.modplayerpath, value, rindex(value, '/')-value );
-	   if ( !exist(value) ) {
-	      printf("Module Player %s does not exist, edit %s!\n", value, configfile);
-	      /* exit(-1); */
-	   }
-	   printf("Using %s (%s) as module player\n", cconfig.modplayername, value);
-	   cconfig.modplayerargv[0] = (char*)malloc(strlen(cconfig.modplayername)+1);
-	   strcpy(cconfig.modplayerargv[0], cconfig.modplayername);
-	} else
-	
-	
-	
 	if ( !strcasecmp(arg, "playmode") ) 
 	  if ( !strcasecmp(value, "random") )
 	    cconfig.playmode = 2; else
@@ -109,6 +96,10 @@ FILE *fd;
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.useid3 = TRUE; else
 	cconfig.useid3 = FALSE; else 
+	if ( !strcasecmp(arg, "rescaninfo") )
+	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
+	    cconfig.rescanid3 = TRUE; else
+	cconfig.rescanid3 = FALSE; else 
 	if ( !strcasecmp(arg, "compresspl") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.compresspl = TRUE; else
@@ -121,6 +112,10 @@ FILE *fd;
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.userc = TRUE; else
 	cconfig.userc = FALSE; else 
+	if ( !strcasecmp(arg, "nicekill") ) 
+	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
+	    cconfig.nicekill = TRUE; else
+	cconfig.nicekill = FALSE; else 
 	if ( !strcasecmp(arg, "skin") )
 	  if ( !strcasecmp(value, "random") ) loadskin(randomskin(buf), &cconfig); else
 	loadskin(value, &cconfig); else	
@@ -146,6 +141,10 @@ FILE *fd;
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.dontreopen = TRUE; else
 	cconfig.dontreopen = FALSE; else
+	if ( !strcasecmp(arg, "lockvt") )
+	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
+	    cconfig.lockvt = TRUE; else
+	cconfig.lockvt = FALSE; else
 	if ( !strcasecmp(arg, "startincwd") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.startincwd = TRUE; else
@@ -192,29 +191,7 @@ FILE *fd;
 		strncat(buf, (char*)&value[i], 1);
 	      i++;
 	   }
-	} else
-      
-      if ( !strcasecmp(arg, "switches.mod") ) {
-	 memset(buf, 0, 499);
-	 i = 0;
-	 value[strlen(value)+1] = 0;
-	 value[strlen(value)] = 32;
-	 for(j=1;j<15;j++)
-	   if ( cconfig.modplayerargv[j] == NULL ) break;
-	 while ( value[i] != 0 ) {
-	    if ( value[i] == 32 && strlen(buf) != 0 ) {
-	       cconfig.modplayerargv[j] = (char*)malloc(strlen(buf)+1);
-	       strcpy(cconfig.modplayerargv[j], buf);
-	       j++;
-	       memset(buf, 0, 499);
-	    } else
-	      strncat(buf, (char*)&value[i], 1);
-	      i++;
-	 }
-	 
-      }
-      
-      
+	}
    }
       
    fclose(fd);
@@ -235,6 +212,8 @@ FILE *fd;
       printf(" rate    = -r\n");
       printf(" quiet   = -q\n");
       printf(" device  = -a\n");
+      printf("Using nice kill\n");
+     cconfig.nicekill    = TRUE;
    } else
      if ( !strcmp(cconfig.playername, "xaudio") ) {
 	printf("Using defaults for xaudio:\n");

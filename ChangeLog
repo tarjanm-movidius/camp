@@ -5,6 +5,14 @@ CAMP Changelog
 - Remove
 ! Known bug
 
+2000-06-25: v1.5-beta1.2889
+
+* Fixed some problems with calling the external player.
+* Fixed a mistake by me, skip forward/backward w/ lp-remote control was switched
++ Added config option to lock terminal switching when going into "lock" mode.
++ Added startup option to lock vt switching/password protecting fork/quit.
++ Added config option to rescan time/id3/etc on play, ala winamp.
+- Not writing default config if configfile doesn't exist anymore.
 
 1999-10-23: v1.4.2835
 
@@ -14,7 +22,7 @@ CAMP Changelog
 * Nicer handling of filenames without ID3 tags.
 * Several major and minor design flaws fixed.
 * Remote Control support was fucked up, fixed. (I finally made myself a remote)
-* Camp will compile & run under FreeBSD/SunOS again, but without mouse/remote support
+* Camp will run under FreeBSD/SunOS again, without mouse/remote support
 * Glibc 2.1's ( 2.0 too? ) fgets() doesn't replace newline with NULL as libc5
   does, therefore, text-playlist couldn't be loaded. Fixed.
 + Added support for gzip-compressing playlists via libz. (500kb -> 50kb)
@@ -115,9 +123,11 @@ CAMP Changelog
 + Added config option to disable reopening of stdout and stderr.
 + Added alphabetical sorting of the dirs/file, when tagging files.
 + Added a "jump" button, for thoose who are very familiar with their playlists.
-+ Added a "sort" button in the playlist editor, to sort the playlist in alphabetic order.
++ Added a "sort" button in the playlist editor, to sort the playlist in 
+  alphabetic order.
 - Removed the "help" button, since it didn't have any function anyway.
 
 1998-04-16: v1.0.633
 
 + First public release
+
