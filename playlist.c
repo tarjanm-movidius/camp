@@ -263,10 +263,11 @@ int pid, length;
       getfiles(playlist);
       if ( config.skin.pclr ) printf("\e[0m\e[2J");
       printf("\e[1;1H%s", config.skin.playlist);
-      if ( *playlist == NULL ) pl_maxpos = 0; else
-	pl_maxpos = pl_count(*playlist)-1;
-      if (pl_current - pl_screenmark > pl_maxpos)
-	pl_current = pl_screenmark = 0;
+      pl_maxpos = pl_count(*playlist)-1;
+      if ( *playlist == NULL )
+	pl_maxpos = pl_screenmark = pl_current = 0; else
+	if (pl_current > pl_maxpos)
+	  pl_current = pl_screenmark = 0;
       pl_showents(pl_current-pl_screenmark, *playlist);
       pl_updatebuttons(0);
       return;
@@ -306,7 +307,8 @@ int pid, length;
 	 if ( (config.skin.plistlines-1) > pl_maxpos && pl_screenmark )
 	   pl_screenmark--;
       }
-      pl_maxpos--;
+      pl_maxpos--;      
+      if ( pl_maxpos == 0 ) *playlist = NULL;
       
       pl_showents(pl_current-pl_screenmark, *playlist);
       return;

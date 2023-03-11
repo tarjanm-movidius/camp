@@ -6,6 +6,11 @@ CAMP Changelog
 ! Known bug
 
 
+1999-04-xx: v1.3.xxxx
+
+* Input fields (save playlist, id3 editor) supports arrow moving.
+* Fixed a remote-control bug.
+
 1999-04-13: v1.3-beta3/final.2xxx
 
 * Fixed the trouble from 1373 (and all earlier), wich didn't load new songs

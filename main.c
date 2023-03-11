@@ -23,15 +23,15 @@ struct termios oldtermios, newtermios;
 # include <gpm.h>
 #endif
 
-/*                                                           
- *      Console Ansi Mpeg3 Player interface v1.2 by inm      
- *                                                           
- * If you improve this code, please send a copy, or a        
- * diff of it to inm@m1crosoft.com.                          
- * Latest version can be found at                            
- * ftp://artpacks.sweart.nu/pub/sector7                      
- *                                                           
- *                                                         */
+/*                                                      
+ *   Console Ansi Mpeg3 Player interface v1.3 by inm    
+ *                                                      
+ * If you improve this code, please send a copy, or a   
+ * diff of it to inm@m1crosoft.com.                     
+ * Latest version can be found at                       
+ * http://camp.goes.berzerk.nu                          
+ *                                                      
+ *                                                    */
 
 #define KM_UP     1
 #define KM_DOWN   2
@@ -58,6 +58,7 @@ int    ch, cspos=0, i, stdinno = fileno(stdin);
 FILE   *fd;
 fd_set fds;
 struct timeval currenttime;
+int left, right;   
    
    printf("Console Ansi Mpeg3 Player interface v%s.%d by inm (inm@m1crosoft.com)\n\n", CAMP_VERSION, BUILD);
    sprintf(buf, "%s/.camp/camprc", getenv("HOME"));
@@ -201,6 +202,9 @@ struct timeval currenttime;
 #ifdef RC_ENABLED
       if ( config.userc ) checkrc();
 #endif
+      get_volume(config.voldev, &left, &right);
+//      printf("\e[1;1H%d - %d   \n", left, right);
+      
       currenttime.tv_usec = config.rctime;
       currenttime.tv_sec  = 0;
       FD_ZERO(&fds);
@@ -386,19 +390,19 @@ void escfix(void) {
 }
 
 
-int dofunction(unsigned char forcedbutton) {
+int dofunction(char forcedbutton) {
 static struct timeval pause_start, pause_end;
 char pass[16], checkpass[16];
 int mod, ec, oldfilenumber;
 char *buf, *buf2;
 FILE *fd;
    
-   if ( forcedbutton = -1 ) forcedbutton = buttonpos;
+   if ( forcedbutton == -1 ) forcedbutton = buttonpos;
    
    switch( forcedbutton ) {
 
     case 0: /* skip back */
-      if ( !playlist ) return(0);
+      if ( !playlist || pausesong ) return(0);
       if ( filenumber == 0 ) filenumber = playlistents-1; else
 	filenumber--;
       if ( playsong == TRUE && !slavepid ) killslave(); else
@@ -419,7 +423,7 @@ FILE *fd;
       return(1);
       
     case 2: /* skip fwd */
-      if ( !playlist ) return(0);
+      if ( !playlist || pausesong ) return(0);
       if ( filenumber >= playlistents-1 ) filenumber = 0; else
 	filenumber++;
       if ( playsong == TRUE && !slavepid) killslave(); else
@@ -427,7 +431,7 @@ FILE *fd;
       break;
       
     case 3: /* stop */
-      if ( playsong && slavepid != 0) {
+      if ( playsong && slavepid ) {
 	 playsong = FALSE;
 	 killslave();
 	 if ( !quiet )
@@ -525,7 +529,7 @@ FILE *fd;
 	   printf(buf, 0, playlistents); else
 	   printf(buf, 1, playlistents);
 	 mod = 27;
-	 filenumber = atoi(readyxline(config.skin.mtexty, config.skin.mtextx+(strlen(buf2)-4), pass, 4, &ec, &mod));
+	 filenumber = atoi(readyxline(config.skin.mtexty, config.skin.mtextx+(ansi_strlen(buf2)-4), pass, 4, &ec, &mod));
 	 sprintf(pass, "%d", filenumber); 
 	 if ( filenumber == 0 || ec == 27 || !mod ) { filenumber = -1; break; }
 	 filenumber--;

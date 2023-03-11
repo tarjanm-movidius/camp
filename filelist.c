@@ -514,7 +514,7 @@ struct oneplaylistent getpl;
    sprintf(buf, "\e[?25h%s", config.skin.flistmsg[3]);
    l_status(buf);
    strcpy(buf2, filename);
-   strcpy(buf2, readyxline(config.skin.texty, config.skin.textx+strlen(config.skin.flistmsg[3]), buf2, config.skin.textw-strlen(config.skin.flistmsg[3]), &exitchar, (int*)&ch));
+   strcpy(buf2, readyxline(config.skin.texty, config.skin.textx+ansi_strlen(config.skin.flistmsg[3]), buf2, config.skin.textw-ansi_strlen(config.skin.flistmsg[3]), &exitchar, (int*)&ch));
    if ( exitchar == 27 || !buf2[0] ) {
       l_status("\e[?25l");
       fl_updatebuttons(0);

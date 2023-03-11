@@ -12,15 +12,28 @@
 
 extern char **environ;
 
+int ansi_strlen(char *string) {
+int i=0, len=0; /* returns length of a string with ansi codes stripped off */
+   
+   for(;i<strlen(string);i++)
+     if ( string[i] == '\e' )
+       while ( !strchr("abcdefghijklmnopqrstuvwxyz", tolower(string[i])) )
+	 i++; else
+     len++;
+   return len;
+}
+
+
 char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitchar, int *modified) {
 fd_set stdinfds;
 int ch;
-unsigned char pos=0;
+unsigned char maxpos=0, pos;
 static char buf[256];
+char *buf2 = (char*)malloc(256);
    
    if ( preval != NULL ) {
       strcpy(buf, preval);
-      pos = strlen(buf);
+      maxpos = pos = strlen(buf);
    } else
      buf[0] = 0;
    
@@ -34,15 +47,27 @@ static char buf[256];
       if ( ch == 3 ) exit(0); /* ^C */
       
       do {
-	 if ( ch > 31 && pos < maxlen && ch != 127 ) {
-	    buf[strlen(buf)+1] = 0;
-	    buf[strlen(buf)] = ch;
-	    printf("%c", ch);
-	    pos++;
-	    if ( modified != NULL ) *modified = TRUE;
+	 if ( ch == 1 ) { /* ^A */
+	    pos = 0;
+	    printf("\e[%d;%dH", y, x+pos);
 	 } else
-	   if (ch == 127 && pos != 0) {
-	      buf[strlen(buf)-1] = 0;
+	   if ( ch == 5 ) { /* ^E */
+	      pos = maxpos;
+	      printf("\e[%d;%dH", y, x+pos);
+	   } else
+	   if ( ch > 31 && maxpos < maxlen && ch != 127 ) { /* regulars */
+	      strcpy(buf2, &buf[pos]);
+	      buf[pos] = ch;
+	      strcpy(&buf[pos+1], buf2);
+	      maxpos++;
+	      pos++;
+	      printf("\e[%d;%dH%s\e[%d;%dH", y, x, buf, y, x+pos);
+	      if ( modified != NULL ) *modified = TRUE;
+	   } else
+	   if (ch == 127 && maxpos != 0 && pos != 0 ) { /* backspace */
+	      strcpy(buf2, &buf[pos]);
+	      strcpy(&buf[pos-1], buf2);
+	      maxpos--;
 	      pos--;
 	      printf("\e[%d;%dH%s \e[%d;%dH", y, x, buf, y, x+pos);
 	      if ( modified != NULL ) *modified = TRUE;
@@ -53,20 +78,32 @@ static char buf[256];
 		 switch( getchar() ) {
 		  case 'A': 
 		    *exitchar = 'A';
+		    free(buf2);
 		    return buf;
 		  case 'B':
 		    *exitchar = 'B';
+		    free(buf2);
 		    return buf;
+		  case 'C':
+		    if ( pos != maxpos ) pos++;
+		    printf("\e[%d;%dH", y, x+pos);
+		    break;
+		  case 'D':
+		    if ( pos != 0 ) pos--;
+		    printf("\e[%d;%dH", y, x+pos);
+		    break;
 		  default: ;
 		 }
 	      } else {
 		 while ( getchar() != -1 ) ;
 		 *exitchar = 27;
+		 free(buf2);
 		 return buf;
 	      }
 	   } else 
 	   if ( ch == 13 ) {
 	      *exitchar = 13;
+	      free(buf2);
 	      return buf;
 	   }
 	 
@@ -74,7 +111,8 @@ static char buf[256];
 	 ch = getchar();
       } while ( ch != -1 );
    } while ( TRUE );
-   
+
+free(buf2);
 return buf;
 }
 

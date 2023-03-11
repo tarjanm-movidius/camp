@@ -142,8 +142,6 @@ playerprio = Acts like a renice, highest prio is -20, lowest 20, only root can
 volumestep = incr/decr volume this many steps each time key is pressed (0-100)
 volumedev  = device to change volume on, can be pcm, synth, main, or a
              numeric value, check SOUND_MIXER_??? values in sys/soundcard.h
-             The volume can be changed anywhere, simply press the + and -
-             keys
 userc      = use remote control? can be overriden by --norc
 rctime     = time in microseconds between reads, keep at 900000 if no rc
 yes, true or 1 will activate a setting, anything else will inactivate it.

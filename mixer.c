@@ -18,6 +18,16 @@ int fd, volume, left, right;
      right += change;
    volume = left + (right << 8);
    ioctl(fd, MIXER_WRITE(dev), &volume);
+   close(fd);
+}
 
+void get_volume(int dev, int *left, int *right) {
+int fd, volume;
+   
+   fd = open("/dev/mixer", O_RDWR);
+   ioctl(fd, MIXER_READ(dev), &volume);
+   close(fd);   
+   *left  = volume & 0x7f;
+   *right = (volume >> 8) & 0x7f;
 }
 

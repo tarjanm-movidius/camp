@@ -123,9 +123,6 @@ struct rcconfig {
 };
 
 struct configstruct {
-   char modplayerpath[100];
-   char modplayername[100];
-   char *modplayerargv[15];
    char playerpath[100];
    char playername[100];
    char *playerargv[15];
@@ -167,7 +164,7 @@ void updatebuttons(char motion);
 void updatedata(void);
 void updatesongtime(char ch);
 void unloadskin(struct skinconfig *skin);
-int  dofunction(unsigned char forcedbutton);
+int  dofunction(char forcedbutton);
 
 /* playlist.o */
 unsigned int pl_count( struct playlistent *playlist );
@@ -215,8 +212,6 @@ void call_player(struct playlistent *pl);
 void slave(char *filename);
 void killslave(void);
 void playnext(int);
-int modcheck(char *name);
-void mod_slave( char *filename );
 
 /* cconfig.o */
 struct configstruct getconfig(char *configfile);
@@ -224,8 +219,8 @@ void loadskin(char *name, struct configstruct *config);
 int parseconfig(char *str, char *arg, char *value);
 
 /* misc.o */
-
-int  exist(char *fname);
+int exist(char *fname);
+int ansi_strlen(char *string);
 char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitchar, int *modified);
 char *strtrim(char *text, char trimchar);
 char *replace(char *text, char oldc, char newc);
@@ -244,5 +239,6 @@ int inb (short port);
 
 /* mixer.o */
 void set_volume(int dev, int change);
+void get_volume(int dev, int *left, int *right);
 
 #endif

@@ -12,6 +12,7 @@ dnl Checks for programs.
 AC_PROG_CC
 #AC_PROG_INSTALL
 
+AC_CHECK_FUNCS(ioperm, [
 AC_MSG_CHECKING(whether to compile remote-control code)
 AC_ARG_WITH(rc,[  --without-rc            Don't compile code for using LPT remote control])
 
@@ -22,7 +23,7 @@ if test "$with_rc" != no; then
 else
  AC_MSG_RESULT(no)
 fi
-
+],)
 
 dnl Checks for libraries.
 
@@ -65,7 +66,7 @@ AC_CHECK_HEADERS(sys/ioctl.h,)
 dnl Checks for header files.
 #AC_HEADER_STDC
 
-dnl Checks for typedefs, structures, and compiler characteristics.
+#dnl Checks for typedefs, structures, and compiler characteristics.
 #AC_C_CONST
 #AC_TYPE_PID_T
 #AC_TYPE_SIZE_T
@@ -74,8 +75,7 @@ dnl Checks for library functions.
 #AC_TYPE_SIGNAL
 #AC_CHECK_FUNCS(gethostname)
 
-dnl Check for mixer..
-
+dnl Checks for mixer..
 AC_MSG_CHECKING(for external mixer)
 
 for dir in /usr/bin /usr/local/bin /bin /sbin \

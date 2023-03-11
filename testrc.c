@@ -7,7 +7,7 @@ static inline int inb (short port)
         return val;
 }
 
-unsigned char rcpressed(void) {
+unsigned char rcpressed(int port) {
 unsigned char in;
 
    /* 1 = play
@@ -18,7 +18,7 @@ unsigned char in;
     * 6 = vol +
     */
    
-   return inb(0x378+1);
+   return inb(port);
    
 }
 
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
    printf("into ~/.camp/camprc. Press ^C to interrupt\n");
    printf("Value: ");
    while(1) 
-     printf("\e[s%d  \e[u", rcpressed());
+     printf("\e[s%d  \e[u", rcpressed(atoi(argv[1])+1));
    
 }
 
