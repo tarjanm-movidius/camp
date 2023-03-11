@@ -9,8 +9,8 @@
  * Copyright (C) 1998 Trent Piepho <xyzzy@u.washington.edu>
  * Copyright (C) 1998 Christoph Bartelmus <lirc@bartelmus.de>
  *
- */ 
- 
+ */
+
 #ifndef LIRC_CLIENT_H
 #define LIRC_CLIENT_H
 
@@ -56,7 +56,7 @@ struct lirc_config_entry
 	struct lirc_list *config;
 	char *change_mode;
 	unsigned int flags;
-	
+
 	char *mode;
 	struct lirc_list *next_config;
 	struct lirc_code *next_code;

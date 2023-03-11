@@ -17,7 +17,7 @@ unsigned char rcpressed(void) {
 unsigned char in;
 
    in = inb(config.rc.port+1);
-   
+
    /* 1 = play
     * 2 = skipR
     * 3 = skipL
@@ -26,7 +26,7 @@ unsigned char in;
     * 6 = vol +
     * 7 = pause
     */
-      
+
    if ( in == config.rc.play )
      return 1; else
      if ( in == config.rc.skipf )
@@ -41,17 +41,17 @@ unsigned char in;
        return 6; else
      if ( in == config.rc.pause )
        return 7; else
-     return 0;      
-   
+     return 0;
+
 }
 
 void checkrc(void) {
 static unsigned char lastvalue = 0;
 unsigned char currentvalue = rcpressed();
-      
+
    if ( lastvalue == currentvalue && ( lastvalue < 5 || lastvalue > 6 ) ) return;
    lastvalue = currentvalue;
-   
+
    switch ( currentvalue ) {
     case 0:
       break;
@@ -88,4 +88,4 @@ unsigned char currentvalue = rcpressed();
     default: ;
    }
 }
-   
+

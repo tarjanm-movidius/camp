@@ -17,7 +17,7 @@
 #ifdef LIRCD
 #include "lirc_client.h"
 extern char use_lircd;
-extern int lirc_lircd; 
+extern int lirc_lircd;
 extern struct lirc_config *lircd_config;
 #endif
 
@@ -26,7 +26,7 @@ extern struct configstruct config;
 
 int ansi_strlen(char *string) {
 int i=0, len=0; /* returns length of a string with ansi codes stripped off */
-   
+
    for(;i<strlen(string);i++)
      if ( string[i] == '\e' )
        while ( !strchr("abcdefghijklmnopqrstuvwxyz", tolower(string[i])) )
@@ -44,20 +44,20 @@ static char buf[256];
 char buf2[256];
 char *ir, *c;
 struct timeval counter;
-   
+
    if ( preval != NULL ) {
       strcpy(buf, preval);
       maxpos = pos = strlen(buf);
    } else
      buf[0] = 0;
-   
+
    printf("\e[%d;%dH%s", y, x, buf); fflush(stdout);
-     
+
    do {
 
       if ( config.mpg123 )
 	mpg123_control(NULL);
-      
+
 #ifdef RC_ENABLED
       if ( config.userc ) checkrc();
 #endif
@@ -71,7 +71,7 @@ struct timeval counter;
 	 FD_SET(lirc_lircd, &fds);
 	 if ( select(lirc_lircd+1, &fds, NULL, NULL, &counter) != -1 )
 	   if ( FD_ISSET(lirc_lircd, &fds) ) dolircd(0); else
-	 
+
 	 /*{ // Hmm, this was the old code to wander around in the fields with the remote-control, ripped it out :)
 	      ir = lirc_nextir();
 	      while ( ir && (c=lirc_ir2char(lircd_config,ir)) != NULL )
@@ -80,11 +80,11 @@ struct timeval counter;
 		if ( !strcasecmp(c, "play") || !strcasecmp(c, "jump") ) ch = 13; else
 		if ( !strcasecmp(c, "skip-") ) ch = 127; else
 		if ( !strcasecmp(c, "stop") ) ch = 27;
-	      if ( ir ) free(ir);	    	       
-	   } */ 
-	   
+	      if ( ir ) free(ir);
+	   } */
+
 	   if FD_ISSET(fileno(stdin), &fds) ch = getchar();
-      } else 
+      } else
 	if ( select(fileno(stdin)+1, &fds, NULL, NULL, &counter) != -1 )
 	  if FD_ISSET(fileno(stdin), &fds) ch = getchar();
 #else
@@ -93,7 +93,7 @@ struct timeval counter;
 #endif
       if ( ch == 3 && canexit() ) exit(0); /* ^C */
       if ( ch == 26 && canexit() ) disappear(); else /* ^Z */
-      
+
       if ( ch == 1 ) { /* ^A */
 	 pos = 0;
 	 printf("\e[%d;%dH", y, x+pos);
@@ -131,7 +131,7 @@ struct timeval counter;
 	   ch = getchar();
 	   if ( ch == '[' ) {
 	      switch( getchar() ) {
-	       case 'A': 
+	       case 'A':
 		 *exitchar = 'A';
 #ifdef HAVE_TERMIOS_H
 		 fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
@@ -144,7 +144,7 @@ struct timeval counter;
 #endif
 		 return buf;
 	       case 'C':
-		 if ( pos != maxpos ) pos++;		
+		 if ( pos != maxpos ) pos++;
 		 printf("\e[%d;%dH", y, x+pos);
 		 break;
 	       case 'D':
@@ -157,17 +157,17 @@ struct timeval counter;
 	   } else {
 	      while ( getchar() != -1 ) ;
 	      *exitchar = 27;
-	      fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);	      
+	      fcntl(fileno(stdin), F_SETFL, !O_NONBLOCK);
 	      return buf;
 	   }
-	} else 
+	} else
 	if ( ch == 13 ) {
 	   *exitchar = 13;
 	   return buf;
 	}
-      
+
    } while ( TRUE );
-   
+
 return buf;
 }
 
@@ -176,15 +176,15 @@ void readpass(char *text, int len) {
 char tmp[100];
 int ch=-1;
 struct timeval starttime, currenttime;
-   
+
    gettimeofday(&starttime, NULL);
-   
+
    tmp[0] = 0;
-   while ( ch != 13 ) {      
+   while ( ch != 13 ) {
 
       if ( config.mpg123 )
 	        mpg123_control(NULL);
-      
+
       gettimeofday(&currenttime, NULL);
       if ( currenttime.tv_sec == starttime.tv_sec+10 ) {
 	 text[0] = 0;
@@ -193,22 +193,22 @@ struct timeval starttime, currenttime;
       if ( mykbhit(0, 900000) ) {
 	 ch = getchar();
 	 gettimeofday(&starttime, NULL);
-	 
-	 switch(ch) { 	    
-	    
+
+	 switch(ch) {
+
 	  case 127: if ( tmp[0] != 0 ) {
 	     tmp[strlen(tmp)-1] = 0;
-	     printf("\b \b"); 
+	     printf("\b \b");
 	  } break;
-	    
+
 	  case 13: break;
-	    
+
 	  default: if ( strlen(tmp) == len ) break; tmp[strlen(tmp)+1] = 0; tmp[strlen(tmp)] = ch; printf("*"); fflush(stdout); break;
 	 } // switch(ch)
-	 
-      } // if kbhit .. 
+
+      } // if kbhit ..
    } // while ch ! 13
-   
+
    strcpy(text, tmp);
 } // readpass(char *text)
 
@@ -216,7 +216,7 @@ struct timeval starttime, currenttime;
 int exist(char *fname) {
 FILE *fd;
    fd = fopen(fname, "rb");
-   if ( fd != NULL ) {   
+   if ( fd != NULL ) {
       fclose(fd);
       return(1); /* file exists! */
    } else return(0); /* file does not exist! */
@@ -225,7 +225,7 @@ FILE *fd;
 unsigned int myrand(double maxval) {
 struct timeval tv;
 int i;
-   
+
    gettimeofday(&tv, NULL);
    srand(tv.tv_sec+tv.tv_usec);
    i=(int) (maxval*rand()/(RAND_MAX+1.0));
@@ -234,7 +234,7 @@ int i;
 
 void lowcases( char *strng ) {
 int i=0;
-   
+
    for(;i<strlen(strng);i++)
      strng[i] = tolower(strng[i]);
 }
@@ -242,7 +242,7 @@ int i=0;
 unsigned char mykbhit(unsigned int sec, unsigned long usec) {
 struct timeval tv;
 fd_set fds;
-   
+
    tv.tv_sec = sec;
    tv.tv_usec = usec;
    FD_ZERO(&fds);
@@ -262,7 +262,7 @@ int i=0, wht=0;
 }
 
 char *strtrim(char *text, char trimchar) {
-   
+
    while (text[0] == trimchar || text[strlen(text)-1] == trimchar) {
       if ( text[0] == trimchar ) strcpy(text, (char*)text+1);
       if ( text[strlen(text)-1] == trimchar ) text[strlen(text)-1] = '\000';
@@ -272,10 +272,10 @@ char *strtrim(char *text, char trimchar) {
 
 char *replace(char *text, char oldc, char newc) {
 int i;
-   
+
    for(i=0;i<strlen(text);i++)
      if ( text[i] == oldc ) text[i] = newc;
-   
+
    return text;
 }
 
@@ -291,7 +291,7 @@ void termios_raw(struct termios *termios_p) {
 
 int my_system (char *command) { /* ripped out of system's manpage */
 int pid, status;
-   
+
    if ( !command ) return 1;
    pid = fork();
    if ( pid == -1 ) return -1;
@@ -316,7 +316,7 @@ int pid, status;
 
 #ifdef USE_GPM_MOUSE
 void my_Gpm_Init(Gpm_Connect *mouse) {
-   mouse->eventMask = GPM_DOWN|GPM_SINGLE|GPM_DOUBLE|GPM_DRAG; 
+   mouse->eventMask = GPM_DOWN|GPM_SINGLE|GPM_DOUBLE|GPM_DRAG;
    mouse->defaultMask = GPM_MOVE; /* Let GPM handle cursor drawing */
    mouse->maxMod = 0;
    mouse->minMod = 0;
@@ -324,10 +324,10 @@ void my_Gpm_Init(Gpm_Connect *mouse) {
    gpm_zerobased      = 0;
    gpm_visiblepointer = 1;
    if (Gpm_Open(mouse, 0)!=-2)  {
-	   gpm_handler = NULL;     
+	   gpm_handler = NULL;
 	   if ( !gpm_flag ) {
 	      while ( Gpm_Close() != 0 ) ;
-	      gpm_fd = -1;	
+	      gpm_fd = -1;
 	   }
    } else {
 	   gpm_fd=-1;
@@ -339,12 +339,12 @@ void my_Gpm_Purge(void) {
 fd_set    gpm_fds;
 Gpm_Event event;
 struct timeval tv;
-   
+
    if ( gpm_fd == -1 ) return;
    FD_ZERO(&gpm_fds);
    FD_SET(gpm_fd, &gpm_fds);
    tv.tv_sec  = 0;
-   tv.tv_usec = 0;   
+   tv.tv_usec = 0;
    while ( select(gpm_fd+1, &gpm_fds, NULL, NULL, &tv) )
      Gpm_GetEvent(&event);
 }

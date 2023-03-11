@@ -18,9 +18,9 @@ struct configstruct cconfig;
 char buf[500], arg[500], value[500];
 int  i,j ;
 FILE *fd;
-   
+
    memset((void*)&cconfig, 0, sizeof(cconfig));
-   
+
    if ( !exist(configfile) ) {
       printf("The configfile %s does not exist! Copy camp.ini from the \
 distribution package, and modify it to fit your needs!\n", configfile);
@@ -39,8 +39,8 @@ distribution package, and modify it to fit your needs!\n", configfile);
 #else
    cconfig.compresspl  = FALSE;
 #endif
-   
-#ifdef HAVE_SYS_SOUNDCARD_H     
+
+#ifdef HAVE_SYS_SOUNDCARD_H
    cconfig.voldev      = SOUND_MIXER_PCM;
 #endif
 #ifdef ENABLE_RC
@@ -50,9 +50,9 @@ distribution package, and modify it to fit your needs!\n", configfile);
    cconfig.rctime      = 900000;
    cconfig.userc       = FALSE;
 #endif
-   
-   fd = fopen(configfile, "r");   
-   
+
+   fd = fopen(configfile, "r");
+
    while ( fgets((char*)buf, 499, fd) != NULL ) {
       strtrim(buf, '\n');
       if ( buf[0] == '#' || buf[0] == 0 ) continue;
@@ -77,13 +77,13 @@ distribution package, and modify it to fit your needs!\n", configfile);
 
 	 printf("Using %s (%s) as player\n", cconfig.playername, value);
 	 cconfig.playerargv[0] = (char*)malloc(strlen(cconfig.playername)+1);
-	 strcpy(cconfig.playerargv[0], cconfig.playername); 
+	 strcpy(cconfig.playerargv[0], cconfig.playername);
       } else
-	if ( !strcasecmp(arg, "playmode") ) 
+	if ( !strcasecmp(arg, "playmode") )
 	  if ( !strcasecmp(value, "random") )
 	    cconfig.playmode = 2; else
-	if ( !strcasecmp(value, "loop") || !strcasecmp(value, "repeat") ) 
-	  cconfig.playmode = 1; else 
+	if ( !strcasecmp(value, "loop") || !strcasecmp(value, "repeat") )
+	  cconfig.playmode = 1; else
 	cconfig.playmode = 0; else
 #ifdef HAVE_SYS_SOUNDCARD_H
 	if ( !strcasecmp(arg, "volumedev") ) {
@@ -107,14 +107,14 @@ distribution package, and modify it to fit your needs!\n", configfile);
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.defpl = TRUE; else
 	cconfig.defpl = FALSE; else
-	if ( !strcasecmp(arg, "readid3") ) 
+	if ( !strcasecmp(arg, "readid3") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.useid3 = TRUE; else
 	cconfig.useid3 = FALSE; else
 	if ( !strcasecmp(arg, "rescaninfo") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.rescanid3 = TRUE; else
-	cconfig.rescanid3 = FALSE; else 
+	cconfig.rescanid3 = FALSE; else
 	if ( !strcasecmp(arg, "compresspl") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.compresspl = TRUE; else
@@ -122,18 +122,18 @@ distribution package, and modify it to fit your needs!\n", configfile);
 	if ( !strcasecmp(arg, "scrollname") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.scrollsn = TRUE; else
-	cconfig.scrollsn = FALSE; else 
-	if ( !strcasecmp(arg, "userc") ) 
+	cconfig.scrollsn = FALSE; else
+	if ( !strcasecmp(arg, "userc") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.userc = TRUE; else
-	cconfig.userc = FALSE; else 
-	if ( !strcasecmp(arg, "nicekill") ) 
+	cconfig.userc = FALSE; else
+	if ( !strcasecmp(arg, "nicekill") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.nicekill = TRUE; else
-	cconfig.nicekill = FALSE; else 
+	cconfig.nicekill = FALSE; else
 	if ( !strcasecmp(arg, "skin") )
 	  if ( !strcasecmp(value, "random") ) loadskin(randomskin(buf), &cconfig); else
-	loadskin(value, &cconfig); else	
+	loadskin(value, &cconfig); else
 	if ( !strcasecmp(arg, "rctime") )
 	  cconfig.rctime = atoi(value); else
 	if ( !strcasecmp(arg, "delay") )
@@ -147,12 +147,12 @@ distribution package, and modify it to fit your needs!\n", configfile);
 	if ( !strcasecmp(arg, "kill2pids") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.kill2pids = TRUE; else
-	cconfig.kill2pids = FALSE; else	
+	cconfig.kill2pids = FALSE; else
 	if ( !strcasecmp(arg, "hidedot") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.hidedot = TRUE; else
-	cconfig.hidedot = FALSE; else     
-	if ( !strcasecmp(arg, "dontreopen") ) 
+	cconfig.hidedot = FALSE; else
+	if ( !strcasecmp(arg, "dontreopen") )
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.dontreopen = TRUE; else
 	cconfig.dontreopen = FALSE; else
@@ -204,8 +204,8 @@ distribution package, and modify it to fit your needs!\n", configfile);
 	if ( !strcasecmp(arg, "switches") || !strcasecmp(arg, "params") ) {
 	   memset(buf, 0, 499);
 	   i = 0;
-	   value[strlen(value)+1] = 0; 
-	   value[strlen(value)] = 32; 
+	   value[strlen(value)+1] = 0;
+	   value[strlen(value)] = 32;
 	   for(j=1;j<15;j++)
 	     if ( cconfig.playerargv[j] == NULL ) break;
 	   while ( value[i] != 0 ) {
@@ -214,16 +214,16 @@ distribution package, and modify it to fit your needs!\n", configfile);
 		 strcpy(cconfig.playerargv[j], buf);
 		 j++;
 		 memset(buf, 0, 499);
-	      } else 
+	      } else
 		strncat(buf, (char*)&value[i], 1);
 	      i++;
 	   }
 	}
    }
-      
+
    fclose(fd);
-   
-   
+
+
    if ( cconfig.dontreopen ) printf("NOT Reopening stdin, stdout!\n");
 
 //   printf("%s\n", cconfig.playername);
@@ -236,7 +236,7 @@ distribution package, and modify it to fit your needs!\n", configfile);
       strcpy(cconfig.downmix, "-m");
       strcpy(cconfig.rate, "-r");
       strcpy(cconfig.quiet, "-q");
-      strcpy(cconfig.device, "-a");      
+      strcpy(cconfig.device, "-a");
 /*      printf(" downmix = -m\n");
       printf(" rate    = -r\n");
       printf(" quiet   = -q\n");
@@ -249,7 +249,7 @@ distribution package, and modify it to fit your needs!\n", configfile);
 	strcpy(cconfig.downmix, "-mono=mix");
 	cconfig.rate[0] = 0;
 	cconfig.quiet[0] = 0;
-	strcpy(cconfig.device, "-output=");      
+	strcpy(cconfig.device, "-output=");
 /*	printf(" downmix = -mono=mix\n");
 	printf(" rate    = n/a\n");
 	printf(" quiet   = n/a\n");
@@ -270,14 +270,14 @@ distribution package, and modify it to fit your needs!\n", configfile);
 
    if ( strcmp(cconfig.playername, "mpg123") && cconfig.mpg123 )
      printf("\e[1mWARNING! Setting mpg123mode = true in ~/.camp/camprc without having mpg123 as the player will result in failure trying to play music!!\e[0m\n");
-   
+
    if ( cconfig.quiet[0] != 0 ) {
       for(i=0;i<15;i++)
 	if ( cconfig.playerargv[i] == NULL ) break;
       cconfig.playerargv[i] = (char*)malloc(strlen(cconfig.quiet)+1);
       strcpy(cconfig.playerargv[i], cconfig.quiet);
    }
-   
+
    i = 0;
    printf("Using params: ");
    while ( cconfig.playerargv[i] != NULL ) {
@@ -285,15 +285,15 @@ distribution package, and modify it to fit your needs!\n", configfile);
       i++ ;
    }
    printf("\n");
-   
-   
-   
+
+
+
    switch(cconfig.playmode) {
     case 0: printf("Playing files in straight order.\n"); break;
     case 1: printf("Playing files in straight order (repeat).\n"); break;
     case 2: printf("Playing files in random order.\n"); break;
-    default: 
-      printf("Invalid mode! Setting to normal.\b"); 
+    default:
+      printf("Invalid mode! Setting to normal.\b");
       cconfig.playmode = 0;
       break;
    }
@@ -303,16 +303,16 @@ distribution package, and modify it to fit your needs!\n", configfile);
     case 1: printf("Will show songtime in player window\n"); break;
     case 2: printf("Will show songtime in playlist editor\n"); break;
     case 3: printf("Will show songtime in main/playlist window\n"); break;
-    default: 
-      printf("Invalid mode! Setting to normal.\b"); 
+    default:
+      printf("Invalid mode! Setting to normal.\b");
       cconfig.showtime = 0;
       break;
    }
-   
+
    if (cconfig.timemode == 1) printf ("Will show time as time remaining\n"); else
      printf("Will show time as time elapsed\n");
 
-   
+
 #ifdef HAVE_LIBZ
    if ( cconfig.compresspl ) printf("Saved playlists (with id3 tags) will be compressed.\n"); else
      printf("Saved playlists will be uncompressed.");
@@ -320,9 +320,9 @@ distribution package, and modify it to fit your needs!\n", configfile);
    if ( cconfig.compresspl ) printf("Playlists are set to be compressed, but at compile-time, the 'zlib' could not be found, disabling compression.\n");
    cconfig.compresspl = FALSE;
 #endif
-   
+
    return cconfig;
-   
+
 }
 
 void loadskin(char *name, struct configstruct *config) {
@@ -330,12 +330,12 @@ int    fd,i,version=0;
 FILE  *filefd;
 struct stat statbuf;
 char buf[500], arg[500], value[500], skin_home[500];
-   
+
    memset((void*)&config->skin, 0, sizeof(struct skinconfig));
- 
+
    for(fd=MINBUTTON;fd<(MAXBUTTON+1);fd++) {
       config->skin.mju[fd] = -1;
-      config->skin.mjd[fd] = -1;      
+      config->skin.mjd[fd] = -1;
       config->skin.mjl[fd] = -1;
       config->skin.mjr[fd] = -1;
       config->skin.mh[fd]  = -1;
@@ -343,20 +343,20 @@ char buf[500], arg[500], value[500], skin_home[500];
 
    memset(config->skin.plistbo, -1, sizeof(config->skin.plistbo));
    memset(config->skin.flistbo, -1, sizeof(config->skin.flistbo));
-      
-   /*  Erp, this is default hotkeys for volume +/- .. 
-    *  i felt it had to be defaults here.. 
+
+   /*  Erp, this is default hotkeys for volume +/- ..
+    *  i felt it had to be defaults here..
     */
-   
+
    config->skin.mh[15] = '-';
    config->skin.mh[16] = '+';
    config->skin.mpclr = TRUE;
    config->skin.miclr = TRUE;
    config->skin.piclr = TRUE;
-   
+
    config->skin.id3fnw = 39;
    /* I fucked up in v1.00, included this in the structure, but NEVER used it, so set default for "old" skins */
-   
+
    printf("Loading skin \"%s\"... ", name); fflush(stdout);
    sprintf(skin_home,"%s/.camp/skins/%s",getenv("HOME"), name);
    if (!probe_dir(skin_home)) {
@@ -366,7 +366,7 @@ char buf[500], arg[500], value[500], skin_home[500];
 		   exit(-1);
 	   }
    }
-   
+
    sprintf(buf, "%s/main.ans", skin_home, name);
    fd = open(buf, O_RDONLY);
    if ( fd == -1 ) {
@@ -431,7 +431,7 @@ char buf[500], arg[500], value[500], skin_home[500];
 	 if ( version < 100 || version >= 110 ) {
 	    printf("a) skin version is %d, must be between 100-109 to work with this camp version!\n", version);
 	    exit(-1);
-	 } 
+	 }
       } else
 	if ( !strcasecmp(arg, "textcolor") ) {
 	   config->skin.mtextc = (char*)malloc(strlen(value)+1);
@@ -457,7 +457,7 @@ char buf[500], arg[500], value[500], skin_home[500];
 	   config->skin.mainmsg[3] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.mainmsg[3], replace(value, '&', 27)); } else
 
-	
+
 	if ( !strcasecmp(arg, "playlistvisible") )
 	  config->skin.platmain = atoi(value); else
 	if ( !strcasecmp(arg, "id3editvisible") )
@@ -549,8 +549,8 @@ char buf[500], arg[500], value[500], skin_home[500];
 	   strcpy(config->skin.volc, replace(value, '&', 27)); } else
 
 	/* warder, here you got your h0wt-keyz :> */
-	
-	if ( !strcasecmp(arg, "skipbh") ) 
+
+	if ( !strcasecmp(arg, "skipbh") )
 	  config->skin.mh[0] = value[0]; else
 	if ( !strcasecmp(arg, "playh") )
 	  config->skin.mh[1] = value[0]; else
@@ -584,9 +584,9 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.mh[15] = value[0]; else
 	if ( !strcasecmp(arg, "vol+h") )
 	  config->skin.mh[16] = value[0]; else
-	
+
 	/* button moving */
-	
+
 	if ( !strcasecmp(arg, "skipbu") )
 	  config->skin.mju[0] = atoi(value); else
 	if ( !strcasecmp(arg, "playu") )
@@ -656,7 +656,7 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.mjd[15] = atoi(value); else
 	if ( !strcasecmp(arg, "vol+d") )
 	  config->skin.mjd[16] = atoi(value); else
-	
+
 	if ( !strcasecmp(arg, "skipbl") )
 	  config->skin.mjl[0] = atoi(value); else
 	if ( !strcasecmp(arg, "playl") )
@@ -726,9 +726,9 @@ char buf[500], arg[500], value[500], skin_home[500];
 	  config->skin.mjr[15] = atoi(value); else
 	if ( !strcasecmp(arg, "vol+r") )
 	  config->skin.mjr[16] = atoi(value); else
-		
+
 	/* .. button layout .. */
-	
+
 	if ( !strcasecmp(arg, "skipbi") ) {
 	   config->skin.mi[0] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.mi[0], replace(value, '&', 27)); } else
@@ -770,7 +770,7 @@ char buf[500], arg[500], value[500], skin_home[500];
 	   strcpy(config->skin.mi[6], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "custa") ) {
 	   config->skin.ma[6] = (char*)malloc(strlen(value)+1);
-	   strcpy(config->skin.ma[6], replace(value, '&', 27)); } else	
+	   strcpy(config->skin.ma[6], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "seekbi") ) {
 	   config->skin.mi[7] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.mi[7], replace(value, '&', 27)); } else
@@ -833,7 +833,7 @@ char buf[500], arg[500], value[500], skin_home[500];
 	   strcpy(config->skin.ma[16], replace(value, '&', 27)); } else
 
 	/* .. and locations .. */
-	
+
 	if ( !strcasecmp(arg, "skipbx") )
 	  config->skin.mx[0] = atoi(value); else
 	if ( !strcasecmp(arg, "skipby") )
@@ -939,30 +939,30 @@ char buf[500], arg[500], value[500], skin_home[500];
 
 //      for(i=MINBUTTON;i<(MAXBUTTON+1);i++)
 //	printf("%d: %c\n", i, config->skin.mh[i]);
-      
-      
+
+
    }
 
    if ( version == 0 ) {
       printf("Skin version not found, possible error while parsing skin configuration file?\n");
       exit(-1);
-   } 
-   
+   }
+
    fclose(filefd);
-   
+
    /* playlist skin configuration */
-   
+
    sprintf(buf, "%s/playlist.conf", skin_home, name);
    filefd = fopen(buf, "r");
    if ( !filefd ) {
       printf("error! %s not found!\n", buf);
       exit(-1);
    }
-   
-   while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */ 
-      if ( !parseconfig(buf, arg, value) ) continue;      
-      
-      if ( !strcasecmp(arg, "clearscreen" ) ) 
+
+   while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */
+      if ( !parseconfig(buf, arg, value) ) continue;
+
+      if ( !strcasecmp(arg, "clearscreen" ) )
 	if ( !strcasecmp(value, "true") ) config->skin.pclr = TRUE; else
 	config->skin.pclr = FALSE; else
 	if ( !strcasecmp(arg, "startbutton") )
@@ -1011,7 +1011,7 @@ char buf[500], arg[500], value[500], skin_home[500];
       	if ( !strcasecmp(arg, "findbarc") ) {
 	   config->skin.findbarc = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.findbarc, replace(value, '&', 27)); } else
-	
+
 	if ( !strcasecmp(arg, "browsex") )
 	  config->skin.px[0] = atoi(value); else
 	if ( !strcasecmp(arg, "browsey") )
@@ -1096,15 +1096,15 @@ char buf[500], arg[500], value[500], skin_home[500];
 	   strcpy(config->skin.pi[6], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "backa") ) {
 	   config->skin.pa[6] = (char*)malloc(strlen(value)+1);
-	   strcpy(config->skin.pa[6], replace(value, '&', 27)); } 
-	
+	   strcpy(config->skin.pa[6], replace(value, '&', 27)); }
+
    }
    fclose(filefd);
-   
+
    /* filebrowser skin configuration */
-   
+
    sprintf(buf, "%s/filelist.conf", skin_home, name);
-   filefd = fopen(buf, "r");      
+   filefd = fopen(buf, "r");
    if ( !filefd ) {
       printf("error! %s not found!\n", buf);
       exit(-1);
@@ -1112,8 +1112,8 @@ char buf[500], arg[500], value[500], skin_home[500];
 
    while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */
       if ( !parseconfig(buf, arg, value) ) continue;
-      
-      if ( !strcasecmp(arg, "clearscreen" ) ) 
+
+      if ( !strcasecmp(arg, "clearscreen" ) )
 	if ( !strcasecmp(value, "true") ) config->skin.fclr = TRUE; else
 	config->skin.fclr = FALSE; else
 	if ( !strcasecmp(arg, "startbutton") )
@@ -1272,20 +1272,20 @@ char buf[500], arg[500], value[500], skin_home[500];
 	   strcpy(config->skin.fi[6], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "backa") ) {
 	   config->skin.fa[6] = (char*)malloc(strlen(value)+1);
-	   strcpy(config->skin.fa[6], replace(value, '&', 27)); } else 
+	   strcpy(config->skin.fa[6], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "direi") ) {
 	   config->skin.fi[7] = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.fi[7], replace(value, '&', 27)); } else
 	if ( !strcasecmp(arg, "direa") ) {
 	   config->skin.fa[7] = (char*)malloc(strlen(value)+1);
-	   strcpy(config->skin.fa[7], replace(value, '&', 27)); } 
+	   strcpy(config->skin.fa[7], replace(value, '&', 27)); }
    }
-   fclose(filefd);      
+   fclose(filefd);
 
    /* id3-tag editor skin configuration */
-   
+
    sprintf(buf, "%s/id3.conf", skin_home, name);
-   filefd = fopen(buf, "r");      
+   filefd = fopen(buf, "r");
    if ( !filefd ) {
       printf("error! %s not found!\n", buf);
       exit(-1);
@@ -1293,14 +1293,14 @@ char buf[500], arg[500], value[500], skin_home[500];
 
    while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */
       if ( !parseconfig(buf, arg, value) ) continue;
-      
-      if ( !strcasecmp(arg, "clearscreen" ) ) 
+
+      if ( !strcasecmp(arg, "clearscreen" ) )
 	if ( !strcasecmp(value, "true") ) config->skin.iclr = TRUE; else
 	config->skin.iclr = FALSE; else
 	if ( !strcasecmp(arg, "filenamec") ) {
 	   config->skin.id3fnc = (char*)malloc(strlen(value)+1);
 	   strcpy(config->skin.id3fnc, replace(value, '&', 27)); } else
-	if ( !strcasecmp(arg, "filenamew") ) 
+	if ( !strcasecmp(arg, "filenamew") )
 	  config->skin.id3fnw = atoi(value); else
 	if ( !strcasecmp(arg, "textcolor") ) {
 	   config->skin.id3tc = (char*)malloc(strlen(value)+1);
@@ -1318,7 +1318,7 @@ char buf[500], arg[500], value[500], skin_home[500];
 	if ( !strcasecmp(arg, "songnamex") )
 	  config->skin.ix[1] = atoi(value); else
 	if ( !strcasecmp(arg, "songnamey") )
-	  config->skin.iy[1] = atoi(value); else	
+	  config->skin.iy[1] = atoi(value); else
 	if ( !strcasecmp(arg, "commentx") )
 	  config->skin.ix[2] = atoi(value); else
 	if ( !strcasecmp(arg, "commenty") )
@@ -1334,19 +1334,19 @@ char buf[500], arg[500], value[500], skin_home[500];
 	if ( !strcasecmp(arg, "filenamex") )
 	  config->skin.ix[5] = atoi(value); else
 	if ( !strcasecmp(arg, "filenamey") )
-	  config->skin.iy[5] = atoi(value); 
+	  config->skin.iy[5] = atoi(value);
 	if ( !strcasecmp(arg, "savex") )
 	  config->skin.ix[6] = atoi(value); else
 	if ( !strcasecmp(arg, "savey") )
-	  config->skin.iy[6] = atoi(value); 
+	  config->skin.iy[6] = atoi(value);
    }
    fclose(filefd);
-      
+
    for(i=0;i<14;i++) { /* check that everything is ok (kinda bad checks..) */
       if ( i == 7 || i == 9 ) continue;
       if ( !config->skin.ma[i] ) { printf("error, active button layout missing in main.conf!\n"); exit(-1); }
       if ( !config->skin.mi[i] ) { printf("error, inactive button layout missing in main.conf!\n"); exit(-1); }
-      if ( !(config->skin.mju[i]+config->skin.mjd[i]+config->skin.mjl[i]+config->skin.mjr[i]) ) { printf("error, button movement missing in main.conf!\n"); exit(-1); 
+      if ( !(config->skin.mju[i]+config->skin.mjd[i]+config->skin.mjl[i]+config->skin.mjr[i]) ) { printf("error, button movement missing in main.conf!\n"); exit(-1);
       }
    }
 
@@ -1360,7 +1360,7 @@ char buf[500], arg[500], value[500], skin_home[500];
    for(i=0;i<14;i++) fd += config->skin.mw[i];
    if ( !fd ) { printf("error, button width(s) missing in main.conf!\n"); exit(-1); }
    fd = 0;
-   
+
    for(i=0;i<7;i++) fd += config->skin.px[i];
    if ( !fd ) { printf("error, button X location(s) missing in playlist.conf!\n"); exit(-1); }
    fd = 0;
@@ -1379,14 +1379,14 @@ char buf[500], arg[500], value[500], skin_home[500];
    fd = 0;
    for(i=0;i<7;i++) fd += config->skin.fw[i];
    if ( !fd ) { printf("error, button width(s) missing in filelist.conf!\n"); exit(-1); }
-   
+
    fd = 0;
    for(i=0;i<7;i++) fd += config->skin.ix[i];
    if ( !fd ) { printf("error, text X location(s) missing in id3.conf!\n"); exit(-1); }
    fd = 0;
    for(i=0;i<7;i++) fd += config->skin.iy[i];
    if ( !fd ) { printf("error, text Y location(s) missing in id3.conf!\n"); exit(-1); }
-      
+
    for(i=0;i<7;i++) {
       if ( !config->skin.pa[i] ) { printf("error, active button layout(s) missing in playlist.conf!\n"); exit(-1); }
       if ( !config->skin.pi[i] ) { printf("error, inactive button layout(s) missing in playlist.conf!\n"); exit(-1); }
@@ -1398,14 +1398,14 @@ char buf[500], arg[500], value[500], skin_home[500];
    for(i=0;i<4;i++)
      if ( !config->skin.mainmsg[i] ) { printf("error, text message missing in main.conf!\n"); exit(-1); }
 
-   for(i=0;i<6;i++) 
+   for(i=0;i<6;i++)
      if ( !config->skin.flistmsg[i] ) { printf("error, text message missing in filelist.conf!\n"); exit(-1); }
-   
+
    if ( !(config->skin.plistbo[0] + config->skin.plistbo[1]) ) { printf("error, button order missing (or illegal) in playlist.conf!\n"); exit(-1); }
    if ( !(config->skin.flistbo[0] + config->skin.flistbo[1]) ) { printf("error, button order missing (or illegal) in filelist.conf!\n"); exit(-1); }
-   
+
    /* we do not check everything... (yet)  */
-   
+
    printf("done\n");
 }
 
@@ -1416,7 +1416,7 @@ int parseconfig(char *str, char *arg, char *value) {
    arg[strchrpos(str, '=', 1)] = 0;
    strcpy(value, str+strchrpos(str, '=', 1)+1 );
    strcpy(arg, strtrim(arg, ' '));
-   strcpy(value, strtrim(value, ' '));  
+   strcpy(value, strtrim(value, ' '));
    if ( value[0] == '\"' ) strcpy(value, strtrim(value, '\"'));
    return TRUE;
 }
@@ -1427,26 +1427,26 @@ FILE *filefd;
 char *buf = (char*)malloc(500);
 
    memset(buf, 0, 500);
-   
+
    sprintf(buf, "%s/.camp/skins/random", getenv("HOME"));
-   filefd = fopen(buf, "r");      
+   filefd = fopen(buf, "r");
    if ( !filefd ) {
       printf("error! %s not found (create it, or choose a skin instead of random)!\n", buf);
       exit(-1);
    }
-   
+
    fgets((char*)buf, 499, filefd);
    strtrim(buf, '\n');
    wich = myrand(atoi(buf))+1;
-   
+
    for(i=0;i!=wich;i++)
      fgets((char*)buf, 499, filefd);
    strtrim(buf, '\n');
 
    fclose(filefd);
-   
+
    strcpy(rbuf, buf);
-   
+
    return rbuf;
 }
 

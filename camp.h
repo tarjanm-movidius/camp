@@ -34,7 +34,7 @@
 
 #ifndef CUSTOM_RUN
 # define CUSTOM_RUN    "/usr/local/bin/aumix" /* program to run when CUSTOM is pressed */
-#endif                       
+#endif
 
 #define KEY_HOME 0
 #define KEY_END  1
@@ -46,7 +46,7 @@
 #define CAMP_PL    1
 #define CAMP_FL    2
 #define CAMP_DESC  3
-#define CAMP_RET   4 
+#define CAMP_RET   4
 #define CAMP_UNDEF 5 /* Undefined.. like external programs and crap */
 
 /* structures */
@@ -265,7 +265,7 @@ void slave(char *filename);
 void killslave(void);
 void playnext(int);
 char *mpg123_control(char *command); /* 1t'z the n3w sh1t */
-   
+
 
 /* cconfig.o */
 struct configstruct getconfig(char *configfile);

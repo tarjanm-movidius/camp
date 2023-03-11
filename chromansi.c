@@ -1,4 +1,4 @@
-/* 
+/*
 * c data file converted from ansi file by ansitoc (c) 1996 Ben Fowler
 */
 

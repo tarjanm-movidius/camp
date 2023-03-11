@@ -42,13 +42,13 @@ unsigned char buf[31];
 int lay, error_protection, padding, extension, mode_ext, copyright, original, emphasis;
 unsigned int bitrate=0, sampling_frequency=0;
 char version, stereo=0;
-   
+
    fd = fopen(filename, "r");
    if ( fd == NULL ) return FALSE;
-   
+
    fread(&buf, 4, 1, fd);
    if ( ( buf[0] != 0xFF ) || (( buf[1] & 0xE0) != 0xE0 ) )
-      do { 
+      do {
 	 memmove(&buf[0], &buf[1], 3);
 	 buf[3] = getc(fd);
       } while ( ( buf[0] != 0xFF ) || (( buf[1] & 0xE0) != 0xE0 ) );
@@ -70,20 +70,20 @@ char version, stereo=0;
     default:
       version = 2;   // Uh? Originally -1   -- inm
    }
-   
+
    if ( buf[0] == 0xFF && (buf[1] & 0xE0) == 0xE0 )  { /* valid mpX */
-   
+
       lay = 4 - ((buf[1] >> 1) & 0x03);
       bitrate = bitrate_table[version][lay - 1][(buf[2] >> 4) & 0x0F];
       sampling_frequency = samplerate_table[version][(buf[2] >> 2) & 0x3];
-      /* padding = (buf[2] >> 1) & 0x01; 
+      /* padding = (buf[2] >> 1) & 0x01;
        extension = buf[2] & 0x01;
-       error_protection = !(buf[1] & 0x1); 
+       error_protection = !(buf[1] & 0x1);
        mode_ext = (buf[3] >> 4) & 0x03;
        copyright = (buf[3] >> 3) & 0x01;
        original = (buf[3] >> 2) & 0x01;
       emphasis = (buf[3]) & 0x3; */
-      stereo = (((buf[3] >> 6) & 0x03) == 3) ? 0 : 1; 
+      stereo = (((buf[3] >> 6) & 0x03) == 3) ? 0 : 1;
       if ( bit_rate )    *bit_rate    = bitrate;
       if ( sample_rate ) *sample_rate = sampling_frequency;
       if ( mode )        *mode = stereo;
@@ -92,7 +92,7 @@ char version, stereo=0;
       if ( sample_rate ) *sample_rate  = 0;
       if ( mode )        *mode         = 0;
    }
-   
+
    if ( !strncmp(filetag.tag, "TAG", 3) ) {
       if ( name   ) strcpy(name, fuckspaces(filetag.songname, 30));
       if ( artist ) strcpy(artist, fuckspaces(filetag.artist, 30));
@@ -110,7 +110,7 @@ FILE *fd;
 struct ID3 filetag;
 char buf[31];
 int  i;
-   
+
    fd = fopen(filename, "r+");
    if ( fd == NULL ) return FALSE;
    strcpy(filetag.tag, "TAG"); /* the NULL will get at songname[0] but who cares? :) */
@@ -124,13 +124,13 @@ int  i;
    for(i=strlen(year);i<4;i++) filetag.year[i] = 32;
    strcpy(filetag.misc, misc);
    for(i=strlen(misc);i<30;i++) filetag.misc[i] = 32;
-   filetag.genre = genre; 
+   filetag.genre = genre;
    fseek(fd, -128, SEEK_END);
    fread(buf, 3, 1, fd);
    if ( strncmp(buf, "TAG", 3) )
      fseek(fd, 0, SEEK_END); else
-     fseek(fd, -128, SEEK_END);        
-   fwrite((void*)&filetag, 128, 1, fd); 
+     fseek(fd, -128, SEEK_END);
+   fwrite((void*)&filetag, 128, 1, fd);
    fclose(fd);
    return TRUE;
 }
@@ -155,17 +155,17 @@ int modified=FALSE, exitchar=0;
 fd_set stdinfds;
 
    if ( filename == NULL ) return;
-   currloc = CAMP_DESC;   
-   
+   currloc = CAMP_DESC;
+
    for(;i<strlen(filename);i++)
      if (filename[i] == '/' ) cspos = 0; else {
 	buf[cspos] = filename[i];
 	cspos++;
      }
-   
+
    if ( cspos > config.skin.id3fnw ) buf[config.skin.id3fnw] = 0; else
      buf[cspos] = 0;
-   
+
    if ( !getmp3info(filename, NULL, NULL, NULL, name, artist, misc, album, year, genre) ) {
       name[0]   = 0;
       artist[0] = 0;
@@ -174,7 +174,7 @@ fd_set stdinfds;
       year[0]   = 0;
       genre     = 0;
    }
-   if ( config.skin.iclr ) printf("\e[0m\e[2J");   
+   if ( config.skin.iclr ) printf("\e[0m\e[2J");
    printf("\e[?25h\e[1;1H%s\e[%sm", config.skin.id3, config.skin.id3fnc);
    printf("\e[%d;%dH%s\e[%sm", config.skin.iy[5], config.skin.ix[5], buf, config.skin.id3tc);
    printf("\e[%d;%dH%s", config.skin.iy[0], config.skin.ix[0], artist);
@@ -184,7 +184,7 @@ fd_set stdinfds;
    printf("\e[%d;%dH%s", config.skin.iy[4], config.skin.ix[4], year);
    fflush(stdout);
 
-   
+
    do { /* welcome to switcher's paradise */
 
       switch(pos) {
@@ -194,27 +194,27 @@ fd_set stdinfds;
        case 3: strcpy(album,  readyxline(config.skin.iy[3], config.skin.ix[3], album, 30, &exitchar, &modified)); break;
        case 4: strcpy(year,   readyxline(config.skin.iy[4], config.skin.ix[4], year, 4, &exitchar, &modified)); break;
       }
-      
+
       if ( pos == 4 && exitchar == 13 ) exitchar = 27; else
-	
+
 	switch(exitchar) {
 	 case 'B': ;
 	 case 13:  pos++; break;
 	 case 'A': pos--; break;
 	}
-      
+
    } while ( exitchar != 27 );
-   
-     
-   
+
+
+
    if ( modified ) {
       printf("\e[%d;%dH\e[%sm%s", config.skin.iy[6], config.skin.ix[6], config.skin.id3sc, config.skin.id3st); fflush(stdout);
       FD_ZERO(&stdinfds);
       FD_SET(fileno(stdin), &stdinfds);
-      select(fileno(stdin)+1, &stdinfds, NULL, NULL, NULL); 
+      select(fileno(stdin)+1, &stdinfds, NULL, NULL, NULL);
       if ( toupper(getchar()) != 'N' ) {
 	 writemp3info(filename, name, artist, misc, album, year, genre);
-	 if ( playlist != NULL ) 
+	 if ( playlist != NULL )
 	   if ( artist[0] != 0 )
 	     sprintf(playlist->showname, "%s - %s", artist, name); else
 	   strcpy(playlist->showname, name);

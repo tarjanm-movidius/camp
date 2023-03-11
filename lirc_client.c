@@ -9,7 +9,7 @@
  * Copyright (C) 1998 Trent Piepho <xyzzy@u.washington.edu>
  * Copyright (C) 1998 Christoph Bartelmus <lirc@bartelmus.de>
  *
- */ 
+ */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -44,10 +44,10 @@ static char *lirc_buffer=NULL;
 
 void lirc_printf(char *format_str, ...)
 {
-	va_list ap;  
-	
+	va_list ap;
+
 	if(!lirc_verbose) return;
-	
+
 	va_start(ap,format_str);
 	vfprintf(stderr,format_str,ap);
 	va_end(ap);
@@ -74,7 +74,7 @@ int lirc_init(char *prog,int verbose)
 		lirc_printf("%s: out of memory\n",prog);
 		return(-1);
 	}
-	
+
 	addr.sun_family=AF_UNIX;
 	strcpy(addr.sun_path,LIRCD);
 	lirc_lircd=socket(AF_UNIX,SOCK_STREAM,0);
@@ -119,7 +119,7 @@ int lirc_readline(char **line,FILE *f)
 {
 	char *newline,*ret,*enlargeline;
 	int len;
-	
+
 	newline=(char *) malloc(LIRC_READ+1);
 	if(newline==NULL)
 	{
@@ -150,7 +150,7 @@ int lirc_readline(char **line,FILE *f)
 			*line=newline;
 			return(0);
 		}
-		
+
 		enlargeline=(char *) realloc(newline,len+1+LIRC_READ);
 		if(enlargeline==NULL)
 		{
@@ -165,7 +165,7 @@ int lirc_readline(char **line,FILE *f)
 char *lirc_trim(char *s)
 {
 	int len;
-	
+
 	while(s[0]==' ' || s[0]=='\t') s++;
 	len=strlen(s);
 	while(len>0)
@@ -224,7 +224,7 @@ char lirc_parse_escape(char **s,int line)
 	case '7':
 		i=c-'0';
 		count=0;
-		
+
 		while(++count<3)
 		{
 			c=*(*s)++;
@@ -321,7 +321,7 @@ int lirc_mode(char *token,char *token2,char **mode,
 	      int line)
 {
 	struct lirc_config_entry *new_entry;
-	
+
 	new_entry=*new_config;
 	if(strcasecmp(token,"begin")==0)
 	{
@@ -415,7 +415,7 @@ int lirc_mode(char *token,char *token2,char **mode,
 				}
 				*new_config=NULL;
 
-				if(*mode!=NULL) 
+				if(*mode!=NULL)
 				{
 					new_entry->mode=strdup(*mode);
 					if(new_entry->mode==NULL)
@@ -430,7 +430,7 @@ int lirc_mode(char *token,char *token2,char **mode,
 				if(check!=NULL &&
 				   new_entry->prog!=NULL &&
 				   strcasecmp(new_entry->prog,lirc_prog)==0)
-				{					
+				{
 					struct lirc_list *list;
 
 					list=new_entry->config;
@@ -443,7 +443,7 @@ int lirc_mode(char *token,char *token2,char **mode,
 						list=list->next;
 					}
 				}
-				
+
 			}
 			else
 			{
@@ -536,7 +536,7 @@ int lirc_readconfig(char *file,
 	struct lirc_config_entry *new_entry,*first,*last;
 	char *mode,*remote;
 	int line,ret;
-	
+
 	if(file==NULL)
 	{
 		home=getenv("HOME");
@@ -584,7 +584,7 @@ int lirc_readconfig(char *file,
 			else
 			{
 				token2=strtok(NULL," \t");
-				if(token2!=NULL && 
+				if(token2!=NULL &&
 				   (token3=strtok(NULL," \t"))!=NULL)
 				{
 					lirc_printf("%s: unexpected "
@@ -653,7 +653,7 @@ int lirc_readconfig(char *file,
 				{
 					if(remote!=LIRC_ALL)
 						free(remote);
-					
+
 					if(strcasecmp("*",token2)==0)
 					{
 						remote=LIRC_ALL;
@@ -667,7 +667,7 @@ int lirc_readconfig(char *file,
 				else if(strcasecmp(token,"button")==0)
 				{
 					struct lirc_code *code;
-					
+
 					code=(struct lirc_code *)
 					malloc(sizeof(struct lirc_code));
 					if(code==NULL)
@@ -719,7 +719,7 @@ int lirc_readconfig(char *file,
 
 					errno=ERANGE+1;
 					new_entry->rep=strtoul(token2,&end,0);
-					if((new_entry->rep==ULONG_MAX 
+					if((new_entry->rep==ULONG_MAX
 					    && errno==ERANGE)
 					   || end[0]!=0
 					   || strlen(token2)==0)
@@ -735,7 +735,7 @@ int lirc_readconfig(char *file,
 				{
 					struct lirc_list *new_list;
 
-					new_list=(struct lirc_list *) 
+					new_list=(struct lirc_list *)
 					malloc(sizeof(struct lirc_list));
 					if(new_list==NULL)
 					{
@@ -961,7 +961,7 @@ char *lirc_execute(struct lirc_config *config,struct lirc_config_entry *scan)
 {
 	char *s;
 	int do_once=1;
-	
+
 	if(scan->flags&quit)
 	{
 		config->next=NULL;
@@ -1009,14 +1009,14 @@ char *lirc_execute(struct lirc_config *config,struct lirc_config_entry *scan)
 int lirc_iscode(struct lirc_config_entry *scan,char *remote,char *button,int rep)
 {
 	struct lirc_code *codes;
-	
+
 	if(scan->code==NULL)
 		return(1);
 
-	if(scan->next_code->remote==LIRC_ALL || 
+	if(scan->next_code->remote==LIRC_ALL ||
 	   strcasecmp(scan->next_code->remote,remote)==0)
 	{
-		if(scan->next_code->button==LIRC_ALL || 
+		if(scan->next_code->button==LIRC_ALL ||
 		   strcasecmp(scan->next_code->button,button)==0)
 		{
 			if(scan->code->next==NULL || rep==0)
@@ -1026,7 +1026,7 @@ int lirc_iscode(struct lirc_config_entry *scan,char *remote,char *button,int rep
 			if(scan->next_code==NULL)
 			{
 				scan->next_code=scan->code;
-                                if(scan->code->next!=NULL || 
+                                if(scan->code->next!=NULL ||
                                    (scan->rep==0 ? rep==0:(rep%scan->rep)==0))
                                 {
                                         return(1);
@@ -1100,7 +1100,7 @@ char *lirc_ir2char(struct lirc_config *config,char *code)
 {
 	static int warning=1;
 	char *string;
-	
+
 	if(warning)
 	{
 		fprintf(stderr,"%s: warning: lirc_ir2char() is obsolete\n",
@@ -1134,13 +1134,13 @@ int lirc_code2char(struct lirc_config *config,char *code,char **string)
 			free(backup);
 			return(0);
 		}
-		
+
 		scan=config->next;
 		while(scan!=NULL)
 		{
 			if(lirc_iscode(scan,remote,button,rep) &&
 			   (scan->mode==NULL ||
-			    (scan->mode!=NULL && 
+			    (scan->mode!=NULL &&
 			     config->current_mode!=NULL &&
 			     strcasecmp(scan->mode,config->current_mode)==0))
 			   )
@@ -1176,7 +1176,7 @@ char *lirc_nextir(void)
 	static int warning=1;
 	char *code;
 	int ret;
-	
+
 	if(warning)
 	{
 		fprintf(stderr,"%s: warning: lirc_nextir() is obsolete\n",

@@ -5,7 +5,7 @@
 # dropfile should be equal to "dropfile" in ~/.camp/camprc
 
 # Also remember to set "dropinfo = yes" in ~/.camp/camprc
-# Then, just move this file into ~/.BitchX and type "/load camp.bx" 
+# Then, just move this file into ~/.BitchX and type "/load camp.bx"
 # and "/mp3" to announce what you are playing.
 
 # It should be noted that this is kinda my first BX script, it may suck major.
@@ -26,14 +26,14 @@ alias mp3 {
    @campl = 0
    ^exec -name campinfo cat $dropfile
    ^on ^exec "campinfo *" {
-   @campl = campl + 1 
+   @campl = campl + 1
    if ([$campl]==[1]) { @campprog = [$1-] } else
    if ([$campl]==[2]) { @campver  = [$1-] } else
    if ([$campl]==[3]) { @campfile = [$1-] } else
    if ([$campl]==[4]) { @campid3  = [$1-] } else
    if ([$campl]==[5]) { @campbr   = [$1-] } else
-   if ([$campl]==[6]) { 
-    @camphz = [$1-] 
+   if ([$campl]==[6]) {
+    @camphz = [$1-]
     if ([$download]==[1]) { say $campprog \($campver\) is playing: $campid3 \[$campbr\KBit $camphz\Hz] \(!campget to receive\) } else
      { say $campprog \($campver\) is playing: $campid3 \[$campbr\KBit $camphz\Hz] }
     ^exec -9 %campinfo

@@ -26,6 +26,7 @@ install:
 	if test -f $(HOME)/.camp/camprc; then mv -f $(HOME)/.camp/camprc $(HOME)/.camp/camprc.bak-pre1.5; fi
 	./mkinstalldirs $(BINDIR) $(HOME)/.camp
 	install -s -m 0755 ./camp     $(BINDIR)
+	strip $(BINDIR)/camp
 	install    -m 0600 ./camp.ini $(HOME)/.camp/camprc
 	install    -m 0600 ./tip.txt  $(HOME)/.camp/tip.txt
 	@echo ""
@@ -34,15 +35,14 @@ install:
 
 install-skins:
 	./mkinstalldirs $(HOME)/.camp/skins
-	cp skins.tar $(HOME)/.camp
-	( cd $(HOME)/.camp && tar xvf skins.tar )
+	@tar xvf skins.tar -C $(HOME)/.camp
 	@echo "Done!"
 	
 .c.o:	
 	$(CC) $(DEFS) $(CFLAGS) -c $<
 
 clean: 
-	rm -f camp *.o *~
+	rm -f camp *.o
 
 distclean: clean
-	rm -f config.* Makefile
+	rm -f config.* Makefile *~

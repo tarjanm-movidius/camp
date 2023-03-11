@@ -17,13 +17,13 @@ unsigned char in;
     * 5 = vol -
     * 6 = vol +
     */
-   
+
    return inb(port);
-   
+
 }
 
 int main(int argc, char *argv[]) {
-   
+
    if ( argc != 2 ) {
       printf("Syntax: %s port\n", argv[0]);
       printf("Where port is the decimal address of the LP-port the remote is connected to.\n");
@@ -36,8 +36,8 @@ int main(int argc, char *argv[]) {
    printf("Press the buttons on the rc, to gather values, and the insert them\n");
    printf("into ~/.camp/camprc. Press ^C to interrupt\n");
    printf("Value: ");
-   while(1) 
+   while(1)
      printf("\e[s%d  \e[u", rcpressed(atoi(argv[1])+1));
-   
+
 }
 

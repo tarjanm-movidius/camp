@@ -3,7 +3,7 @@ AC_INIT(camp.h)
 #AC_CONFIG_HEADER(config.h)
 
 LIBS=""
-CFLAGS="-O2"
+CFLAGS="-O2 -Wall"
 DEFINES=""
 bindir=""
 OBJS="misc.o id3.o fork.o player.o cconfig.o filelist.o playlist.o main.o"

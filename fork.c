@@ -32,23 +32,23 @@ void disappear(void) {
 FILE *fd;
 int  i;
 
-#ifdef USE_GPM_MOUSE     
+#ifdef USE_GPM_MOUSE
    while ( Gpm_Close() != 0 ); /* No need for the mouse anymore */
 #endif
 
-   
+
    switch ( fork() ) {
     case -1:
       perror("\e[1;1Hfork(): \a\a");
       return;
-      
+
     case 0:
       signal(SIGCHLD, playnext);
       fd = fopen(PID_FILE, "w");
       fprintf(fd, "%d\n", getpid());
       fclose(fd);
-#ifdef HAVE_SYS_IOCTL_H      
-      i = open ("/dev/tty", O_RDWR); 
+#ifdef HAVE_SYS_IOCTL_H
+      i = open ("/dev/tty", O_RDWR);
       ioctl (i, TIOCNOTTY, (char *)0); /* detach from tty */
       close(i);
 #endif
@@ -65,13 +65,13 @@ int  i;
 	 usleep( config.rctime );
 #ifdef LIRCD
          if ( use_lircd ) dolircd(0);
-#endif 
+#endif
 #ifdef RC_ENABLED
 	 if ( config.userc ) checkrc();
-#endif 
+#endif
       }
       playnext(-1);
-      
+
       while ( TRUE ) {
 
 	 if ( config.mpg123 )
@@ -80,14 +80,14 @@ int  i;
 	 usleep( config.rctime );
 #ifdef RC_ENABLED
 	 if ( config.userc ) checkrc();
-#endif 
+#endif
       }
       break;
 
     default:
       quitmode = 1;
-      exit(0);     
-      
+      exit(0);
+
   }
 }
 
@@ -101,12 +101,12 @@ struct oneplaylistent getpl;
       sprintf(buf, "%s/playlist.camp", TMP_DIR);
       saveplaylist(playlist, buf, TRUE);
    }
-      
+
    sprintf(buf, "%s/data.camp", TMP_DIR);
    fd = fopen(buf, "w");
    fprintf(fd, "%d\n%d\n%d\n", slavepid, filenumber, currentfile.frame);
    fclose(fd);
-   
+
    updatesongtime('w');
 
 /*   if ( config.mpg123 ) {
@@ -118,7 +118,7 @@ struct oneplaylistent getpl;
    if ( quitmode == 0 ) quitmode = 3; else
      quitmode = 2;
    exit(0);
-   
+
 }
 
 void stealback(void) {
@@ -130,7 +130,7 @@ struct stat statbuf;
  struct utmp usearch;
  struct utmp *ureturn;
 #endif
-   
+
    fd = fopen(PID_FILE, "r");
    if ( !fd ) {
       printf("No session to steal!\n");
@@ -151,8 +151,8 @@ struct stat statbuf;
          }
      }
 
-   
-   sprintf(buf, "%s/info.camp", TMP_DIR);	
+
+   sprintf(buf, "%s/info.camp", TMP_DIR);
    fd = fopen(buf, "wb");
 
 #ifdef HAVE_UTMP_H
@@ -161,21 +161,21 @@ struct stat statbuf;
    if ( !strncmp(buf, "/dev/", 5) )
      strcpy(usearch.ut_line, buf+5);  else
      strcpy(usearch.ut_line, rindex(buf, '/')+1);
-   
+
    ureturn = getutline((struct utmp*)&usearch);
    if ( ureturn ) {
-    if ( ! ureturn->ut_host[0] ) 
+    if ( ! ureturn->ut_host[0] )
     fprintf(fd, "%s at %s from local console.\n", ureturn->ut_user, ureturn->ut_line); else
      fprintf(fd, "%s at %s from %s.\n", ureturn->ut_user, ureturn->ut_line, ureturn->ut_host);
    } else
     fprintf(fd, "%s at %s.\n", getenv("USER"), ttyname(0));
    endutent();
-   
+
 
 #else
    fprintf(fd, "%s at %s.\n", getenv("USER"), ttyname(0));
 #endif
-   fclose(fd);   
+   fclose(fd);
 
    kill(oldpid, SIGUSR1);
    while ( !kill(oldpid, 0) )
@@ -191,7 +191,7 @@ struct stat statbuf;
    fclose(fd);
    sprintf(buf, "%s/data.camp", TMP_DIR);
    unlink(buf);
-   
+
    sprintf(buf, "%s/playlist.camp", TMP_DIR);
    if ( exist(buf) ) {
       loadplaylist(&playlist, buf, FALSE);
@@ -204,23 +204,23 @@ struct stat statbuf;
 	 playsong = TRUE;
 	 sprintf(buf, "LOAD %s\n", currentfile.name);
 	 (void*)mpg123_control(buf);
-	 if ( !config.mpg123fastjump ) (void*)mpg123_control("#@S"); 
+	 if ( !config.mpg123fastjump ) (void*)mpg123_control("#@S");
           /* -- for versions of mpg123 earlier than 0.59s to resume song currectly */
 	 sprintf(buf, "JUMP +%d\n", currentfile.frame);
-	 (void*)mpg123_control(buf); 
+	 (void*)mpg123_control(buf);
       }
    } else printf("done!\n");
-      
+
    updatesongtime('r');
    scrollsongname(0);
-   
+
 }
 
 void killcamp(void) {
 FILE *fd;
 int oldpid;
 char buf[256];
-   
+
    fd = fopen(PID_FILE, "r");
    if ( !fd ) {
       printf("No session to kill!\n");
@@ -229,7 +229,7 @@ char buf[256];
    fscanf(fd, "%d\n", &oldpid);
    fclose(fd);
    printf("Killlig (pid: %d)... ", oldpid); fflush(stdout);
-   kill(oldpid, SIGUSR1);   
+   kill(oldpid, SIGUSR1);
    while ( !kill(oldpid, 0) )
      usleep(250000);
    sprintf(buf, "%s/data.camp", TMP_DIR);
@@ -242,7 +242,7 @@ char buf[256];
    fclose(fd);
    kill(oldpid, SIGKILL);
    while ( !kill(oldpid, 0) )
-     usleep(250000);   
+     usleep(250000);
    unlink(buf);
    sprintf(buf, "%s/playlist.camp", TMP_DIR);
    unlink(buf);
