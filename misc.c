@@ -4,9 +4,14 @@
 #include <sys/time.h>
 #include "camp.h"
 
+#ifdef USE_GPM_MOUSE
+#include <gpm.h>
+#endif
+
 int readln(FILE *fd, char *text) {
-   char buf[256];
-   int ch, i=0;
+char buf[256];
+int ch, i=0;
+
    do {
       ch = getc(fd);
       if ( ch != EOF && ch != '\n' ) {
@@ -141,12 +146,12 @@ int i=0;
      strng[i] = tolower(strng[i]);
 }
 
-unsigned char mykbhit(unsigned int sec) {
+unsigned char mykbhit(unsigned int sec, unsigned long usec) {
 struct timeval tv;
 fd_set fds;
    
    tv.tv_sec = sec;
-   tv.tv_usec = 0;
+   tv.tv_usec = usec;
    FD_ZERO(&fds);
    FD_SET(0, &fds);
    if ( select(1, &fds, NULL, NULL, &tv) ) return TRUE; else
@@ -172,3 +177,37 @@ char *strtrim(char *text) {
    return text;
 }
 
+void termios_raw(struct termios *termios_p) {
+   termios_p->c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
+   termios_p->c_oflag &= ~OPOST;
+   termios_p->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+   termios_p->c_cflag &= ~(CSIZE|PARENB);
+   termios_p->c_cflag |= CS8;
+}
+
+#ifdef USE_GPM_MOUSE
+void my_Gpm_Init(Gpm_Connect *mouse) {
+   mouse->eventMask = GPM_DOWN|GPM_SINGLE|GPM_DOUBLE|GPM_DRAG; 
+   mouse->defaultMask = GPM_MOVE; /* Let GPM handle cursor drawing */
+   mouse->maxMod = 0;
+   mouse->minMod = 0;
+
+   gpm_zerobased = 0;
+   Gpm_Open(mouse, 0);     /* Open mouse on current VT */
+   gpm_handler = NULL;     /* We don't use a default handler */
+}
+
+void my_Gpm_Purge(void) {
+fd_set    gpm_fds;
+Gpm_Event event;
+struct timeval tv;
+   
+   if ( gpm_fd == -1 ) return;
+   FD_ZERO(&gpm_fds);
+   FD_SET(gpm_fd, &gpm_fds);
+   tv.tv_sec  = 0;
+   tv.tv_usec = 0;   
+   while ( select(gpm_fd+1, &gpm_fds, NULL, NULL, &tv) )
+     Gpm_GetEvent(&event);
+}
+#endif

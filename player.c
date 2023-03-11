@@ -15,17 +15,14 @@
 #include "camp.h"
 
 extern struct playlistent *playlist;
-extern unsigned int slavepid, filenumber, playlistents, fs, bitrate;
-extern char showname[100];
-extern char quiet, pausesong, playsong;
-extern unsigned char mode;
+extern unsigned int slavepid, filenumber, playlistents;
+extern struct oneplaylistent currentfile;
+extern char quiet, pausesong, playsong, checkkill;
 extern struct configstruct config;
 
 void playnext(int sig) {
    if ( playlist == NULL ) return;
-   signal(SIGCHLD, playnext);
-   if ( pausesong ) return;
-   if ( playsong && slavepid && ( ( waitpid(-1, NULL, WNOHANG) > 0 ) || ( kill(slavepid, 0) != 0 ) ) ) {
+   if ( playsong && !pausesong && slavepid && ( waitpid(slavepid, NULL, 0) > 0 || kill(slavepid,0) != 0 ) ) {
       if ( config.playmode != 2 ) {
 	 if ( filenumber+1 == playlistents && config.playmode == 1 ) filenumber = playlistents+2; else
 	   if ( filenumber+1 == playlistents && config.playmode == 0 ) exit(0); 
@@ -35,20 +32,21 @@ void playnext(int sig) {
       if ( filenumber+1 > playlistents ) filenumber = 0;
       slavepid = 0;
       call_player(pl_seek(filenumber, playlist));
-   } // if ( !getampinfo()  && playsong == TRUE )
+   } else
+     signal(SIGCHLD, playnext);
 }
 
 
 void killslave() {
-int pid;
-   if ( slavepid != 0 ) {
-      pid = slavepid;
-      slavepid = 0;
-      if ( pausesong ) kill(pid, SIGCONT);
-      pausesong = FALSE;
-      kill(pid, SIGKILL);
-      waitpid(-1, NULL, 0);
-   }
+   if ( slavepid == 0 ) return;
+   signal(SIGCHLD, SIG_IGN);
+   if ( pausesong ) kill(slavepid, SIGCONT);
+   pausesong = FALSE;
+   kill(slavepid, SIGKILL);
+   if ( checkkill )
+     while ( kill(slavepid, 0) != -1 ) usleep(10000); else
+     waitpid(slavepid, NULL, 0);
+   slavepid = 0;
 }
 
 void slave(char *filename) {
@@ -74,13 +72,11 @@ FILE *fd;
       
    if ( pl == NULL || pausesong ) return;
    
-   strcpy(showname, pl->showname);
-   bitrate = pl->bitrate;
-   fs      = pl->samplerate;
-   mode    = pl->mode;
-   if ( strlen(showname) >= 51 ) showname[50] = '\0'; 
+   memcpy((void*)&currentfile, (void*)pl, sizeof(struct oneplaylistent));
+   if ( strlen(currentfile.showname) >= 51 ) currentfile.showname[50] = '\0';
    
    updatesongtime('i');
+   updatesongtime('f');
    if ( !quiet ) updatedata();
    
    if ( playsong ) {

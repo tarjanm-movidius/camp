@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include "camp.h"
 #include "id3gui.c"
+#include "id3gui7bit.c"
 
 unsigned int bitrate_table[3][3][15] =
 {
@@ -33,7 +34,7 @@ unsigned int samplerate_table[3][4] =  {
      {11025, 8000,  8000,  0}
 };
 
-   
+extern struct configstruct config;
 	     
 char getmp3info(char *filename, unsigned char *mode, unsigned int *sample_rate, unsigned int *bit_rate, char *name, char *artist, char *misc, char *album, char *year, unsigned char genre) {
 FILE *fd;
@@ -164,7 +165,9 @@ fd_set stdinfds;
       year[0]   = 0;
       genre     = 0;
    }
-   printf("%s\e[?25h\e[0;34;46m", id3screen);
+   if ( config.ttymode == 8 )
+     printf("%s\e[?25h\e[0;34;46m", id3screen); else
+     printf("%s\e[?25h\e[0;34;46m", id3screen7bit);
    printf("\e[9;27H%s", buf);
    printf("\e[10;27H%s", artist);
    printf("\e[11;27H%s", name);
@@ -207,5 +210,8 @@ fd_set stdinfds;
       }
    } /* if modified */
    printf("\e[?25l");
+#ifdef USE_GPM_MOUSE
+   my_Gpm_Purge();
+#endif
 }
 

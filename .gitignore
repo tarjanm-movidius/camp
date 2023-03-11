@@ -1,3 +1,6 @@
 *~
+*.o
 camp
-machtype.h
+config.cache
+config.log
+config.status

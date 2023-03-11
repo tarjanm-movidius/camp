@@ -18,8 +18,9 @@ FILE *fd;
       fclose(fd);
    }
    fd = fopen(configfile, "r");
-   while ( readln(fd, buf) != EOF ) {
-      
+
+   while ( fgets((char*)buf, 125, fd) != NULL ) {
+      if ( buf[strlen(buf)-1] == '\n' ) buf[strlen(buf)-1] = 0;
       if ( buf[0] == '#' || buf[0] == 0 ) continue;
       strncpy(arg, buf, strchrpos(buf, '=', 1) );
       strcpy(value, buf+strchrpos(buf, '=', 1)+1 );
@@ -55,6 +56,10 @@ FILE *fd;
 	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
 	    cconfig.dontreopen = TRUE; else
 	cconfig.dontreopen = FALSE; else
+	if ( !strcasecmp(arg, "startincwd") )
+	  if ( !strcasecmp(value, "yes") || !strcasecmp(value, "true") || !strcasecmp(value, "1") )
+	    cconfig.startincwd = TRUE; else
+	cconfig.startincwd = FALSE; else
 	if ( !strcasecmp(arg, "showlength" ) )
 	  if ( !strcasecmp(value, "both") )   cconfig.showtime = 3; else
 	if ( !strcasecmp(value, "playlist") ) cconfig.showtime = 2; else
@@ -64,6 +69,10 @@ FILE *fd;
 	  if ( !strcasecmp(value, "reverse") || !strcasecmp(value, "remaining" ) )
 	    cconfig.timemode = 1; else
 	cconfig.timemode = 0; else
+	if ( !strcasecmp(arg, "ttymode" ) )
+	  if ( value[0] == '7')
+	    cconfig.ttymode = 7; else
+	cconfig.ttymode = 8; else	
 	if ( !strcasecmp(arg, "switches") || !strcasecmp(arg, "params") ) {
 	   memset(buf, 0, 127);
 	   i = 0;
@@ -122,7 +131,7 @@ FILE *fd;
 	printf(" quiet   = -q\n");
 	printf(" device  = n/a\n");
      } else
-     printf("\"%s\" is unknown to me, using user settings.\n");
+     printf("The player \"%s\" is unknown to me, no arguments added.\n");
    
    if ( cconfig.quiet[0] != 0 ) {
       for(i=0;i<15;i++)
@@ -164,7 +173,10 @@ FILE *fd;
    
    if (cconfig.timemode == 1) printf ("Will show time as time remaining\n"); else
      printf("Will show time as time elapsed\n");
-
+   
+   if (cconfig.ttymode == 7) printf("Using 7bits interface\n"); else
+     printf("Using full 8bits interface\n");
+   
    return cconfig;
    
 }

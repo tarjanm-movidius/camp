@@ -6,6 +6,23 @@ CAMP Changelog
 ! Known bug
 
 
+1998-09-xx: v1.2.13xx
+
+* Fixed a small (but important) bug, that made camp start two songs sometimes.. 
+* Fixed the "redhat" config-read error. (glibc2 did probably not act as libc5)
+* Fixed that stupid "desc" bug AGAIN :)
+* As usual, fixed some other small bugs.
+* Splitted playlist.c into filelist.c/playlist.c so it's a bit easier to read :)
+* Runs better on slow terminals ( telnet ), it won't take a esc-seq for quit.
++ Added mouse support ( Trough GPM )
++ Added ^Z/fork ( and -b ) support, use camp -s ( --steal ) to load it up again.
++ Added support to kill a running camp by running camp --kill
++ Added --force commandline option, to start multiple sessions (no pid file)
++ Added config option for 7bit-tty support.
++ Added config option to start browser in current dir instead of root dir (/).
+! This is not really a bug, but when "stealing" a camp, it won't load up a new
+  song if you aren't at the mainscreen.
+
 1998-06-03: v1.1.956
 
 * Fixed a bug, -p without a slash in the name caused camp to segfault.
@@ -29,7 +46,7 @@ CAMP Changelog
 * Fixed the filelist editor, so if you press enter on the "add" button, while
   having a dir marked it will enter the dir, just like pressing space.
 * Fixed a bug in the filelister wich hided some regular files, also speeded
-  up the filelister (load new/change dir) by 50%. 
+  up the filelister ( load new/change dir ) by 50%. 
 * Fixed some other small bugs.
 + Added config option to show/not show files/dirs beginning with '.'.
 + Added config option to pass params directly to the player.

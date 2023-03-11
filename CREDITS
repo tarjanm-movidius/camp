@@ -1,7 +1,7 @@
 Console Ansi Mpeg3 Player interface - Credits list
 
 Coding:
- inm (inm@sector7.kracked.com)
+ inm (inm@m1crosoft.com)
  
 Ansi-logo:
  chrom (mikael.almstedt@mainline.se)
@@ -12,3 +12,6 @@ Betatesters:
  vader- (sp97jwa@ksk.sala.se)
  nemo   (nemo@flashback.se)
  kers   (kers@kracked.com)
+
+People that sent me patches (bugfixes or small pieces of new code):
+ Arturo Espinosa Aldama (arturo@estadistica.unam.mx)

@@ -33,9 +33,9 @@ at your own risk! ( I doubt it's risky to use it anyway :) )
 
 1.2 - Notice:
 
-If you find any, try to remeber HOW you made the 
+If you find any bugs, try to remeber HOW you made the 
 bug appear, or even better, if you can make up some kind of fix, mail the
-fix/bug to me at inm@sector7.kracked.com. This documentation has a really
+fix/bug to me at inm@m1crosoft.com. This documentation has a really
 low quality, and that's just because i hate to write doc's, and that
 english isn't my native language ;)
 Feel very free to mail me with any comments/ideas you have.
@@ -43,17 +43,16 @@ Feel very free to mail me with any comments/ideas you have.
 
 1.3.1 - Things to do in future versions:
 
-* Get rid of the PC-Only charset, wich will make CAMP look like shit on
-  some machines.
 * Cleanup the code, remove some global variables.
 * Fix all the small bugs i don't know of yet.
 * Write a nicer documentation
+( No really important stuff )
 
 
 1.3.2 - Requests:
 
-* Kers requested "background mode" so the player will fork into the background,
-  and then loaded up again ( something similar to ^Z(suspend) bg/fg )
+None that aren't already fixed, pleas mail me (inm@m1crosoft.com) with
+heaps of suggestions! I'm running out of ideas ;(
 
 
 2.1 - Install:
@@ -85,6 +84,16 @@ normal once, then save them as a "ID3" playlist, will make camp load
 them at least ten times faster, since it doesn't have to scan them for
 samplingrates/ID3 tags.
 
+-s, --steal
+"Steal" control of a running camp session. Useful when you have used the
+"fork" button, or pressed ^Z.
+
+-k, --kill
+Steal & kill a running camp session.
+
+-b, --background
+Never load the interface, put camp in the background directly.
+
 
 2.3 - Converting playlists:
 
@@ -103,6 +112,8 @@ hidedot    = hide files/dirs beginning with a dot?
 dontreopen = don't close stdout & stderr, and reopen them to /dev/null.
 showlength = can be playlist, main or both. ( Show song total time )
 timemode   = Count time from start ( normal ), or countdown ( reverse )
+startincwd = Open playlist browser in current dir ( instead of root dir )
+ttymode    = 8bit or 7bit ( 7bit will not print chars > ascii 127 )
 
 yes, true or 1 will activate a setting, anything else will inactivate it.
 
@@ -117,6 +128,8 @@ hidedot    = yes
 dontreopen = false
 showlength = playlist
 timemode   = reverse
+startincwd = yes
+ttymode    = 8bit
 switches   =
 
 
@@ -167,6 +180,10 @@ light "desc" button:
  Will create/edit the so-called ID3 tag, wich contains informaton about
  the file, very useful if the song uses some strange chars that you don't
  want to use in the filename.
+
+light "fork" button:
+ Puts camp in the background, leaving the tty free for other use. Run
+ camp --steal to load up the interface again.
 
 
 Inside playlisteditor (press "pl" button to get here):
@@ -223,11 +240,11 @@ Space:
 
 
 -------------------------------------------------------
-Homepage: http://www.sector7.kracked.com
-Email:    inm@sector7.kracked.com
+Homepage: http://linux.mccom.net/~inm
+Ftp-Site: ftp://artpacks.sweart.nu/pub/sector7 (down)
+Email:    inm@m1crosoft.com
 IRC:      inm, on efnet
 ICQ:      6970303
-
 
 Please send me any kind of comments/bugs/ideas.
 

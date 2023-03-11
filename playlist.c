@@ -3,30 +3,37 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <dirent.h>
-#ifndef USE_TERMIOS
-# include <curses.h>
-#endif
 #include <string.h>
 #include <signal.h>
 #include <stdio.h>
 #include "camp.h"
-#include "fileselector.c"
+
+#ifndef USE_TERMIOS
+# include <curses.h>
+#endif
+
+#ifdef USE_GPM_MOUSE
+# include <gpm.h>
+#endif
 
 extern char playsong;
-extern char playlistname[19];
 extern struct configstruct config;
+extern char fsscreen[], fsscreen7bit[];
+extern const char keys[];
+extern unsigned int slavepid;
 
-int maxpos=0, pl_maxpos=0, current[50], pl_current=0, pl_screenmark=0;
-int screenmark[50], fl_buttonpos=1, pl_buttonpos=1;
-char depth = 0;
+unsigned int maxpos=0, pl_maxpos=0, pl_current=0;
+int  pl_buttonpos=1, pl_screenmark=0;
 
 struct playlistent *rplaylist(struct playlistent *playlist, unsigned int *filenumber) {
 int    ch;
-fd_set stdinfds;
+fd_set fds;
 
-   printf("%s", fsscreen);
+   if ( config.ttymode == 8 ) 
+     printf("%s", fsscreen); else
+     printf("%s", fsscreen7bit);
    if ( playlist != NULL ) {
-      pl_maxpos = pl_seek(65000, playlist)->number-1;
+      pl_maxpos = pl_count(playlist)-1;
       pl_current = *filenumber;
    } else 
      pl_current = 0;
@@ -36,217 +43,78 @@ fd_set stdinfds;
    
    while ( TRUE ) {
       
-      FD_ZERO(&stdinfds);
-      FD_SET(0, &stdinfds);
-      select(1, &stdinfds, NULL, NULL, NULL);
-      ch = getchar(); 
-      if ( ch == 3 ) exit(0); /* ^C */ else
-	if ( ch == 13 )	if ( pl_buttonpos == PL_MAXBUTTON ) return(playlist); else
-	playlist = pl_dofunction(playlist, filenumber); else
-	if ( ch == 27 ) {
-	   ch = getchar();
-	   if ( ch != '[' ) return playlist;
-	   ch = getchar();
-	   if ( ch == 'D' && pl_buttonpos != PL_MINBUTTON ) { 
-	      pl_updatebuttons(-1);
+      FD_ZERO(&fds);
+      FD_SET(0, &fds);
+#ifdef USE_GPM_MOUSE
+      if ( gpm_flag ) FD_SET(gpm_fd, &fds);
+      if ( select(gpm_flag ? gpm_fd+1 : 1, &fds, NULL, NULL, NULL) > 0 ) {
+	 if ( FD_ISSET(gpm_fd, &fds) ) playlist = pl_domouse(playlist, filenumber);
+	 if ( pl_screenmark == -1 ) return(playlist);
+#else
+      if ( select(1, &fds, NULL, NULL, NULL) > 0 ) {
+#endif	 
+	 ch = 0;
+	 if ( FD_ISSET(0, &fds) )
+	   while ( ch != -1 ) {
+	      ch = getchar();
+	      if ( ch == 3 ) exit(0); /* ^C */ else
+		if ( ch == 13 )	if ( pl_buttonpos == PL_MAXBUTTON ) return(playlist); else
+		playlist = pl_dofunction(playlist, filenumber); else
+		if ( ch == 27 ) {
+		   ch = getchar();
+		   if ( ch == -1 ) {
+		      mykbhit(0, 250000);
+		      ch = getchar();
+		   }		   
+		   if ( ch != '[' ) return playlist;
+		   ch = getchar();
+		   if ( ch == 'D' && pl_buttonpos != PL_MINBUTTON ) {
+		      pl_updatebuttons(-1); /* left arrow */
+		   }
+		   if ( ch == 'C' && pl_buttonpos != PL_MAXBUTTON ) { 
+		      pl_updatebuttons(1); /* right arrow */
+		   }
+		   if ( ch == 'B' && pl_current != pl_maxpos ) {
+		      if ( pl_screenmark != 12 ) /* down arrow */
+			pl_screenmark++;
+		      pl_current++;
+		      pl_showents(pl_current-pl_screenmark, playlist);
+		   }
+		   if ( ch == 'A' && pl_current != 0 ) {
+		      if ( pl_screenmark != 0 ) /* up arrow */
+			pl_screenmark--;
+		      pl_current--;
+		      pl_showents(pl_current-pl_screenmark, playlist);
+		   }
+		   if ( ch == keys[KEY_PGUP] ) { /* page up */
+		      if ( pl_current < 13 ) { pl_current = 0; pl_screenmark = 0; } else
+			pl_current -= 11;
+		      if ( pl_current < pl_screenmark )
+			pl_current = pl_screenmark;
+		      pl_showents(pl_current-pl_screenmark, playlist);
+		   }
+		   if ( ch == keys[KEY_PGDN] ) { /* page down */
+		      if ( pl_current > pl_maxpos-11 ) { pl_screenmark = pl_maxpos - pl_current; pl_current = pl_maxpos; } else
+			pl_current += 11;
+		      pl_showents(pl_current-pl_screenmark, playlist);
+		   }
+		   if ( ch == keys[KEY_HOME] ) { /* home */
+		      pl_current = 0;
+		      pl_screenmark = 0;
+		      pl_showents(0, playlist);
+		   }
+		   if ( ch == keys[KEY_END] ) { /* end */
+		      pl_current = pl_maxpos;
+		      pl_screenmark = 12;
+		      pl_showents(pl_current-pl_screenmark, playlist);
+		   }
+		}
 	   }
-	   if ( ch == 'C' && pl_buttonpos != PL_MAXBUTTON ) { 
-	      pl_updatebuttons(1);
-	 }
-	   if ( ch == 'B' && pl_current != pl_maxpos ) {
-	      if ( pl_screenmark != 12 )
-		pl_screenmark++;
-	      pl_current++;
-	      pl_showents(pl_current-pl_screenmark, playlist);
-	   }
-	   if ( ch == 'A' && pl_current != 0 ) {
-	      if ( pl_screenmark != 0 ) 
-		pl_screenmark--;
-	    pl_current--;
-	      pl_showents(pl_current-pl_screenmark, playlist);
-	   }
-	   if ( ch == '5' ) {
-	      if ( pl_current < 13 ) { pl_current = 0; pl_screenmark = 0; } else
-		pl_current -= 11;
-	      if ( pl_current < pl_screenmark )
-		pl_current = pl_screenmark;
-	    pl_showents(pl_current-pl_screenmark, playlist);
-	   }
-	   if ( ch == '6' ) {
-	      if ( pl_current > pl_maxpos-11 ) { pl_screenmark = pl_maxpos - pl_current; pl_current = pl_maxpos; } else
-		pl_current += 11;
-	      pl_showents(pl_current-pl_screenmark, playlist);
-	   }
-	   if ( ch == '1' ) {
-	      pl_current = 0;
-	      pl_screenmark = 0;
-	      pl_showents(0, playlist);
-	   }
-	   if ( ch == '4' ) {
-	      pl_current = pl_maxpos;
-	      pl_screenmark = 12;
-	      pl_showents(pl_current-pl_screenmark, playlist);
-	   }
-	}
-   }
-}
-
-struct playlistent *getfiles(struct playlistent *playlist) {
-struct filelistent *filelist = NULL;
-char   cdir[256];
-int    i = 0;
-int    ch = 0;     
-fd_set stdinfds;
-   
-   for(i=0;i<50;i++) { current[i] = 0; screenmark[i] = 0; }
-   strcpy(cdir, "/");
-   filelist = loaddir(cdir);
-   if ( filelist == NULL ) {
-      l_status("DIR Open error.");
-      sleep(1);
-      l_status(NULL);
-      fl_updatebuttons(0);
-      return NULL;
-   }
-   printf("%s", fsscreen); 
-   fl_showents(0, filelist);
-   fl_updatebuttons(0);
-   ch = 0;
-   
-   while ( TRUE ) {
-
-      FD_ZERO(&stdinfds);
-      FD_SET(0, &stdinfds);
-      select(1, &stdinfds, NULL, NULL, NULL);
-      ch = getchar();
-      if ( ch == 3 ) exit(0);
-      if ( ch == 32 ) 
-	switch(file_seek(current[depth], filelist)->type) {
-	 case 1: 
-	   togglemark(filelist);
-	   fl_showents(current[depth]-screenmark[depth], filelist);
-	   break;
-	 case 2:
-	   filelist = camp_chdir(filelist, cdir);
-	}
-      
-      if ( ch == 27 ) {
-	 ch = getchar();
-	 if ( ch != '[' ) {
-	    releasedir(filelist);
-	    return playlist;
-	 }
-	 ch = getchar();
-	 if ( ch == 'B' && current[depth] != maxpos ) {
-	    if ( screenmark[depth] != 12 )
-	      screenmark[depth]++;
-	    current[depth]++;
-	    fl_showents(current[depth]-screenmark[depth], filelist);
-	 }
-	 if ( ch == 'A' && current[depth] != 0 ) {
-	    if ( screenmark[depth] != 0 ) 
-	      screenmark[depth]--;
-	    current[depth]--;
-	    fl_showents(current[depth]-screenmark[depth], filelist);
-	 }
-	 if ( ch == 'D' && fl_buttonpos != FL_MINBUTTON ) { 
-	    fl_updatebuttons(-1);
-	 }
-	 if ( ch == 'C' && fl_buttonpos != FL_MAXBUTTON ) { 
-	    fl_updatebuttons(1);
-	 }
-	 if ( ch == '5' ) {
-	    if ( current[depth] < 13 ) { current[depth] = 0; screenmark[depth] = 0; } else
-	      current[depth] -= 11;
-	    if ( current[depth] < screenmark[depth] )
-	      current[depth] = screenmark[depth];
-	    fl_showents(current[depth]-screenmark[depth], filelist);
-	 }
-	 if ( ch == '6' ) {
-	    if ( current[depth] > maxpos-11 ) { screenmark[depth] = maxpos - current[depth]; current[depth] = maxpos; } else
-	      current[depth] += 11;
-	    fl_showents(current[depth]-screenmark[depth], filelist);
-	 }
-	 if ( ch == '1' ) {
-	    current[depth] = 0;
-	    screenmark[depth] = 0;
-	    fl_showents(0, filelist);
-	 }
-	 if ( ch == '4' ) {
-	    current[depth] = maxpos;
-	    screenmark[depth] = 12;
-	    fl_showents(current[depth]-screenmark[depth], filelist);
-	 }
       }
-      if ( ch == 13 ) { 
-	 if ( fl_buttonpos == FL_MAXBUTTON ) return playlist; else
-	   if ( fl_buttonpos == 1 && file_seek(current[depth], filelist)->type == 2 )
-	     filelist = camp_chdir(filelist, cdir); else {
-		playlist = fl_dofunction(filelist, playlist, cdir);
-		fl_showents(current[depth]-screenmark[depth], filelist);
-	     }
-      }
-   }   
-}
-
-struct filelistent *camp_chdir(struct filelistent *filelist, char *cdir) {
-struct filelistent *newlist = NULL;
-char   origpath[256];
-int    origdepth = depth;
-   
-   strcpy(origpath, cdir);
-   
-   if ( !strcmp(file_seek(current[depth], filelist)->name, "..") ) {
-      cdir[strrchr(cdir, '/')-cdir] = '\0';
-      depth--;
-   } else {
-      sprintf(cdir, "%s/%s", cdir, file_seek(current[depth], filelist)->name);
-      depth++;
-      current[depth] = 0;
-      screenmark[depth] = 0;
    }
-   newlist = loaddir(cdir);
-   if ( newlist == NULL ) {
-      strcpy(cdir, origpath);
-      depth = origdepth;
-      l_status("DIR Open error!");
-      maxpos = file_seek(65535, filelist)->number;
-      sleep(1);
-      l_status(NULL);
-      fl_updatebuttons(0);
-      return filelist;
-   } 
-   if ( filelist != NULL ) releasedir(filelist);
-   fl_showents(current[depth]-screenmark[depth], newlist);
-   return newlist;
 }
 
-void fl_showents( int startpos, struct filelistent *filelist ) {
-int i=0, k=0;
-char shortname[66];
    
-   filelist = file_seek(startpos, filelist);
-   
-   while ( (filelist->next != NULL) ) {
-      if ( filelist->number == current[depth] ) printf("\e[0;31;46m"); else
-      if ( filelist->type == 2 ) printf("\e[1;36;46m"); else
-	printf("\e[0;34;46m");
-      if ( filelist->tagged ) printf("\e[1m");
-
-      for (k=0;k<65;k++) if ( k < strlen(filelist->name) ) shortname[k] = filelist->name[k]; else
-	shortname[k] = ' ';
-      shortname[65] = '\0';
-      printf("\e[%d;8H%s",5+i,shortname);
-      i++;
-      if (i>12) break;
-      filelist = filelist->next;
-   }
-   if ( i != 13 ) 
-      for(;i<13;i++) 
-      printf("\e[%d;8H                                                                 ",5+i);
-   fflush(stdout);
-}
-
 void pl_showents( int startpos, struct playlistent *playlist ) {
 int i=0, k=0;
 char shortname[61];
@@ -287,29 +155,6 @@ static char buf[256];
    return buf;
 }
 
-void togglemark( struct filelistent *filelist ) {
-
-   filelist = file_seek(current[depth], filelist);
-   
-   if ( filelist->tagged == FALSE ) filelist->tagged = TRUE; else
-     filelist->tagged = FALSE;
-
-   if ( current[depth] != maxpos ) current[depth]++;
-   
-}
-
-struct filelistent *file_seek( int pos, struct filelistent *filelist ) {
-
-   if ( filelist == NULL ) return NULL;
-   
-   if ( filelist->number < pos )
-     while ( filelist->number != pos && filelist->next != NULL ) filelist = filelist->next;
-   
-   if ( filelist->number > pos ) 
-     while ( filelist->number != pos && filelist->prev != NULL ) filelist = filelist->prev;
-
-return filelist;
-}
 
 struct playlistent *pl_seek( unsigned int pos, struct playlistent *playlist ) {
 
@@ -324,8 +169,8 @@ struct playlistent *pl_seek( unsigned int pos, struct playlistent *playlist ) {
 return playlist;
 }
 
-int pl_count( struct playlistent *playlist ) {
-int count=0;
+unsigned int pl_count( struct playlistent *playlist ) {
+unsigned int count=0;
    if ( playlist==NULL ) return 0;
    playlist = pl_seek(0, playlist);
    while( playlist->next != NULL ) {
@@ -335,41 +180,6 @@ int count=0;
    return count;
 }
 
-
-
-void fl_updatebuttons(int add) {
-
-   fl_buttonpos = fl_buttonpos + add;
-   printf("\e[19;9H");
-   if (fl_buttonpos == 1) printf("\e[44;36;1m"); else
-     printf("\e[34;44;1m");
-   printf("  add  ");
-   printf("\e[19;18H");
-   if (fl_buttonpos == 2) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf("  tag  ");   
-   printf("\e[19;27H");
-   if (fl_buttonpos == 3) printf("\e[44;36m"); else
-     printf("\e[34;44m");
-   printf(" untag ");
-   printf("\e[19;36H");
-   if (fl_buttonpos == 4) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf(" loadp ");
-   printf("\e[19;45H");
-   if (fl_buttonpos == 5) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf(" savep ");
-   printf("\e[19;54H");
-   if (fl_buttonpos == 6) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf(" clear ");
-   printf("\e[19;63H");
-   if (fl_buttonpos == 7) printf("\e[44;36m"); else
-     printf("\e[44;34m");
-   printf(" back! ");   
-   fflush(stdout);
-}
 
 void pl_updatebuttons(int add) {
 
@@ -406,61 +216,6 @@ void pl_updatebuttons(int add) {
 }
 
 
-
-struct playlistent *fl_dofunction( struct filelistent *filelist, struct playlistent *playlist, char *cdir ) {
-struct playlistent *temp;
-char name[31], artist[31], buf[256];
-char j, cspos;
-   
-   switch( fl_buttonpos ) {
-      
-    case 1: /* add */
-      filelist = file_seek(0, filelist);
-      while ( filelist->next != NULL ) {
-	 sprintf(buf, "%s/%s", cdir, filelist->name);
-	 if ( filelist->tagged ) {
-	    playlist = addfiletolist(playlist, buf, NULL, 0, 0, 0, TRUE);
-	    filelist->tagged = FALSE;
-	 }
-	 filelist = filelist->next;
-      }
-      strcpy(playlistname, "misc. files loaded");
-      break;
-      
-    case 2: /* autotag */
-      while ( filelist->prev != NULL ) filelist = filelist->prev;
-      while ( filelist->next != NULL ) {
-	 if ( (strstr(lowercases(filelist->name), ".mp3") != NULL) && filelist->type == 1 ) filelist->tagged = TRUE;
-	 filelist = filelist->next;
-      }
-      break;
-   
-    case 3: /* untag all */
-      while ( filelist->prev != NULL ) filelist = filelist->prev;
-      while ( filelist->next != NULL ) {
-	 filelist->tagged = FALSE;
-	 filelist = filelist->next;
-      }
-      break;
-
-    case 4: /* load playlist */
-      sprintf(buf, "%s/%s", cdir, file_seek(current[depth], filelist)->name);
-      playlist = loadplaylist(playlist, buf, TRUE);
-      break;
-
-    case 5: /* save playlist */
-      saveplaylist(playlist, cdir, file_seek(current[depth], filelist)->name);
-      break;
-      
-    case 6: /* clear playlist */
-      playlist = clearplaylist(playlist);
-      strcpy(playlistname, "no playlist loaded");
-      break;
-   } /* switch */
-   return(playlist);
-}
-
-
 struct playlistent *pl_dofunction(struct playlistent *playlist, unsigned int *filenumber) {
 struct playlistent *temp;
 int pid;   
@@ -469,9 +224,11 @@ int pid;
       
     case 1: /* browse */
       playlist = getfiles(playlist);
-      printf("%s", fsscreen);
+      if ( config.ttymode == 8 ) 
+	printf("%s", fsscreen); else
+	printf("%s", fsscreen7bit);
       if ( playlist == NULL ) pl_maxpos = 0; else
-	pl_maxpos = pl_seek(65000, playlist)->number-1;
+	pl_maxpos = pl_count(playlist)-1;
       if (pl_current - pl_screenmark > pl_maxpos)
 	pl_current = pl_screenmark = 0;
       pl_showents(pl_current, playlist); 
@@ -480,7 +237,7 @@ int pid;
       
     case 2: /* play */ 
       if ( playlist == NULL ) return NULL;
-      if ( playsong ) killslave();
+      if ( playsong && !slavepid ) killslave();
       *filenumber = pl_current;
       playsong = TRUE;
       call_player(pl_seek(pl_current, playlist));
@@ -501,7 +258,6 @@ int pid;
       pl_maxpos--;
       free(temp);
       pl_showents(pl_current-pl_screenmark, playlist); 
-      strcpy(playlistname, "misc. files loaded");
       return(playlist);
       
     case 4: /* new list (clear) */
@@ -509,12 +265,14 @@ int pid;
       pl_showents(0, playlist);
       pl_current = 0;
       pl_screenmark = 0;
-      strcpy(playlistname, "no playlist loaded");
       return(playlist);
 
     case 5: /* id3 editor */
+      if ( playlist == NULL ) return playlist;
       id3edit(pl_seek(pl_current, playlist)->name, pl_seek(pl_current, playlist));
-      printf("%s", fsscreen);
+      if ( config.ttymode == 8 ) 
+	printf("%s", fsscreen); else
+	printf("%s", fsscreen7bit);
       pl_showents(pl_current-pl_screenmark, playlist); 
       pl_updatebuttons(0);
       return playlist;
@@ -526,49 +284,111 @@ int pid;
    }
 }
 
-struct filelistent *loaddir(char *dir) {
-char buf[256];
-struct DIR *dirptr;
-struct dirent *direntptr;
-struct stat statf;
-struct filelistent *filelist = (struct filelistent*)malloc(sizeof(struct filelistent));
-
-   maxpos = 0;
-   filelist->next = NULL;
-   filelist->prev = NULL;
-   filelist->number = 0;
-   dirptr = opendir(dir);
-   if ( dirptr == NULL ) return NULL;
+#ifdef USE_GPM_MOUSE
+struct playlistent *pl_domouse(struct playlistent *playlist, unsigned int *filenumber) {
+Gpm_Event event;
+int i;
    
-   while ( ( direntptr = readdir(dirptr) ) != NULL ) {
-      if (strcmp(direntptr->d_name, ".")) {
-	 if ( !strcmp(direntptr->d_name, "..") && !strcmp(dir, "/") ) 
-	   continue; else
-	   if ( config.hidedot && direntptr->d_name[0] == '.' && strcmp(direntptr->d_name, "..") )
-	     continue; 
-	 sprintf(buf, "%s/%s", dir, direntptr->d_name);
-	 stat(buf, (struct stat*)&statf);
-	 if ( (statf.st_mode & S_IFMT) == S_IFDIR ) 
-	   filelist->type = 2; else
-	   filelist->type = 1;
-	 strcpy(filelist->name, direntptr->d_name);
-	 filelist->next         = (struct filelistent*)malloc(sizeof(struct filelistent));
-	 filelist->next->prev   = filelist;
-	 filelist->next->next   = NULL;
-	 filelist->next->number = filelist->number +1;
-	 filelist->tagged       = FALSE;
-	 filelist               = filelist->next;
-	 maxpos++;
-      }
+   Gpm_GetEvent(&event);
+   /* middle button, any kind of click */
+   if ( event.buttons & 2 && event.type & GPM_DOWN ) {
+      if ( config.ttymode == 8 ) 
+	printf("%s", fsscreen); else
+	printf("%s", fsscreen7bit);
+      pl_showents(pl_current-pl_screenmark, playlist); 
+      pl_updatebuttons(0);
    }
    
-   closedir(dirptr);
-   dirptr = opendir(dir);  
-   direntptr = readdir(dirptr);
-   maxpos--;
-   return sortfilelist(filelist);
-}
+   /* right button, any kind of click */
+/*
+   if ( event.buttons & 1 && event.type & GPM_DOWN ) {
+      pl_screenmark = -1;
+      return playlist;
+   }
+ */
+   
+   /* left button - any kind of click */
+   if ( event.buttons & 4 && event.type & GPM_DOWN ) 
+     if ( event.y == 4 && event.x > 4 && event.x < 74 ) {
+	/* page up */
+	if ( pl_current < 13 ) { pl_current = 0; pl_screenmark = 0; } else
+	  pl_current -= 11;
+	if ( pl_current < pl_screenmark )
+	  pl_current = pl_screenmark;
+	pl_showents(pl_current-pl_screenmark, playlist);
+     } else	
+     if ( event.y == 18 && event.x > 4 && event.x < 74 ) {
+	/* page down */
+	if ( pl_current > pl_maxpos-11 ) { pl_screenmark = pl_maxpos - pl_current; pl_current = pl_maxpos; } else
+	  pl_current += 11;
+	pl_showents(pl_current-pl_screenmark, playlist);
+     } else
+     if ( event.y == 19 ) {
+	i = 255;
+	if ( event.x > 8 && event.x < 17 ) pl_buttonpos = 1; else
+	  if ( event.x > 17 && event.x < 26 ) pl_buttonpos = 2; else
+	  if ( event.x > 26 && event.x < 35 ) pl_buttonpos = 3; else
+	  if ( event.x > 35 && event.x < 44 ) pl_buttonpos = 4; else
+	  if ( event.x > 44 && event.x < 53 ) pl_buttonpos = 5; else
+	  if ( event.x > 53 && event.x < 62 ) pl_buttonpos = 6; else
+	  if ( event.x > 62 && event.x < 71 ) {
+	     pl_buttonpos  = PL_MAXBUTTON;
+	     pl_screenmark = -1;
+	     return playlist;
+	  } else
+	  i = 0;
+	if ( i == 255 ) { 
+	   pl_updatebuttons(0);
+	   playlist = pl_dofunction(playlist, filenumber);
+	}
+     }
+   
+   /* left button - single click */
+   if ( event.buttons & 4 && event.type & GPM_SINGLE )
+     if ( event.y > 4 && event.y < 18 && event.x > 4 && event.x < 74 && \
+        (pl_current-pl_screenmark+event.y-5) <= pl_maxpos ) {
+	/* Select the selected file :) */
+	pl_current = pl_current-pl_screenmark + event.y - 5;
+	pl_screenmark = event.y - 5;
+	pl_showents(pl_current-pl_screenmark, playlist);
+     } 
 
+   /* left button - double click */	  
+   if ( event.buttons & 4 && event.type & GPM_DOUBLE )
+     if ( event.y > 4 && event.y < 18 && event.x > 4 && event.x < 74 && \
+        (pl_current-pl_screenmark+event.y-5) <= pl_maxpos ) {
+	/* Play the selected file */
+	pl_current = pl_current-pl_screenmark + event.y - 5;
+	pl_screenmark = event.y - 5;
+	pl_showents(pl_current-pl_screenmark, playlist);
+	i = pl_buttonpos;
+	pl_buttonpos = 2;
+	playlist = pl_dofunction(playlist, filenumber);
+	pl_buttonpos = i;
+     }
+   
+   /* right button, any kind of click */
+   if ( event.buttons & 1 && event.type & GPM_DOWN ) 
+     if ( event.y == 4 && event.x > 4 && event.x < 74 ) {
+	/* home */
+	pl_current = 0;
+	pl_screenmark = 0;
+	pl_showents(0, playlist);
+     } else
+     if ( event.y == 18 && event.x > 4 && event.x < 74 ) {
+	/* end */
+	pl_current = pl_maxpos;
+	pl_screenmark = 12;
+	pl_showents(pl_current-pl_screenmark, playlist);
+     }
+   Gpm_GetSnapshot(&event);
+   if ( !event.y ) event.y++;
+   if ( !event.x ) event.y++;
+   GPM_DRAWPOINTER(&event);
+   return playlist;
+}
+#endif
+      
 
 char *lowercases(char *str) {
 static char buf[256];
@@ -577,135 +397,9 @@ int i=0;
    return buf;
 }
 
-void releasedir(struct filelistent *filelist) {
-struct filelistent *temp;
-
-   while ( filelist->prev != NULL ) filelist = filelist->prev;
-   while ( filelist != NULL ) {
-      temp     = filelist;
-      filelist = filelist->next;
-      free(temp);
-   }
-
-}
-
-struct playlistent *loadplaylist(struct playlistent *playlist, char *filename, char filemanager) {
-FILE *fd;
-int  ch=0, cspos, j, cplid3 = FALSE;
-char buf2[256], buf[256], charen[500];
-unsigned int samplerate;
-unsigned int bitrate;
-unsigned char mode;
-struct oneplaylistent getpl;
-   
-   fd = fopen(filename, "r");
-   if ( fd == NULL ) return playlist;
-
-   if ( playlist != NULL ) strcpy(playlistname, "misc. files loaded"); else {
-      if ( strchr(filename, '/') ) {
-	 strcpy(buf, filename);
-	 for(ch=0;ch<strlen(filename);ch++)
-	   if ( filename[ch] == '/' ) cspos=0; else {
-	      buf[cspos] = filename[ch];
-	      cspos++;
-	   }
-	 buf[cspos] = 0;
-	 strncpy(playlistname, buf, 19);
-      } else strncpy(playlistname, filename, 19);
-   }
-   
-   if ( filemanager ) l_status("Loading, please wait...");
-   readln(fd, buf);
-   if (!strncmp(buf, "CPL+ID3 1.3", 11)) {
-      if ( playlist == NULL ) {
-	 playlist = (struct playlistent*)malloc(sizeof(struct playlistent));
-	 playlist->prev = NULL;
-	 playlist->next = NULL;
-	 playlist->number = 0;
-      } else
-	while ( playlist->next != NULL ) playlist = playlist->next;
-      
-      while ( fread((void*)&getpl, sizeof(struct oneplaylistent), 1, fd) != 0 ) {
-	 memcpy((void*)playlist, (void*)&getpl, sizeof(struct oneplaylistent));
-	 playlist->next = (struct playlistent*)malloc(sizeof(struct playlistent));
-	 playlist->next->prev = playlist;
-	 playlist->next->next = NULL;
-	 playlist->next->number = playlist->number +1;
-	 playlist = playlist->next;
-      }
-   } else 
-     if (!strncmp(buf, "CPL+ID3", 7)) { /* wrong version playlist ;( */
-	if ( filemanager ) l_status("This playlist is too old, please check the README"); else {
-	   printf("This playlist is too old, please check the README\n");
-	   exit(-1);
-	}
-	sleep(2);
-	l_status(NULL);
-     } else
-     do { /* while readln != EOF */
-	playlist = addfiletolist(playlist, buf, NULL, 0, 0, 0, TRUE);
-     } while ( readln(fd, buf) != EOF );
-   fclose(fd);
-   if ( filemanager ) { 
-      l_status(NULL);
-      fl_updatebuttons(0);
-   }
-   return playlist;
-}
-
-void saveplaylist(struct playlistent *playlist, char *cdir, char *filename) {
-FILE   *fd;
-fd_set stdinfds;
-char   cplid3 = TRUE, ch, buf[256], buf2[60];
-int    exitchar = 0;
-struct oneplaylistent getpl;
-   
-   memset((void*)&getpl, 0, sizeof(struct oneplaylistent));
-   if ( playlist == NULL ) return;
-   while ( playlist->prev != NULL ) playlist = playlist->prev;
-   
-   l_status("\e[36;46;1m\e[?25hSave as:\e[0;34;46m");
-   strcpy(buf2, readyxline(19, 17, filename, 56, &exitchar, (int*)&ch));
-   if ( exitchar == 27 ) {
-      l_status("\e[?25l");
-      fl_updatebuttons(0);
-      return;
-   } 
-   
-   if ( strchr(buf2, '/') == NULL )
-     sprintf(buf, "%s/%s", cdir, buf2); else
-     strcpy(buf, buf2);
-     
-   
-   l_status("Save ID3 tags with playlist, for quicker loading? (Y/n)");
-   FD_ZERO(&stdinfds);
-   FD_SET(0, &stdinfds);
-   select(1, &stdinfds, NULL, NULL, NULL);
-   fd = fopen(buf, "w");
-   if ( toupper(getchar()) == 'N' ) cplid3 = FALSE; else
-     fputs("CPL+ID3 1.3\n", fd);
-   
-   l_status("Saving...\e[?25l");
-
-   if ( cplid3 ) 
-     do {
-	memcpy((void*)&getpl, (void*)playlist, sizeof(struct oneplaylistent));
-	fwrite((void*)&getpl, sizeof(struct oneplaylistent), 1, fd);
-	if ( playlist->next != NULL ) playlist = playlist->next;
-     } while (playlist->next != NULL);
-   else 
-     do {
-	fputs(playlist->name, fd);
-	fputc('\n', fd);
-	if ( playlist->next != NULL ) playlist = playlist->next;
-     } while ( playlist->next != NULL );
-   fclose(fd);
-   l_status(NULL);
-   fl_updatebuttons(0);
-}
 
 struct playlistent *addfiletolist(struct playlistent *playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 ) {
-char   name[31], artist[31];
+char   name[31], artist[31], cwd[256];
 int    cspos=0, j;
 struct stat statf;
 size_t filesize;
@@ -726,7 +420,11 @@ size_t filesize;
    playlist->next->number = playlist->number +1;
    playlist->samplerate = samplerate;
    playlist->bitrate = bitrate;
-   strcpy(playlist->name, filename);
+   if ( filename[0] != '/' ) {
+      getcwd(cwd, 256);
+      sprintf(playlist->name, "%s/%s", cwd, filename);
+   } else  
+     strcpy(playlist->name, filename);
 
    if ( showname == NULL ) {
       if ( scanid3 && getmp3info(filename, &mode, &samplerate, &bitrate, name, artist, NULL, NULL, NULL, 0) ) {
@@ -782,8 +480,9 @@ struct playlistent *temp;
 struct playlistent *sortplaylist(struct playlistent *playlist) {
 struct playlistent *sortedlist, *temp;
 int i,j;
-unsigned int playlistents = pl_seek(65535, playlist)->number;
+unsigned int playlistents = pl_count(playlist);
    
+   if ( playlist == NULL ) return playlist;
    sortedlist = (struct playlistent*)malloc(sizeof(struct playlistent));
    sortedlist->prev = NULL;
    sortedlist->next = NULL;
@@ -820,54 +519,7 @@ unsigned int playlistents = pl_seek(65535, playlist)->number;
    return(sortedlist);
 }
 
-
-struct filelistent *sortfilelist(struct filelistent *filelist) {
-struct filelistent *sortedlist, *temp;
-int i,j;
-unsigned int filelistents = file_seek(65535, filelist)->number;
    
-   sortedlist = (struct filelistent*)malloc(sizeof(struct filelistent));
-   sortedlist->prev = NULL;
-   sortedlist->next = NULL;
-   sortedlist->number = 0;
-   
-   for(i=0;i<filelistents;i++) {
-      filelist = file_seek(0, filelist);
-      temp = filelist;
-      while ( filelist->next != NULL ) {
-	 for(j=0;j<strlen(filelist->name);j++)
-	   if( filelist->type == 2 && temp->type == 1 ) {
-	      temp = filelist;
-	      break;
-	   } else
-	   if ( filelist->type == 1 && temp->type == 2 )
-	     break; else
-	   if( filelist->name[j] < temp->name[j] ) {
-	      temp = filelist;
-	      break;
-	   } else
-	   if ( filelist->name[j] != temp->name[j] )
-	     break;	 
-	 filelist = filelist->next;
-      }
-      sortedlist->next = (struct filelistent*)malloc(sizeof(struct filelistent));
-      sortedlist->next->prev = sortedlist;
-      sortedlist->next->next = NULL;
-      sortedlist->next->number = sortedlist->number+1;
-      strcpy(sortedlist->name, temp->name);
-      sortedlist->tagged = temp->tagged;
-      sortedlist->type = temp->type;
-      sortedlist = sortedlist->next;
-      
-      if ( temp->prev != NULL ) temp->prev->next = temp->next; else
-	temp->next->prev = NULL;
-      if ( temp->next != NULL ) temp->next->prev = temp->prev; else
-	temp->prev->next = NULL;
-      free(temp);
-   }
-   return(sortedlist);
-}
-
 void l_status(char *text) {
    if ( text != NULL )
    printf("\e[19;8H\e[1;36;46m                                                              \e[19;8H%s", text); else
