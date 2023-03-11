@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdio.h>
 #include <signal.h>
 #include <errno.h>
@@ -48,11 +49,11 @@ const char keys[] = { '1', '4', '5', '6' };
 /* const char keys[] = { 'H', 'F', 'I', 'G' }; */
 
 /* Why did I really do this key-shit? this lame proggy still only support
- standard linux terminals and similar .. that's the only OS I run nowdays.. 
+ standard linux terminals and similar .. that's the only OS I run nowdays..
 */
 
-/* ... and here goes all the nice global variables that I were planning on 
- removing someday. Now I realised that I really don'r care about them.. 
+/* ... and here goes all the nice global variables that I were planning on
+ removing someday. Now I realised that I really don'r care about them..
  so what da heck. Feel like fixing it? You're welcome ..
 */
 
@@ -398,13 +399,13 @@ int left, right;
 
 void updatebuttons(char motion) {
 int i;
-   
+
    if ( motion != KM_NONE )
      if ( motion == KM_UP    && config.skin.mju[buttonpos] != -1 ) buttonpos = config.skin.mju[buttonpos]; else
      if ( motion == KM_DOWN  && config.skin.mjd[buttonpos] != -1 ) buttonpos = config.skin.mjd[buttonpos]; else
      if ( motion == KM_LEFT  && config.skin.mjl[buttonpos] != -1 ) buttonpos = config.skin.mjl[buttonpos]; else
      if ( motion == KM_RIGHT && config.skin.mjr[buttonpos] != -1 ) buttonpos = config.skin.mjr[buttonpos];
- 
+
    for (i=MINBUTTON;i<(MAXBUTTON+1);i++) {
       if ( !config.skin.my[i] + !config.skin.mx[i] ) continue;
       printf("\e[%d;%dH",config.skin.my[i], config.skin.mx[i]);
@@ -627,7 +628,7 @@ int ch1, ch2, flags;
 }
 
 
-int dofunction(char forcedbutton) {
+int dofunction(int forcedbutton) {
 static struct timeval pause_start, pause_end;
 char pass[16], checkpass[16];
 int mod, ec, oldfilenumber;
@@ -635,7 +636,7 @@ char *buf, *buf2;
 FILE *fd;
    
    if ( forcedbutton == -1 ) forcedbutton = buttonpos;
-   
+
    switch( forcedbutton ) {
 
     case 0: /* skip back */
@@ -846,7 +847,7 @@ FILE *fd;
       break;
       
     case 12: /* desc edit */
-      if ( !playlist ) return;
+      if ( !playlist ) return(0);
       quiet = TRUE;      
       id3edit(pl_seek(filenumber, &playlist)->name, pl_seek(filenumber, &playlist));
 #ifdef LIRCD
@@ -883,7 +884,7 @@ FILE *fd;
 #endif
       
     default:
-      return;
+      return(0);
    }   
    return(0);
 }

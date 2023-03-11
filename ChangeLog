@@ -5,6 +5,10 @@ CAMP Changelog
 - Remove
 ! Known bug
 
+2013-04-20: v1.6.3744
+* Fixed lots of coding mistakes and invalid variable types.
+  Now compiles on Raspbian, etc.
+
 2002-05-05: v1.5.3589
 * Fixed the bug wich segfaulted camp if you where trying to steal it from X
 * Fixed the bug when using a pre 0.59s mpg123 player and mpg123 mode

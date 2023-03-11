@@ -1,7 +1,8 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #ifdef HAVE_SYS_SOUNDCARD_H
-# include <sys/soundcard.h>
+#include <sys/soundcard.h>
 #endif
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -420,14 +421,15 @@ char buf[500], arg[500], value[500], skin_home[500];
       printf("error! %s not found!\n", buf);
       exit(-1);
    }
-   
+
    while ( fgets((char*)buf, 499, filefd) != NULL ) { /* parse skin configuration */
+
       if ( !parseconfig(buf, arg, value) ) continue;
-      
+
       if ( !strcasecmp(arg, "version") ) {
 	 version = atoi(value);
 	 if ( version < 100 || version >= 110 ) {
-	    printf("skin version is %d, must be between 100-109 to work with this camp version!\n", version);
+	    printf("a) skin version is %d, must be between 100-109 to work with this camp version!\n", version);
 	    exit(-1);
 	 } 
       } else
@@ -941,8 +943,8 @@ char buf[500], arg[500], value[500], skin_home[500];
       
    }
 
-   if ( version < 100 || version >= 110 ) {
-      printf("skin version is %d, must be between 100-109 to work with this camp version!\n", version);
+   if ( version == 0 ) {
+      printf("Skin version not found, possible error while parsing skin configuration file?\n");
       exit(-1);
    } 
    
@@ -1414,8 +1416,9 @@ int parseconfig(char *str, char *arg, char *value) {
    arg[strchrpos(str, '=', 1)] = 0;
    strcpy(value, str+strchrpos(str, '=', 1)+1 );
    strcpy(arg, strtrim(arg, ' '));
-   strcpy(value, strtrim(value, ' '));   
+   strcpy(value, strtrim(value, ' '));  
    if ( value[0] == '\"' ) strcpy(value, strtrim(value, '\"'));
+   return TRUE;
 }
 
 char *randomskin(char *rbuf) {

@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <dirent.h>
 #include <string.h>
 #include <signal.h>
@@ -388,7 +389,7 @@ int i;
 }
 
 
-void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, char forcedbutton) {
+void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, int forcedbutton) {
 struct playlistent *temp = NULL;
 int length;   
    

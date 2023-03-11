@@ -1,6 +1,8 @@
+#include <stdio.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/soundcard.h>
+#include <unistd.h>
 #include "camp.h"
 
 extern struct configstruct config;

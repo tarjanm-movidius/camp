@@ -1,4 +1,4 @@
-dnl Process this file with autoconf to produce a configure script.
+dnl Process this file with autoconf to produce a configure script. 
 AC_INIT(camp.h)
 #AC_CONFIG_HEADER(config.h)
 
@@ -23,26 +23,55 @@ else
  AC_MSG_RESULT(no)
 fi
 
+
+
+
+AC_MSG_CHECKING([for x86 assembler instructions])
+AC_TRY_COMPILE(,[
+        unsigned char val,port;
+        __asm__ volatile ("inb %1,%0"
+                          : "=a" (val)
+                          : "d" ((unsigned short)port));
+  ],[
+   x86asm="yes"
+   AC_MSG_RESULT(yes)
+  ],[
+   x86asm="no"
+   AC_MSG_RESULT(no)
+  ])
+
+
+
 AC_CHECK_FUNCS(ioperm,[
 AC_MSG_CHECKING(whether to compile LPT remote control code)
 AC_ARG_WITH(rc,[  --without-rc            Don't compile code for using LPT remote control])
 
 if test "$with_rc" != no; then
- AC_MSG_RESULT(yes)
- DEFINES="$DEFINES -DRC_ENABLED"
- OBJS="$OBJS rc.o"
-else
+ if test "$x86asm" != no; then
+    DEFINES="$DEFINES -DRC_ENABLED"
+    OBJS="$OBJS rc.o"
+    AC_MSG_RESULT(yes)
+ else
+  AC_MSG_RESULT([no, x86asm missing])
+ fi
+ else
  AC_MSG_RESULT(no)
 fi
+
 ],)
 
+
+
 dnl Checks for libraries.
+
 
 AC_MSG_CHECKING(whether to compile with gpm if available)
 AC_ARG_WITH(gpm,[  --without-gpm           Don't compile with gpm even if found])
 
+
+AC_CHECK_HEADERS(gpm.h,[
+
 if test "$with_gpm" != no; then
- AC_MSG_RESULT(yes)
 
   AC_CHECK_LIB(gpm,main,[
    LIBS="$LIBS -lgpm"
@@ -60,6 +89,8 @@ if test "$with_gpm" != no; then
 else
  AC_MSG_RESULT(no)
 fi
+
+])
 
 AC_CHECK_LIB(z, gzopen)
 

@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <malloc.h>
+#include <stdlib.h>
 #include "camp.h"
 
 #ifdef HAVE_TERMIOS_H

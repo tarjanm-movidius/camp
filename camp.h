@@ -17,7 +17,7 @@
 # define FALSE 0
 #endif
 
-#define CAMP_VERSION "1.5"
+#define CAMP_VERSION "1.6"
 
 #define    MINBUTTON 0
 #define    MAXBUTTON 16
@@ -113,7 +113,7 @@ struct usableID3 {
 struct skinconfig {
    char mpclr, miclr, piclr, pclr, fclr, iclr;
    char mx[MAXBUTTON+1], my[MAXBUTTON+1], mw[MAXBUTTON+1], *ma[MAXBUTTON+1], *mi[MAXBUTTON+1], mh[MAXBUTTON+1];
-   char mju[MAXBUTTON+1], mjd[MAXBUTTON+1], mjl[MAXBUTTON+1], mjr[MAXBUTTON+1];
+   signed int mju[MAXBUTTON+1], mjd[MAXBUTTON+1], mjl[MAXBUTTON+1], mjr[MAXBUTTON+1];
    char px[PL_MAXBUTTON+1], py[PL_MAXBUTTON+1], pw[PL_MAXBUTTON+1], *pa[PL_MAXBUTTON+1], *pi[PL_MAXBUTTON+1];
    char fx[FL_MAXBUTTON+1], fy[FL_MAXBUTTON+1], fw[FL_MAXBUTTON+1], *fa[FL_MAXBUTTON+1], *fi[FL_MAXBUTTON+1];
    char ix[7], iy[7], *modetext[3], *stereotext[2];
@@ -211,7 +211,7 @@ void updatedata(void);
 void updatesongtime(char ch);
 void unloadskin(struct skinconfig *skin);
 void sighandler(int sig);
-int  dofunction(char forcedbutton);
+int  dofunction(int forcedbutton);
 int  showtip(void);
 
 /* playlist.o */
@@ -222,7 +222,7 @@ void pl_showents( int startpos, struct playlistent *playlist,int *);
 void pl_updatebuttons(int add);
 void l_status(char *text);
 void clearplaylist(struct playlistent **playlist);
-void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, char forcedbutton);
+void pl_dofunction(struct playlistent **playlist, unsigned int *filenumber, int forcedbutton);
 void addfiletolist(struct playlistent **playlist, char *filename, char *showname, unsigned int bitrate, unsigned int samplerate, unsigned char mode, char scanid3 );
 void rplaylist(struct playlistent **playlist, unsigned int *filenumber);
 void sortplaylist(struct playlistent **playlist);
