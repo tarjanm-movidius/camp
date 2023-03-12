@@ -689,8 +689,11 @@ uintptr_t dofunction(int forcedbutton)
 
     case 1: /* play */
         if ( !playlist ) return(0);
-        if ( pausesong )  {
-            kill(slavepid, SIGCONT);
+        if ( playsong && pausesong ) {
+            if ( config.mpg123 )
+                mpg123_control("PAUSE\n");
+            else
+                kill(slavepid, SIGCONT);
             pausesong = FALSE;
             updatesongtime('e');
             return(0);

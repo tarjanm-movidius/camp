@@ -586,7 +586,7 @@ echo 'BEGIN {' >"$tmp/subs1.awk" &&
 cat >>"$tmp/subs1.awk" <<\_ACAWK &&
 S["LTLIBOBJS"]=""
 S["LIBOBJS"]=""
-S["DEFINES"]=" -DLIRCD=\\\"/dev/lircd\\\" -DLIRCCFGFILE=\\\".camp/lircrc\\\" -DRC_ENABLED -DUSE_GPM_MOUSE -DCUSTOM_RUN=\\\"/usr/bin/aumix\\\""
+S["DEFINES"]=" -DLIRCD=\\\"/dev/lircd\\\" -DLIRCCFGFILE=\\\".camp/lircrc\\\" -DRC_ENABLED -DUSE_GPM_MOUSE -DCUSTOM_RUN=\\\"/usr/bin/alsamixer\\\""
 S["OBJS"]="misc.o id3.o fork.o player.o cconfig.o filelist.o playlist.o main.o lirc_client.o rc.o mixer.o"
 S["EGREP"]="/usr/bin/grep -E"
 S["GREP"]="/usr/bin/grep"

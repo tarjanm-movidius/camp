@@ -124,8 +124,8 @@ AC_MSG_CHECKING(for external mixer)
 
 for dir in /usr/bin /usr/local/bin /bin /sbin \
            /usr/sbin /usr/local/sbin; do
-if test -x $dir/aumix
-then mixer="$dir/aumix"; break;
+if test -x $dir/alsamixer
+then mixer="$dir/alsamixer"; break;
 fi
 done
 

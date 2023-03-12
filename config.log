@@ -252,7 +252,7 @@ configure:3607: result: yes
 configure:3607: checking for utmp.h
 configure:3607: result: yes
 configure:3628: checking for external mixer
-configure:3640: result: /usr/bin/aumix
+configure:3640: result: /usr/bin/alsamixer
 configure:3649: checking for old camp binary
 configure:3660: result: /usr/bin
 configure:3809: creating ./config.status
@@ -331,7 +331,7 @@ CC='gcc'
 CFLAGS='-O2'
 CPP='gcc -E'
 CPPFLAGS=''
-DEFINES=' -DLIRCD=\"/dev/lircd\" -DLIRCCFGFILE=\".camp/lircrc\" -DRC_ENABLED -DUSE_GPM_MOUSE -DCUSTOM_RUN=\"/usr/bin/aumix\"'
+DEFINES=' -DLIRCD=\"/dev/lircd\" -DLIRCCFGFILE=\".camp/lircrc\" -DRC_ENABLED -DUSE_GPM_MOUSE -DCUSTOM_RUN=\"/usr/bin/alsamixer\"'
 DEFS='-DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DHAVE_IOPERM=1 -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_GPM_H=1 -DHAVE_LIBZ=1 -DHAVE_TERMIOS_H=1 -DHAVE_SYS_SOUNDCARD_H=1 -DHAVE_SYS_IOCTL_H=1 -DHAVE_UTMP_H=1'
 ECHO_C=''
 ECHO_N='-n'

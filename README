@@ -221,7 +221,7 @@ light "pl" button:
  Loads up the playlist editor.
 
 light, custom button, defaults to "mixr"
- If default settings, will try to execute /usr/bin/aumix, check config.h
+ If default settings, will try to execute /usr/bin/alsamixer, check config.h
  in the source to change.
 
 

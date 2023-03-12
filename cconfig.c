@@ -10,6 +10,9 @@
 #include "camp.h"
 #include <sys/types.h>
 
+#ifdef DEBUG
+# define realloc(ptr_, sz_) ({void *retval_; if(ptr_) printf("WW: duplicate definition of '%s'\n", arg); fflush(stdout); retval_ = realloc(ptr_, sz_); retval_;})
+#endif
 
 struct configstruct getconfig(char *configfile)
 {
@@ -233,7 +236,7 @@ struct configstruct getconfig(char *configfile)
     if ( cconfig.quiet[0] != 0 ) {
         for(i=0; i<14; i++)
             if ( cconfig.playerargv[i] == NULL ) break;
-        cconfig.playerargv[i] = (char*)realloc(cconfig.playerargv[i], strlen(cconfig.quiet)+1);
+        cconfig.playerargv[i] = (char*)malloc(strlen(cconfig.quiet)+1);
         strcpy(cconfig.playerargv[i], cconfig.quiet);
     }
 
@@ -349,7 +352,7 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
     fstat(fd, &statbuf);
-    config->skin.main = (char*)realloc(config->skin.main, statbuf.st_size+1);
+    config->skin.main = (char*)malloc(statbuf.st_size+1);
     read(fd, config->skin.main, statbuf.st_size);
     close(fd);
     config->skin.main[statbuf.st_size] = 0;
@@ -361,7 +364,7 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
     fstat(fd, &statbuf);
-    config->skin.playlist = (char*)realloc(config->skin.playlist, statbuf.st_size+1);
+    config->skin.playlist = (char*)malloc(statbuf.st_size+1);
     read(fd, config->skin.playlist, statbuf.st_size);
     close(fd);
     config->skin.playlist[statbuf.st_size] = 0;
@@ -373,7 +376,7 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
     fstat(fd, &statbuf);
-    config->skin.filelist = (char*)realloc(config->skin.filelist, statbuf.st_size+1);
+    config->skin.filelist = (char*)malloc(statbuf.st_size+1);
     read(fd, config->skin.filelist, statbuf.st_size);
     close(fd);
     config->skin.filelist[statbuf.st_size] = 0;
@@ -385,7 +388,7 @@ void loadskin(char *name, struct configstruct *config)
         exit(-1);
     }
     fstat(fd, &statbuf);
-    config->skin.id3 = (char*)realloc(config->skin.id3, statbuf.st_size+1);
+    config->skin.id3 = (char*)malloc(statbuf.st_size+1);
     read(fd, config->skin.id3, statbuf.st_size);
     close(fd);
     config->skin.id3[statbuf.st_size] = 0;

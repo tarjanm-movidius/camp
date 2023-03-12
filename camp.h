@@ -49,7 +49,7 @@ extern FILE *dbgout;
 #define NICE_NAMES
 
 #ifndef CUSTOM_RUN
-# define CUSTOM_RUN    "/usr/local/bin/aumix" /* program to run when CUSTOM is pressed */
+# define CUSTOM_RUN    "/usr/bin/alsamixer" /* program to run when CUSTOM is pressed */
 #endif
 
 #define KEY_HOME 0
