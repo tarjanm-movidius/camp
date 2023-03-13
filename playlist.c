@@ -735,7 +735,7 @@ void sortplaylist(struct playlistent **playlist)
     sortedlist->number = 0;
 
     for(i=0; i<playlistents; i++) {
-        if ( config.mpg123 ) (void*)mpg123_control(NULL);
+        if ( config.mpg123 ) mpg123_control(NULL);
         pl_seek(0, playlist);
         temp = *playlist;
         while ( (*playlist)->next != NULL && *playlist != NULL ) {

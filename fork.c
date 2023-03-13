@@ -210,11 +210,11 @@ void stealback(void)
             signal(SIGCHLD, playnext);
             playsong = TRUE;
             snprintf(buf, 255, "LOAD %s\n", currentfile.name);
-            (void*)mpg123_control(buf);
-            if ( !config.mpg123fastjump ) (void*)mpg123_control("#@S");
+            mpg123_control(buf);
+            if ( !config.mpg123fastjump ) mpg123_control("#@S");
             /* -- for versions of mpg123 earlier than 0.59s to resume song currectly */
             sprintf(buf, "JUMP +%lu\n", currentfile.frame);
-            (void*)mpg123_control(buf);
+            mpg123_control(buf);
         }
     } else printf("done!\n");
 

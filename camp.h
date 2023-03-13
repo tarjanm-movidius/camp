@@ -1,6 +1,7 @@
 #ifndef __camp_h
 # define __camp_h
 
+#pragma GCC diagnostic ignored "-Wpragmas"
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 

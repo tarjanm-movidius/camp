@@ -268,9 +268,9 @@ int main(int argc, char *argv[])
 
     if ( config.mpg123 ) {
         playsong = TRUE;
-        (void*)mpg123_control(NULL);
+        mpg123_control(NULL);
 //      printf("Awaiting mpg123 to become ready.."); fflush(stdout);
-//      (void*)mpg123_control("#@"); /* R MPG123"); */
+//      mpg123_control("#@"); /* R MPG123"); */
 //      sleep(2);
 //      mpg123_control("load /Mp3/12. Sy & Demo - Tears Run Cold.mp3\n");
 //      printf("Rock 'n' roll!\n");
@@ -795,7 +795,7 @@ uintptr_t dofunction(int forcedbutton)
 
     case 7: /* rew (mpg123 mode only) */
         if ( config.mpg123 )
-            (void*)mpg123_control("JUMP -150\n");
+            mpg123_control("JUMP -150\n");
         updatesongtime('u');
         break;
 
@@ -821,7 +821,7 @@ uintptr_t dofunction(int forcedbutton)
 
     case 9: /* ff (mpg123 mode only) */
         if ( config.mpg123 )
-            (void*)mpg123_control("JUMP +150\n");
+            mpg123_control("JUMP +150\n");
         updatesongtime('u');
         break;
 
