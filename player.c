@@ -248,7 +248,7 @@ char *mpg123_control(char *command)
             config.playerargv[i][0] = 0;
             sprintf(buf, "%s/%s", config.playerpath, config.playername);
 
-            if ( execve(buf, config.playerargv, NULL) == -1 ) {
+            if ( execve(buf, config.playerargv, environ) == -1 ) {
                 printf("Execution of player (%s) failed!\n", buf);
                 perror("execve()");
                 sleep(2);

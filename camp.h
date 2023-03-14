@@ -75,6 +75,8 @@ extern FILE *dbgout;
 
 #define ID3_PAD_CH 0   /* was ' ' for some reason */
 
+extern char **environ;
+
 /* structures */
 struct filelistent {
     char name[FL_BUF_LEN];

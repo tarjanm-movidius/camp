@@ -24,7 +24,6 @@ extern int lirc_lircd;
 extern struct lirc_config *lircd_config;
 #endif
 
-extern char **environ;
 extern struct configstruct config;
 
 int ansi_strlen(char *string)
