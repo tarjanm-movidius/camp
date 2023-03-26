@@ -443,13 +443,9 @@ void loadskin(char *name, struct configstruct *config)
             else if ( !strcasecmp(arg, "mouseexpand") )
                 config->skin.mouseexpand = atoi(value);
             else if ( !strcasecmp(arg, "clearscreenafterpl" ) )
-                if ( !strcasecmp(value, "true") ) config->skin.mpclr = TRUE;
-                else
-                    config->skin.mpclr = FALSE;
+                config->skin.mpclr = is_val_true(value);
             else if ( !strcasecmp(arg, "clearscreenafterid3" ) )
-                if ( !strcasecmp(value, "true") ) config->skin.miclr = TRUE;
-                else
-                    config->skin.miclr = FALSE;
+                config->skin.miclr = is_val_true(value);
             else if ( !strcasecmp(arg, "timex") )
                 config->skin.timex = atoi(value);
             else if ( !strcasecmp(arg, "timey") )
@@ -950,9 +946,7 @@ void loadskin(char *name, struct configstruct *config)
         if ( !parseconfig(buf, &arg, &value) ) continue;
 
         if ( !strcasecmp(arg, "clearscreen" ) )
-            if ( !strcasecmp(value, "true") ) config->skin.pclr = TRUE;
-            else
-                config->skin.pclr = FALSE;
+            config->skin.pclr = is_val_true(value);
         else if ( !strcasecmp(arg, "startbutton") )
             config->skin.psb = atoi(value);
         else if ( !strcasecmp(arg, "buttonorder") ) {
@@ -962,9 +956,7 @@ void loadskin(char *name, struct configstruct *config)
                 if ( config->skin.plistbo[i] < 0 || config->skin.plistbo[i] > 9 ) config->skin.plistbo[i] = -1;
             }
         } else if ( !strcasecmp(arg, "clearscreenafterid3" ) )
-            if ( !strcasecmp(value, "true") ) config->skin.piclr = TRUE;
-            else
-                config->skin.piclr = FALSE;
+            config->skin.piclr = is_val_true(value);
         else if ( !strcasecmp(arg, "mainvisible") )
             config->skin.mainatpl = atoi(value);
         else if ( !strcasecmp(arg, "id3editvisible") )
@@ -1107,9 +1099,7 @@ void loadskin(char *name, struct configstruct *config)
         if ( !parseconfig(buf, &arg, &value) ) continue;
 
         if ( !strcasecmp(arg, "clearscreen" ) )
-            if ( !strcasecmp(value, "true") ) config->skin.fclr = TRUE;
-            else
-                config->skin.fclr = FALSE;
+            config->skin.fclr = is_val_true(value);
         else if ( !strcasecmp(arg, "startbutton") )
             config->skin.fsb = atoi(value);
         else if ( !strcasecmp(arg, "buttonorder") ) {
@@ -1292,9 +1282,7 @@ void loadskin(char *name, struct configstruct *config)
         if ( !parseconfig(buf, &arg, &value) ) continue;
 
         if ( !strcasecmp(arg, "clearscreen" ) )
-            if ( !strcasecmp(value, "true") ) config->skin.iclr = TRUE;
-            else
-                config->skin.iclr = FALSE;
+            config->skin.iclr = is_val_true(value);
         else if ( !strcasecmp(arg, "filenamec") ) {
             config->skin.id3fnc = (char*)realloc(config->skin.id3fnc, strlen(value)+1);
             cpy_replace(config->skin.id3fnc, value, '&', 27);

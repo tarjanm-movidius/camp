@@ -885,10 +885,10 @@ int lirc_iscode(struct lirc_config_entry *scan,char *remote,char *button,int rep
                     strcasecmp(prev->remote,remote)==0) {
                 if(prev->button==LIRC_ALL ||
                         strcasecmp(prev->button,button)==0) {
-                    if(rep==0) {
+//                    if(rep==0) {
                         scan->next_code=prev->next;
                         return(0);
-                    }
+//                    }
                 }
             }
         }

@@ -276,7 +276,7 @@ char *mpg123_control(char *command)
         len = write(mpgwfd, command, strlen(command));
         if ( len != strlen(command) ) {
             /* Write error! This is no good.. */
-            DBGPRINT("## Error sending command '%s', sent %lu of %lu\n", command, len, strlen(command))
+            DBGPRINT("## Error sending command '%s', sent %lu of %lu\n", command, len, (unsigned long)strlen(command))
             close(mpgwfd);
             close(mpgrfd);
             killslave();
@@ -317,7 +317,7 @@ char *mpg123_control(char *command)
                     Older version than 0.59s that cannot handle the quickjump
                     */
 
-                    if ( buf[10] == '0' && strncmp(buf+10, "0.59s", 4) < 0 )
+                    if ( buf[10] == '0' && strncmp(buf+10, "0.59s", 5) < 0 )
                         config.mpg123fastjump = FALSE;
                     else
                         config.mpg123fastjump = TRUE;

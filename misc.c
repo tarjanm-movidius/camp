@@ -26,14 +26,15 @@ extern struct lirc_config *lircd_config;
 
 extern struct configstruct config;
 
-int ansi_strlen(char *string)
+unsigned int ansi_strlen(char *text)
 {
-    int i=0, len=0; /* returns length of a string with ansi codes stripped off */
+    unsigned int i, len=0; /* returns length of a string with ansi codes stripped off */
 
-    for(; i<strlen(string); i++)
-        if ( string[i] == '\e' )
-            while ( !strchr("abcdefghijklmnopqrstuvwxyz", tolower(string[i])) )
-                i++;
+    for (i = 0; text[i]; i++)
+        if ( text[i] == '\e' ) {
+            for (i++; text[i] && (text[i] < 'A' || text[i] > 'Z') && (text[i] < 'a' || text[i] > 'z'); i++);
+            if( !text[i] ) break;
+        }
         else
             len++;
     return len;
@@ -89,13 +90,13 @@ char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitch
                      if ( ir ) free(ir);
                   } */
 
-                else if FD_ISSET(fileno(stdin), &fds) ch = getchar();
+                else if (FD_ISSET(fileno(stdin), &fds)) ch = getchar();
             }
         } else if ( select(fileno(stdin)+1, &fds, NULL, NULL, &counter) != -1 )
-            if FD_ISSET(fileno(stdin), &fds) ch = getchar();
+            if (FD_ISSET(fileno(stdin), &fds)) ch = getchar();
 #else
         if ( select(fileno(stdin)+1, &fds, NULL, NULL, &counter) != -1 )
-            if FD_ISSET(fileno(stdin), &fds) ch = getchar();
+            if (FD_ISSET(fileno(stdin), &fds)) ch = getchar();
 #endif
         if ( ch == 3 && canexit() ) exit(0); /* ^C */
         if ( ch == 26 && canexit() ) disappear();
@@ -247,12 +248,12 @@ unsigned int myrand(double maxval)
     return(i);
 }
 
-void lowcases( char *strng )
+void lowcases( char *text )
 {
-    int i=0;
+    unsigned int i;
 
-    for(; i<strlen(strng); i++)
-        strng[i] = tolower(strng[i]);
+    for (i = 0; text[i]; i++)
+        text[i] = tolower(text[i]);
 }
 
 unsigned char mykbhit(unsigned int sec, unsigned long usec)
@@ -271,8 +272,9 @@ unsigned char mykbhit(unsigned int sec, unsigned long usec)
 
 int strchrpos(const char *text, int ch, int what)
 {
-    int i=0, wht=0;
-    for(; i<strlen(text); i++)
+    int i, wht=0;
+
+    for (i = 0; text[i]; i++)
         if ( text[i] == ch ) {
             wht++;
             if ( what == wht ) return i;
@@ -323,7 +325,6 @@ char *str_strip_end(char *text, unsigned int maxlen)
         while (i && (IS_CRLF(text[i]) || IS_SPACE(text[i]))) i--;
         if (!IS_CRLF(text[i]) && !IS_SPACE(text[i])) i++;
     }
-    if (i >= maxlen) i = maxlen - 1;
 
     text[i] = 0;
     return text;
@@ -340,7 +341,6 @@ void cpy_strip_end(char *dst, const char *src, unsigned int maxlen)
         while (i && (IS_CRLF(dst[i]) || IS_SPACE(dst[i]))) i--;
         if (!IS_CRLF(dst[i]) && !IS_SPACE(dst[i])) i++;
     }
-    if (i >= maxlen) i = maxlen - 1;
 
     dst[i] = 0;
 }

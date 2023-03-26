@@ -304,7 +304,7 @@ int probe_dir(char *dir);
 
 /* misc.o */
 int exist(char *fname);
-int ansi_strlen(char *string);
+unsigned int ansi_strlen(char *string);
 char *readyxline(char y, char x, char *preval, unsigned char maxlen, int *exitchar, int *modified);
 char *strtrim(char *text, char trimchar);
 char *replace(char *text, char oldc, char newc);
