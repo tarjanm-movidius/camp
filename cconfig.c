@@ -1486,7 +1486,7 @@ int parseconfig(const char *str, char **arg, char **value)
             j = i - j;
         } else {
             *value = (char*)&str[i]; j = i;
-            while (str[i] && !IS_CRLF(str[i])) i++;
+            while (str[i] && !IS_CRLF(str[i]) && str[i] != '#') i++;
             if((j = i - j)) {
                 j--;
                 while (j && IS_SPACE((*value)[j])) j--;

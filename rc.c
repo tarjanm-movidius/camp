@@ -1,9 +1,5 @@
 #include "camp.h"
-
-extern unsigned int filenumber;
-extern struct playlistent *playlist;
-extern struct configstruct config;
-
+#ifdef NO_IO_H
 int inb (short port)
 {
     unsigned char val;
@@ -12,6 +8,13 @@ int inb (short port)
                       : "d" ((unsigned short)port));
     return val;
 }
+#else
+# include <sys/io.h>
+#endif
+
+extern unsigned int filenumber;
+extern struct playlistent *playlist;
+extern struct configstruct config;
 
 unsigned char rcpressed(void)
 {

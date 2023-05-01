@@ -10,10 +10,13 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/vt.h>
-#include <sys/io.h>
 #include <sys/ioctl.h>
 #include "camp.h"
 #include "chromansi.c"
+
+#ifdef RC_ENABLED
+# include <sys/io.h>
+#endif
 
 #ifdef HAVE_TERMIOS_H
 # include <fcntl.h>

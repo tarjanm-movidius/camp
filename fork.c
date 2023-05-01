@@ -7,8 +7,11 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/io.h>
 #include "camp.h"
+
+#ifdef RC_ENABLED
+# include <sys/io.h>
+#endif
 
 #ifdef HAVE_UTMP_H
 # include <utmp.h>
